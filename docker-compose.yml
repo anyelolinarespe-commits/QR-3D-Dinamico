@@ -1,0 +1,62 @@
+services:
+  # Base de Datos PostgreSQL 16 (Almacenamiento ACID sin pérdida de datos)
+  postgres:
+    image: postgres:16-alpine
+    container_name: qr3d_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: qr3d_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d qr3d_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Redis 7 (Pub/Sub para SSE distribuido, caché y rate-limiting)
+  redis:
+    image: redis:7-alpine
+    container_name: qr3d_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Servidor API Fastify 3D-QR
+  api:
+    build: .
+    container_name: qr3d_api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOST: 0.0.0.0
+      DATABASE_URL: postgresql://postgres:postgrespassword@postgres:5432/qr3d_db
+      REDIS_URL: redis://redis:6379
+      MAX_MODEL_SIZE_MB: 100
+      MAX_IMAGE_SIZE_MB: 20
+      PUBLIC_BASE_URL: http://localhost:3000
+      DEV_TENANT_KEY: tk_live_demo_123456789
+      MASTER_ADMIN_KEY: master_admin_secret_key_2026
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  redisdata:

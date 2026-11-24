@@ -1,0 +1,42 @@
+{
+  "name": "api-3dqr",
+  "version": "1.0.0",
+  "description": "API REST escalable para QRs 3D dinámicos, desechables y adaptativos",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node tests/test.js"
+  },
+  "keywords": [
+    "fastify",
+    "qr",
+    "3d",
+    "gltf",
+    "glb",
+    "threejs",
+    "redis",
+    "postgresql"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@fastify/cors": "^10.0.1",
+    "@fastify/helmet": "^13.0.1",
+    "@fastify/multipart": "^9.0.1",
+    "@fastify/rate-limit": "^10.1.1",
+    "@fastify/static": "^8.0.3",
+    "@gltf-transform/core": "^4.0.7",
+    "@gltf-transform/extensions": "^4.0.7",
+    "dotenv": "^16.4.7",
+    "fastify": "^5.2.0",
+    "ioredis": "^5.4.2",
+    "pg": "^8.13.1",
+    "puppeteer-core": "^25.18.1",
+    "qrcode": "^1.5.4",
+    "sharp": "^0.33.5",
+    "three": "^0.187.0",
+    "uuid": "^11.0.3"
+  }
+}

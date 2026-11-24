@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Museo de las Tumbas Reales de Sipán — Visor 3D Interactivo</title>
+  
+  <!-- Google <model-viewer> (Web Component estándar de alto rendimiento) -->
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 35%, #1c1514 0%, #0d0a09 60%, #050403 100%);
+      color: #f5f2eb;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px;
+      overflow-x: hidden;
+    }
+
+    .container {
+      max-width: 1100px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(218, 165, 52, 0.25);
+    }
+
+    .title-group h1 {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #ffd782 0%, #e5a93c 50%, #9e3223 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 4px;
+    }
+
+    .title-group p {
+      font-size: 14px;
+      color: #b5a999;
+    }
+
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(223, 166, 52, 0.12);
+      color: #dfa634;
+      border: 1px solid rgba(223, 166, 52, 0.35);
+      padding: 8px 16px;
+      border-radius: 9999px;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+
+    .back-btn:hover {
+      background: rgba(223, 166, 52, 0.25);
+      border-color: #dfa634;
+      transform: translateY(-1px);
+    }
+
+    /* Contenedor del visor 3D */
+    .viewer-card {
+      position: relative;
+      background: #120e0d;
+      border: 1px solid rgba(223, 166, 52, 0.3);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8),
+                  0 0 40px rgba(147, 44, 30, 0.15);
+    }
+
+    model-viewer {
+      width: 100%;
+      height: 600px;
+      background: radial-gradient(circle at 50% 40%, #261714 0%, #130b09 70%, #080504 100%);
+      outline: none;
+      --poster-color: transparent;
+    }
+
+    /* Indicador de carga estilizado */
+    .loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(13, 10, 9, 0.92);
+      backdrop-filter: blur(8px);
+      z-index: 50;
+      transition: opacity 0.4s ease, visibility 0.4s ease;
+    }
+
+    .loading-overlay.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .spinner {
+      width: 52px;
+      height: 52px;
+      border: 4px solid rgba(223, 166, 52, 0.2);
+      border-top-color: #dfa634;
+      border-right-color: #932c1e;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 16px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      font-size: 15px;
+      font-weight: 600;
+      color: #f1ebd8;
+      letter-spacing: 0.5px;
+    }
+
+    .progress-bar-container {
+      width: 220px;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+      margin-top: 12px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #932c1e, #dfa634);
+      transition: width 0.2s ease;
+    }
+
+    /* Controles y Presets sobre el visor */
+    .controls-overlay {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      right: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      pointer-events: none;
+    }
+
+    .presets-group, .tools-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      pointer-events: auto;
+      background: rgba(18, 14, 13, 0.85);
+      border: 1px solid rgba(223, 166, 52, 0.25);
+      padding: 6px;
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+    }
+
+    .control-btn {
+      background: transparent;
+      color: #ded6c8;
+      border: none;
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .control-btn:hover {
+      background: rgba(223, 166, 52, 0.2);
+      color: #ffd782;
+    }
+
+    .control-btn.active {
+      background: #dfa634;
+      color: #120e0d;
+      font-weight: 700;
+    }
+
+    /* Tarjetas de Ficha Técnica */
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+    }
+
+    .info-card {
+      background: #140f0e;
+      border: 1px solid rgba(223, 166, 52, 0.15);
+      border-radius: 14px;
+      padding: 18px;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .info-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(223, 166, 52, 0.4);
+    }
+
+    .info-card h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #dfa634;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .info-card p {
+      font-size: 13px;
+      color: #b5a898;
+      line-height: 1.5;
+    }
+
+    .badge-pbr {
+      display: inline-block;
+      font-size: 11px;
+      background: rgba(147, 44, 30, 0.25);
+      color: #e57361;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-top: 8px;
+      font-weight: 600;
+    }
+
+    @media (max-width: 768px) {
+      model-viewer {
+        height: 480px;
+      }
+      .controls-overlay {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .presets-group {
+        overflow-x: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <div class="title-group">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+          <span style="background: rgba(223, 166, 52, 0.2); border: 1px solid #dfa634; color: #ffd782; font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 9999px;">
+            ✨ VERSIÓN 2.0 HD PBR (2.58 MB)
+          </span>
+          <span style="font-size: 12px; color: #86efac; font-weight: 600;">● Texturizado con Iconografía Mochica</span>
+        </div>
+        <h1>🏛️ Museo Tumbas Reales de Sipán</h1>
+        <p>Lambayeque, Perú — Reconstrucción 3D Técnica PBR con Relieves e Iconografía Auténtica</p>
+      </div>
+      <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        <a href="/example/sipan-ejemplo2.html" class="back-btn" style="background: rgba(223, 166, 52, 0.2); border-color: #dfa634; color: #ffd782;">
+          🏛️ Ver Ejemplo 2 (V2 HD Plus) →
+        </a>
+        <a href="models/museo_sipan.glb" download="museo_sipan_v2_pbr.glb" class="back-btn" style="background: rgba(34, 197, 94, 0.15); border-color: rgba(34, 197, 94, 0.4); color: #86efac;">
+          📥 Descargar .GLB (2.58 MB)
+        </a>
+        <a href="/example/" class="back-btn">
+          ← Volver a Cartelería QR
+        </a>
+      </div>
+    </header>
+
+    <!-- Visor 3D de alta fidelidad -->
+    <div class="viewer-card">
+      
+      <!-- Overlay de Carga -->
+      <div id="loadingOverlay" class="loading-overlay">
+        <div class="spinner"></div>
+        <div class="loading-text">Cargando Museo Sipán 2.0 HD (2.58 MB)...</div>
+        <div class="progress-bar-container">
+          <div id="progressBar" class="progress-bar-fill"></div>
+        </div>
+      </div>
+
+      <!-- Google <model-viewer> con forzado de no-cache (?v=2.1-hd) -->
+      <model-viewer
+        id="sipanViewer"
+        src="models/museo_sipan.glb?v=2.1-hd"
+        alt="Modelo 3D del Museo de las Tumbas Reales de Sipán"
+        camera-controls
+        touch-action="pan-y"
+        auto-rotate
+        auto-rotate-delay="1500"
+        rotation-per-second="18deg"
+        camera-orbit="35deg 70deg 62m"
+        field-of-view="35deg"
+        min-field-of-view="20deg"
+        max-field-of-view="55deg"
+        min-camera-orbit="auto auto 22m"
+        max-camera-orbit="auto auto 95m"
+        camera-target="2m 6m 4m"
+        shadow-intensity="1.2"
+        shadow-softness="0.8"
+        exposure="1.15"
+        interaction-prompt="auto">
+      </model-viewer>
+
+      <!-- Controles superpuestos -->
+      <div class="controls-overlay">
+        <div class="presets-group">
+          <button class="control-btn active" onclick="setCameraView('35deg', '70deg', '62m', '2m 6m 4m', this)">
+            🎬 Vista Presentación
+          </button>
+          <button class="control-btn" onclick="setCameraView('0deg', '75deg', '48m', '-4m 7m 3m', this)">
+            🏛️ Fachada Principal
+          </button>
+          <button class="control-btn" onclick="setCameraView('62deg', '68deg', '52m', '14m 6m 6m', this)">
+            🚶 Rampa Ceremonial
+          </button>
+          <button class="control-btn" onclick="setCameraView('15deg', '78deg', '28m', '7m 4m 7m', this)">
+            🔷 Celosía y Entrada
+          </button>
+          <button class="control-btn" onclick="setCameraView('10deg', '45deg', '85m', '2m 2m 2m', this)">
+            🦅 Vista Aérea
+          </button>
+        </div>
+
+        <div class="tools-group">
+          <button id="rotateToggleBtn" class="control-btn" onclick="toggleAutoRotate()">
+            ⏸️ Pausar Giro
+          </button>
+          <button class="control-btn" onclick="resetView()">
+            🔄 Reiniciar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ficha Técnica y Detalles del Edificio -->
+    <div class="info-grid">
+      <div class="info-card">
+        <h3>🟥 Rojo Terracota Mochica</h3>
+        <p>Inspirado en el cinabrio y los murales polícromos de adobe sagrado. Material mate con rugosidad 0.82 para evitar reflejos plásticos indeseados.</p>
+        <span class="badge-pbr">Material PBR Mate</span>
+      </div>
+
+      <div class="info-card">
+        <h3>👑 Frisos y Oro Ceremonial</h3>
+        <p>5 cajas en voladizo sobre la cresta del talud representando al dios Naylamp con tocado semilunar, el medallón solar y sacerdotes guerreros.</p>
+        <span class="badge-pbr">Orfebrería Satinada 0.90 Met</span>
+      </div>
+
+      <div class="info-card">
+        <h3>🔷 Celosía de Vidrio Azul</h3>
+        <p>Pabellón de entrada triangular con cerramiento de vidrio azul cobalto translúcido y celosía romboidal, acompañado del lucernario cenital superior.</p>
+        <span class="badge-pbr">Vidrio Físico Transmission 0.76</span>
+      </div>
+
+      <div class="info-card">
+        <h3>⚡ Optimización y Peso</h3>
+        <p>Geometría paramétrica controlada por código Three.js. Exportado a estándar GLB con apenas <strong>311 KB</strong> (< 5 MB), ideal para dispositivos móviles.</p>
+        <span class="badge-pbr">Ultraligero ~0.30 MB</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const viewer = document.getElementById('sipanViewer');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const progressBar = document.getElementById('progressBar');
+    const rotateBtn = document.getElementById('rotateToggleBtn');
+
+    // Monitoreo de progreso de carga
+    viewer.addEventListener('progress', (event) => {
+      const progress = Math.round(event.detail.totalProgress * 100);
+      progressBar.style.width = progress + '%';
+      if (progress >= 100) {
+        setTimeout(() => {
+          loadingOverlay.classList.add('hidden');
+        }, 300);
+      }
+    });
+
+    viewer.addEventListener('load', () => {
+      loadingOverlay.classList.add('hidden');
+    });
+
+    // Función para cambiar preset de cámara
+    function setCameraView(orbitTheta, orbitPhi, orbitRadius, targetStr, btnEl) {
+      viewer.cameraOrbit = `${orbitTheta} ${orbitPhi} ${orbitRadius}`;
+      viewer.cameraTarget = targetStr;
+
+      // Actualizar botón activo
+      document.querySelectorAll('.presets-group .control-btn').forEach(btn => btn.classList.remove('active'));
+      if (btnEl) btnEl.classList.add('active');
+    }
+
+    // Alternar auto-rotación
+    function toggleAutoRotate() {
+      viewer.autoRotate = !viewer.autoRotate;
+      rotateBtn.innerHTML = viewer.autoRotate ? '⏸️ Pausar Giro' : '▶️ Reanudar Giro';
+    }
+
+    // Reiniciar vista
+    function resetView() {
+      setCameraView('35deg', '70deg', '62m', '2m 6m 4m', document.querySelector('.presets-group .control-btn'));
+    }
+  </script>
+</body>
+</html>

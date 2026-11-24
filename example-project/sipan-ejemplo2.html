@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ejemplo 2 – Museo Tumbas Reales de Sipán · Versión Mejorada</title>
+
+  <!-- Google model-viewer -->
+  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --terracota: #9a2e1e;
+      --gold:      #ddb446;
+      --gold-lt:   #f5d060;
+      --dark:      #07090f;
+      --panel:     #0e1420;
+      --text:      #f1f5f9;
+      --muted:     #94a3b8;
+      --border:    rgba(221,180,70,0.25);
+    }
+
+    body {
+      background: var(--dark);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── HEADER ────────────────────────────────────────────────── */
+    header {
+      background: linear-gradient(135deg, rgba(154,46,30,0.55), rgba(221,180,70,0.20));
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .header-left { display: flex; align-items: center; gap: 14px; }
+    .header-left .icon { font-size: 32px; line-height: 1; }
+    .header-left h1 { font-size: 18px; font-weight: 800; color: var(--gold-lt); line-height: 1.2; }
+    .header-left p  { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .badges { display: flex; gap: 6px; flex-wrap: wrap; }
+    .badge {
+      display: inline-block; padding: 3px 10px; border-radius: 9999px;
+      font-size: 11px; font-weight: 700; border: 1px solid;
+    }
+    .badge-v2   { background: rgba(34,197,94,.12); color: #4ade80; border-color: rgba(34,197,94,.35); }
+    .badge-hd   { background: rgba(221,180,70,.12); color: var(--gold); border-color: rgba(221,180,70,.35); }
+    .badge-glb  { background: rgba(99,102,241,.12); color: #a5b4fc; border-color: rgba(99,102,241,.35); }
+
+    /* ── VIEWER + SIDEBAR LAYOUT ───────────────────────────────── */
+    .layout {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      min-height: 0;
+    }
+    @media (max-width: 860px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar { order: -1; border-right: none; border-bottom: 1px solid var(--border); max-height: 180px; overflow-y: auto; }
+    }
+
+    /* ── MODEL VIEWER ──────────────────────────────────────────── */
+    .viewer-wrap {
+      position: relative;
+      background: radial-gradient(ellipse at 50% 60%, #1a0a04 0%, #07090f 70%);
+    }
+
+    model-viewer {
+      width: 100%; height: 100%;
+      --poster-color: #07090f;
+    }
+
+    /* Loading overlay */
+    #loading-overlay {
+      position: absolute; inset: 0;
+      background: var(--dark);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 18px;
+      z-index: 10;
+      transition: opacity 0.5s ease;
+    }
+    #loading-overlay.hidden { opacity: 0; pointer-events: none; }
+    .loader-ring {
+      width: 56px; height: 56px;
+      border: 4px solid rgba(221,180,70,.15);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loader-label { font-size: 14px; color: var(--gold); font-weight: 600; }
+    .loader-sub   { font-size: 12px; color: var(--muted); }
+
+    /* ── SIDEBAR ───────────────────────────────────────────────── */
+    .sidebar {
+      border-left: 1px solid var(--border);
+      background: var(--panel);
+      display: flex; flex-direction: column;
+      gap: 0;
+      overflow-y: auto;
+    }
+
+    .sidebar-section {
+      padding: 18px 20px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .sidebar-section h3 {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1px; color: var(--gold); margin-bottom: 12px;
+    }
+
+    /* Camera presets */
+    .cam-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .cam-btn {
+      background: rgba(154,46,30,.18);
+      border: 1px solid rgba(154,46,30,.35);
+      color: var(--text); padding: 8px 10px; border-radius: 8px;
+      font-size: 12px; font-weight: 600; cursor: pointer;
+      transition: background .2s, border-color .2s;
+      text-align: left;
+    }
+    .cam-btn:hover { background: rgba(154,46,30,.40); border-color: var(--terracota); }
+    .cam-btn .emo { font-size: 16px; display: block; margin-bottom: 4px; }
+
+    /* Info cards */
+    .info-card {
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 10px; padding: 12px 14px;
+      margin-bottom: 10px;
+      font-size: 13px; line-height: 1.55;
+    }
+    .info-card:last-child { margin-bottom: 0; }
+    .info-card strong { color: var(--gold-lt); display: block; margin-bottom: 4px; }
+
+    /* Stats */
+    .stat-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,.05); font-size: 13px; }
+    .stat-row:last-child { border-bottom: none; }
+    .stat-val { color: var(--gold); font-weight: 700; font-size: 14px; }
+
+    /* Buttons */
+    .btn-row { display: flex; flex-direction: column; gap: 8px; }
+    .btn-action {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 14px; border-radius: 8px; border: none;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      text-decoration: none; transition: filter .2s;
+    }
+    .btn-action:hover { filter: brightness(1.15); }
+    .btn-dl  { background: linear-gradient(135deg, var(--terracota), var(--gold)); color: #fff; }
+    .btn-ex1 { background: rgba(99,102,241,.18); border: 1px solid rgba(99,102,241,.35); color: #a5b4fc; }
+    .btn-idx { background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12); color: var(--muted); }
+
+    /* ── FOOTER ───────────────────────────────────────────────── */
+    footer {
+      text-align: center; font-size: 11px; color: var(--muted);
+      padding: 10px; border-top: 1px solid rgba(255,255,255,.05);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER ─────────────────────────────────────────────────── -->
+  <header>
+    <div class="header-left">
+      <span class="icon">🏛️</span>
+      <div>
+        <h1>Museo Tumbas Reales de Sipán</h1>
+        <p>Reconstrucción 3D · Ejemplo 2 — Versión Arquitectónica Mejorada</p>
+      </div>
+    </div>
+    <div class="badges">
+      <span class="badge badge-v2">V2 Mejorado</span>
+      <span class="badge badge-hd">HD PBR</span>
+      <span class="badge badge-glb">GLB 3.36 MB</span>
+    </div>
+  </header>
+
+  <!-- LAYOUT ─────────────────────────────────────────────────── -->
+  <div class="layout">
+
+    <!-- VIEWER -->
+    <div class="viewer-wrap">
+      <div id="loading-overlay">
+        <div class="loader-ring"></div>
+        <div class="loader-label">Cargando modelo 3D…</div>
+        <div class="loader-sub">Museo Tumbas Reales de Sipán · V2 HD</div>
+      </div>
+
+      <model-viewer
+        id="mv"
+        src="models/sipan_v2.glb?v=2.0-hd"
+        alt="Modelo 3D del Museo Tumbas Reales de Sipán – Versión Mejorada"
+        camera-controls
+        camera-orbit="-28deg 74deg 95m"
+        min-camera-orbit="auto auto 20m"
+        max-camera-orbit="auto auto 180m"
+        camera-target="4m 4m 0m"
+        field-of-view="40deg"
+        auto-rotate
+        auto-rotate-delay="2500"
+        rotation-per-second="5deg"
+        interaction-prompt="auto"
+        shadow-intensity="1.4"
+        shadow-softness="0.9"
+        environment-image="neutral"
+        exposure="1.05"
+        touch-action="pan-y"
+      >
+      </model-viewer>
+    </div>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+
+      <!-- Vistas predefinidas -->
+      <div class="sidebar-section">
+        <h3>📷 Vistas de Cámara</h3>
+        <div class="cam-grid">
+          <button class="cam-btn" onclick="setCamera('-35deg 72deg 72m', '0m 5m 0m', '40deg')">
+            <span class="emo">🏔️</span>Perspectiva General
+          </button>
+          <button class="cam-btn" onclick="setCamera('0deg 80deg 55m', '0m 3m 5m', '38deg')">
+            <span class="emo">🎭</span>Fachada Frontal
+          </button>
+          <button class="cam-btn" onclick="setCamera('-80deg 68deg 60m', '0m 6m 0m', '36deg')">
+            <span class="emo">🪜</span>Vista Rampa
+          </button>
+          <button class="cam-btn" onclick="setCamera('-10deg 25deg 90m', '0m 2m 0m', '50deg')">
+            <span class="emo">🛸</span>Vista Aérea
+          </button>
+          <button class="cam-btn" onclick="setCamera('10deg 78deg 42m', '7m 4m 5m', '32deg')">
+            <span class="emo">🚪</span>Entrada + Vidrio
+          </button>
+          <button class="cam-btn" onclick="setCamera('-25deg 50deg 80m', '-5m 8m -5m', '44deg')">
+            <span class="emo">🏅</span>Frisos Superiores
+          </button>
+        </div>
+      </div>
+
+      <!-- Información del edificio -->
+      <div class="sidebar-section">
+        <h3>🏺 Datos Arquitectónicos</h3>
+        <div class="info-card">
+          <strong>🏗️ Estructura</strong>
+          Pirámide truncada en talud a ~54°, dos alas simétricas, pabellón de entrada triangular y muro lateral con pilastras.
+        </div>
+        <div class="info-card">
+          <strong>🪜 Rampa Monumental</strong>
+          Recorrido de ~60 m de longitud, barandal metálico, 8 pilastras escalonadas y vestíbulo cenital con lucernario.
+        </div>
+        <div class="info-card">
+          <strong>🌟 Frisos Iconográficos</strong>
+          5 cajas con placas de oro: Naylamp, Ai Apaec (medallón solar), sacerdotes danzantes, guerrero alado y araña de oro Moche.
+        </div>
+        <div class="info-card">
+          <strong>🔷 Vidrio y Lucernario</strong>
+          Celosía romboidal azul en la entrada triangular + pirámide de vidrio cenital con aristas metálicas oscuras.
+        </div>
+      </div>
+
+      <!-- Estadísticas -->
+      <div class="sidebar-section">
+        <h3>📊 Estadísticas del Modelo</h3>
+        <div class="stat-row"><span>Formato</span><span class="stat-val">GLB (binario)</span></div>
+        <div class="stat-row"><span>Tamaño</span><span class="stat-val">3.36 MB</span></div>
+        <div class="stat-row"><span>Motor</span><span class="stat-val">Three.js r128</span></div>
+        <div class="stat-row"><span>Texturas PBR</span><span class="stat-val">Canvas 7×</span></div>
+        <div class="stat-row"><span>Frisos</span><span class="stat-val">5 iconografías</span></div>
+        <div class="stat-row"><span>Iluminación</span><span class="stat-val">3 luces PBR</span></div>
+        <div class="stat-row"><span>Versión</span><span class="stat-val">Ejemplo 2 · V2.0</span></div>
+      </div>
+
+      <!-- Acciones -->
+      <div class="sidebar-section">
+        <h3>⚡ Acciones</h3>
+        <div class="btn-row">
+          <a id="btn-download" href="models/sipan_v2.glb" download="museo_sipan_v2.glb" class="btn-action btn-dl">
+            ⬇️ Descargar GLB
+          </a>
+          <a href="/example/museo-sipan.html" class="btn-action btn-ex1">
+            🏛️ Ver Ejemplo 1 (V1 PBR)
+          </a>
+          <a href="/example/" class="btn-action btn-idx">
+            ← Volver al inicio
+          </a>
+        </div>
+      </div>
+
+    </aside>
+  </div>
+
+  <!-- FOOTER ─────────────────────────────────────────────────── -->
+  <footer>
+    Museo Tumbas Reales de Sipán · Lambayeque, Perú · Arquitecto Celso Prado Pastor, 2002 ·
+    Reconstrucción procedural 3D — api-3Dqr
+  </footer>
+
+  <script>
+    const mv = document.getElementById('mv');
+    const overlay = document.getElementById('loading-overlay');
+
+    // Ocultar overlay cuando el modelo cargue
+    mv.addEventListener('load', () => {
+      overlay.classList.add('hidden');
+    });
+    mv.addEventListener('error', () => {
+      overlay.querySelector('.loader-label').textContent = '⚠️ Error al cargar el modelo';
+      overlay.querySelector('.loader-sub').textContent   = 'Verifica que el servidor esté activo';
+      overlay.querySelector('.loader-ring').style.display = 'none';
+    });
+
+    // Función de cámara
+    function setCamera(orbit, target, fov) {
+      mv.setAttribute('camera-orbit', orbit);
+      if (target) mv.setAttribute('camera-target', target);
+      if (fov)    mv.setAttribute('field-of-view', fov);
+      // Detener auto-rotate temporalmente para que la cámara se mueva suave
+      mv.autoRotate = false;
+      setTimeout(() => { mv.autoRotate = true; }, 3500);
+    }
+
+    // Exponer globalmente para los botones
+    window.setCamera = setCamera;
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ejemplo Práctico — Cartelera Interactiva con QR 3D Desechable</title>
+  <!-- Inclusión del Web Component distribuible -->
+  <script src="/widget/3dqr-viewer.js" type="module"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body {
+      background: #090d16;
+      color: #f1f5f9;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+    }
+    .wrapper {
+      max-width: 900px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    header {
+      text-align: center;
+    }
+    .badge {
+      display: inline-block;
+      background: rgba(59, 130, 246, 0.15);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      padding: 4px 14px;
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    h1 {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #ffffff, #94a3b8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    p.lead {
+      color: #94a3b8;
+      font-size: 16px;
+    }
+    .card {
+      background: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+    .instruction-box {
+      background: #1e293b;
+      border-left: 4px solid #10b981;
+      padding: 16px;
+      border-radius: 0 8px 8px 0;
+      font-size: 14px;
+      color: #cbd5e1;
+      line-height: 1.6;
+    }
+    .action-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .btn {
+      background: #2563eb;
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.2s;
+    }
+    .btn:hover { background: #1d4ed8; }
+    .btn-outline {
+      background: transparent;
+      border: 1px solid #334155;
+      color: #cbd5e1;
+    }
+    .btn-outline:hover { background: #1e293b; color: #fff; }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: #22c55e;
+      font-weight: 600;
+    }
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      background: #22c55e;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #22c55e;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <!-- Banner / Selector de Modelos 3D del Museo de Sipán -->
+    <div style="background: linear-gradient(135deg, rgba(147, 44, 30, 0.45), rgba(223, 166, 52, 0.25)); border: 1px solid #dfa634; border-radius: 16px; padding: 20px 24px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 26px;">🏛️</span>
+          <div>
+            <div style="font-weight: 800; font-size: 18px; color: #ffd782;">Museo Tumbas Reales de Sipán — Modelos 3D Interactivos</div>
+            <div style="font-size: 13px; color: #cbd5e1;">Reconstrucción arquitectónica procedimental PBR generada por código con Three.js. Elige un ejemplo:</div>
+          </div>
+        </div>
+        <span style="background: rgba(34, 197, 94, 0.2); border: 1px solid #22c55e; color: #86efac; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 9999px;">3 Versiones Disponibles</span>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px;">
+        <!-- Card Modelo Integrado Nuevo -->
+        <div style="background: rgba(17, 24, 39, 0.85); border: 2px solid #38bdf8; border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; justify-content: space-between; gap: 10px;">
+          <div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+              <span style="font-weight: 700; color: #7dd3fc; font-size: 15px;">🏛️ Modelo Integrado: Sipán 3D</span>
+              <span style="background: rgba(56,189,248,.22); color: #7dd3fc; font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px;">387 KB</span>
+            </div>
+            <p style="font-size: 12px; color: #94a3b8; line-height: 1.4;">Maqueta arquitectónica fiel (<code>museo_tumbas_reales_sipan.glb</code>) con 5 placas Moche, celosía de acero y rampa bastionada.</p>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <a href="/example/sipan-nuevo.html" class="btn" style="background: linear-gradient(135deg, #0284c7, #2563eb); color: #fff; text-decoration: none; justify-content: center; font-size: 13px; font-weight: 700; padding: 8px 14px;">
+              🏛️ Abrir Visor Sipán 3D
+            </a>
+            <button type="button" id="btn-load-sipan-qr" class="btn" style="background: rgba(56, 189, 248, 0.16); border: 1px solid #38bdf8; color: #bae6fd; justify-content: center; font-size: 12px; padding: 7px 12px;">
+              🧊 Cargar en Widget QR 3D abajo
+            </button>
+          </div>
+        </div>
+
+        <!-- Card Ejemplo 1 -->
+        <div style="background: rgba(17, 24, 39, 0.7); border: 1px solid rgba(223, 166, 52, 0.25); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; justify-content: space-between; gap: 10px;">
+          <div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+              <span style="font-weight: 700; color: #f1f5f9; font-size: 15px;">🏛️ Ejemplo 1: Modelo Base PBR</span>
+              <span style="background: rgba(99,102,241,.2); color: #a5b4fc; font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px;">2.58 MB</span>
+            </div>
+            <p style="font-size: 12px; color: #94a3b8; line-height: 1.4;">Volumetría principal en pirámide truncada con 5 frisos dorados, fachada de adobe texturizado y celosía azul.</p>
+          </div>
+          <a href="/example/museo-sipan.html" class="btn" style="background: rgba(223, 166, 52, 0.2); border: 1px solid #dfa634; color: #ffd782; text-decoration: none; justify-content: center; font-size: 13px; padding: 8px 14px;">
+            🚀 Abrir Ejemplo 1 (V1 HD)
+          </a>
+        </div>
+
+        <!-- Card Ejemplo 2 -->
+        <div style="background: rgba(17, 24, 39, 0.7); border: 1px solid #22c55e; border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; justify-content: space-between; gap: 10px; position: relative;">
+          <div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+              <span style="font-weight: 700; color: #86efac; font-size: 15px;">🌟 Ejemplo 2: Versión Arquitectónica HD+</span>
+              <span style="background: rgba(34, 197, 94, 0.25); color: #4ade80; font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px;">3.36 MB</span>
+            </div>
+            <p style="font-size: 12px; color: #94a3b8; line-height: 1.4;">Geometría extendida con muro lateral de pilastras, patio ceremonial cuadrilátero, rampa con lucernario y 5 iconografías únicas.</p>
+          </div>
+          <a href="/example/sipan-ejemplo2.html" class="btn" style="background: linear-gradient(135deg, #932c1e, #dfa634); color: #fff; text-decoration: none; justify-content: center; font-size: 13px; font-weight: 700; padding: 8px 14px;">
+            ✨ Abrir Ejemplo 2 (Mejorado)
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <header>
+      <span class="badge">🎪 Demostración en Vivo</span>
+      <h1>Acceso a Auditorio VIP — Conferencia 2026</h1>
+      <p class="lead">Ejemplo práctico de integración en un servidor o proyecto externo.</p>
+    </header>
+
+    <div class="card">
+      <div class="instruction-box">
+        <strong>⚡ Escenario de Uso:</strong>
+        Este tótem interactivo 3D muestra un código QR de <strong>un solo uso (one-time)</strong> para validar la entrada a la conferencia.
+        <br /><br />
+        <strong>Prueba la reactividad:</strong> Escanea el código con tu celular o haz clic en el botón <em>"Simular Escaneo Móvil"</em>. 
+        Verás que el código QR en el recuadro <strong>se descarta y renueva al instante</strong> mediante Server-Sent Events, <strong>sin recargar la página ni reiniciar el giro del modelo 3D</strong>.
+      </div>
+
+      <!-- Contenedor del Web Component -->
+      <div style="margin-top: 24px; width: 100%; height: 500px; border-radius: 12px; overflow: hidden;" id="widget-container">
+        <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;">
+          Cargando o inicializando QR de demostración...
+        </div>
+      </div>
+
+      <div class="action-row">
+        <div class="status-badge">
+          <span class="status-dot"></span>
+          <span>SSE Activo: Escuchando eventos en tiempo real</span>
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <a href="/example/sipan-nuevo.html" class="btn" style="background: linear-gradient(135deg, #0284c7, #2563eb);">🏛️ Museo Sipán (Nuevo GLB)</a>
+          <a href="/example/museo-sipan.html" class="btn" style="background: rgba(223, 166, 52, 0.2); border: 1px solid #dfa634; color: #ffd782;">🏛️ Museo Sipán (Ejemplo 1)</a>
+          <a href="/example/sipan-ejemplo2.html" class="btn" style="background: linear-gradient(135deg, #932c1e, #dfa634);">🌟 Museo Sipán (Ejemplo 2 HD+)</a>
+          <button class="btn" id="btn-scan-demo">📱 Simular Escaneo Móvil</button>
+          <a href="/admin/" class="btn btn-outline" target="_blank">⚙️ Ir al Panel Admin</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let activeQrId = null;
+
+    async function initDemo() {
+      const container = document.getElementById('widget-container');
+      const origin = window.location.origin;
+
+      try {
+        // Verificar si ya existe algún QR creado en la API
+        const res = await fetch('/api/qr', {
+          headers: { 'x-api-key': 'tk_live_demo_123456789' }
+        });
+        const data = await res.json();
+
+        if (data.items && data.items.length > 0) {
+          activeQrId = data.items[0].id;
+        } else {
+          // Crear automáticamente el primer QR de demo si está vacío
+          const createRes = await fetch('/api/qr', {
+            method: 'POST',
+            headers: { 'x-api-key': 'tk_live_demo_123456789' },
+            body: (() => {
+              const fd = new FormData();
+              fd.append('title', 'Acceso Auditorio VIP Demo');
+              fd.append('target_url', 'https://es.wikipedia.org/wiki/C%C3%B3digo_QR');
+              fd.append('rotation_strategy', 'one_time');
+              return fd;
+            })()
+          });
+          const newQr = await createRes.json();
+          activeQrId = newQr.qr.id;
+        }
+
+        // Incrustar el Web Component
+        container.innerHTML = `
+          <qr-3d-viewer qr-id="${activeQrId}" api-url="${origin}" width="100%" height="500px" auto-rotate="true"></qr-3d-viewer>
+        `;
+      } catch (err) {
+        container.innerHTML = `<div style="color:#f87171;padding:24px;">Error al conectar con la API: ${err.message}</div>`;
+      }
+    }
+
+    document.getElementById('btn-scan-demo').addEventListener('click', () => {
+      if (!activeQrId) return;
+      window.open(`/scan/${activeQrId}`, '_blank');
+    });
+
+    document.getElementById('btn-load-sipan-qr').addEventListener('click', async () => {
+      const container = document.getElementById('widget-container');
+      const origin = window.location.origin;
+      container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#7dd3fc;">Creando QR 3D con museo_tumbas_reales_sipan.glb...</div>`;
+      try {
+        const res = await fetch('/api/qr', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': 'tk_live_demo_123456789'
+          },
+          body: JSON.stringify({
+            title: 'Museo Tumbas Reales de Sipán (QR 3D)',
+            target_url: `${origin}/example/sipan-nuevo.html`,
+            rotation_strategy: 'one_time',
+            model_preset: 'museo_tumbas_reales_sipan.glb'
+          })
+        });
+        const created = await res.json();
+        if (!res.ok) throw new Error(created.error || 'Error al crear QR');
+        activeQrId = created.qr.id;
+        container.innerHTML = `<qr-3d-viewer qr-id="${activeQrId}" api-url="${origin}" width="100%" height="500px" auto-rotate="true"></qr-3d-viewer>`;
+        container.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } catch (err) {
+        container.innerHTML = `<div style="color:#f87171;padding:24px;">Error al integrar modelo: ${err.message}</div>`;
+      }
+    });
+
+    initDemo();
+  </script>
+</body>
+</html>

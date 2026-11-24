@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Museo Tumbas Reales de Sipán — Modelo 3D Integrado (GLB)</title>
+
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+  <script type="module" src="/widget/3dqr-viewer.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --terracota: #b84a39;
+      --gold: #e5b344;
+      --gold-lt: #ffd97d;
+      --dark: #090b10;
+      --panel: #111622;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --border: rgba(229, 179, 68, 0.28);
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 25%, #1d1311 0%, #090b10 65%);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: linear-gradient(135deg, rgba(184, 74, 57, 0.45), rgba(229, 179, 68, 0.18));
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .header-left { display: flex; align-items: center; gap: 14px; }
+    .header-left .icon { font-size: 32px; line-height: 1; }
+    .header-left h1 { font-size: 19px; font-weight: 800; color: var(--gold-lt); }
+    .header-left p { font-size: 12px; color: #cbd5e1; margin-top: 2px; }
+
+    .header-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .badge {
+      display: inline-block; padding: 4px 10px; border-radius: 9999px;
+      font-size: 11px; font-weight: 700; border: 1px solid;
+    }
+    .badge-new { background: rgba(34, 197, 94, 0.16); color: #4ade80; border-color: rgba(34, 197, 94, 0.4); }
+    .badge-glb { background: rgba(59, 130, 246, 0.16); color: #93c5fd; border-color: rgba(59, 130, 246, 0.4); }
+
+    .nav-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 14px; border-radius: 9999px; text-decoration: none;
+      font-size: 12px; font-weight: 600; border: 1px solid var(--border);
+      color: var(--gold-lt); background: rgba(229, 179, 68, 0.12);
+      cursor: pointer; transition: all 0.2s;
+    }
+    .nav-btn:hover { background: rgba(229, 179, 68, 0.24); }
+    .nav-btn.primary {
+      background: linear-gradient(135deg, #b84a39, #dfa634);
+      border-color: transparent; color: #fff;
+    }
+
+    .layout {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      min-height: 580px;
+    }
+    @media (max-width: 920px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar { border-left: none; border-top: 1px solid var(--border); }
+    }
+
+    .viewer-wrap {
+      position: relative;
+      min-height: 560px;
+      background: radial-gradient(circle at 50% 45%, #241916 0%, #0d1018 75%);
+    }
+
+    model-viewer, #qr-viewer-wrap {
+      width: 100%;
+      height: 100%;
+      min-height: 560px;
+      --poster-color: transparent;
+    }
+
+    #qr-viewer-wrap {
+      display: none;
+      padding: 16px;
+    }
+
+    .mode-switch {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      z-index: 20;
+      display: flex;
+      gap: 6px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid var(--border);
+      padding: 5px;
+      border-radius: 10px;
+      backdrop-filter: blur(8px);
+    }
+
+    .mode-btn {
+      background: transparent;
+      color: #cbd5e1;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .mode-btn.active {
+      background: var(--gold);
+      color: #111622;
+      font-weight: 700;
+    }
+
+    #loading-overlay {
+      position: absolute; inset: 0;
+      background: rgba(9, 11, 16, 0.9);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 14px;
+      z-index: 15; transition: opacity 0.4s;
+    }
+    #loading-overlay.hidden { opacity: 0; pointer-events: none; }
+    .loader-ring {
+      width: 48px; height: 48px;
+      border: 4px solid rgba(229, 179, 68, 0.18);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .sidebar {
+      border-left: 1px solid var(--border);
+      background: var(--panel);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+    .sidebar-section {
+      padding: 16px 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .sidebar-section h3 {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.9px; color: var(--gold); margin-bottom: 10px;
+    }
+
+    .cam-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .cam-btn {
+      background: rgba(184, 74, 57, 0.16);
+      border: 1px solid rgba(184, 74, 57, 0.35);
+      color: var(--text); padding: 8px 10px; border-radius: 8px;
+      font-size: 12px; font-weight: 600; cursor: pointer; text-align: left;
+      transition: background 0.2s;
+    }
+    .cam-btn:hover { background: rgba(184, 74, 57, 0.36); }
+
+    .info-card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px; padding: 10px 12px; margin-bottom: 8px;
+      font-size: 12px; line-height: 1.5; color: #cbd5e1;
+    }
+    .info-card strong { color: var(--gold-lt); display: block; margin-bottom: 2px; }
+
+    .stat-row {
+      display: flex; justify-content: space-between; padding: 6px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05); font-size: 12px;
+    }
+    .stat-row:last-child { border-bottom: none; }
+    .stat-val { color: var(--gold-lt); font-weight: 700; }
+
+    .btn-row { display: flex; flex-direction: column; gap: 8px; }
+    .btn-action {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 10px 14px; border-radius: 8px; border: none;
+      font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none;
+    }
+    .btn-dl { background: linear-gradient(135deg, var(--terracota), var(--gold)); color: #fff; }
+    .btn-qr { background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.45); color: #93c5fd; }
+    .btn-back { background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.14); color: #cbd5e1; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-left">
+      <span class="icon">🏛️</span>
+      <div>
+        <h1>Museo Tumbas Reales de Sipán — Modelo Integrado</h1>
+        <p>Archivo <code>museo_tumbas_reales_sipan.glb</code> integrado en el visor 3D y en la API QR</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <span class="badge badge-new">Integrado en API-3DQR</span>
+      <span class="badge badge-glb">GLB · 386.9 KB</span>
+      <a href="/admin/" class="nav-btn">⚙️ Panel Admin</a>
+      <a href="/example/" class="nav-btn primary">← Volver a Cartelería QR</a>
+    </div>
+  </header>
+
+  <div class="layout">
+    <div class="viewer-wrap">
+      <div class="mode-switch">
+        <button id="btn-mode-model" class="mode-btn active">🏛️ Maqueta 3D Pura</button>
+        <button id="btn-mode-qr" class="mode-btn">🧊 Con QR 3D en Vivo</button>
+        <button id="btn-mode-aerial" class="mode-btn">🛸 Escanear 90°</button>
+      </div>
+
+      <div id="loading-overlay">
+        <div class="loader-ring"></div>
+        <div style="font-size: 14px; color: var(--gold-lt); font-weight: 600;">Cargando museo_tumbas_reales_sipan.glb…</div>
+      </div>
+
+      <model-viewer
+        id="mv"
+        src="models/museo_tumbas_reales_sipan.glb"
+        alt="Modelo 3D del Museo Tumbas Reales de Sipán"
+        camera-controls
+        camera-orbit="42deg 62deg 108m"
+        min-camera-orbit="auto auto 22m"
+        max-camera-orbit="auto auto 180m"
+        camera-target="0m 4.5m 0m"
+        field-of-view="36deg"
+        auto-rotate
+        auto-rotate-delay="1800"
+        rotation-per-second="8deg"
+        shadow-intensity="1.5"
+        shadow-softness="0.6"
+        environment-image="neutral"
+        exposure="1.12"
+        touch-action="pan-y">
+      </model-viewer>
+
+      <div id="qr-viewer-wrap"></div>
+    </div>
+
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <h3>📷 Vistas de Cámara</h3>
+        <div class="cam-grid">
+          <button class="cam-btn" onclick="setCamera('42deg 62deg 108m', '0m 4.5m 0m', '36deg')">🏔️ Isométrica</button>
+          <button class="cam-btn" onclick="setCamera('2deg 75deg 78m', '-8m 6.5m 4m', '32deg')">🎭 Fachada Moche</button>
+          <button class="cam-btn" onclick="setCamera('68deg 70deg 66m', '15m 4.2m 5m', '32deg')">🪜 Rampa Ceremonial</button>
+          <button class="cam-btn" onclick="setCamera('48deg 56deg 52m', '-5m 10.5m -3m', '32deg')">🔷 Lucernario</button>
+          <button class="cam-btn" onclick="setCamera('-138deg 62deg 88m', '-3m 5m -3m', '32deg')">🧱 Volumen Posterior</button>
+          <button class="cam-btn" onclick="setCamera('0deg 14deg 98m', '0m 2m 0m', '34deg')">🛸 Vista Planta</button>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <h3>🏺 Elementos Arquitectónicos</h3>
+        <div class="info-card">
+          <strong>Volumen Piramidal en Talud</strong>
+          Paños frontales inclinados (2+1+3) con 5 placas escultóricas Moche en relieve dorado.
+        </div>
+        <div class="info-card">
+          <strong>Rampa y Bastión Ceremonial</strong>
+          Rampa ascendente lateral con muro bastionado de 8 pilastras y pasamanos metálicos.
+        </div>
+        <div class="info-card">
+          <strong>Lucernario y Acceso Triangular</strong>
+          Cubierta central acristalada en celosía de acero y pórtico triangular acristalado.
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <h3>📊 Especificaciones del GLB</h3>
+        <div class="stat-row"><span>Archivo</span><span class="stat-val">museo_tumbas_reales_sipan.glb</span></div>
+        <div class="stat-row"><span>Peso</span><span class="stat-val">386.9 KB</span></div>
+        <div class="stat-row"><span>Dimensiones</span><span class="stat-val">72 × 17.5 × 56 m</span></div>
+        <div class="stat-row"><span>Materiales / Texturas</span><span class="stat-val">18 PBR · 9 PNG</span></div>
+      </div>
+
+      <div class="sidebar-section">
+        <h3>⚡ Acciones de Integración</h3>
+        <div class="btn-row">
+          <button id="btn-aerial-scan" class="btn-action btn-qr" style="background: rgba(217, 119, 6, 0.22); border: 1px solid rgba(251, 191, 36, 0.5); color: #fde68a;">🛸 Escanear en Vista Aérea 90°</button>
+          <button id="btn-create-live-qr" class="btn-action btn-qr">🧊 Probar con QR 3D en Vivo</button>
+          <a href="models/museo_tumbas_reales_sipan.glb" download="museo_tumbas_reales_sipan.glb" class="btn-action btn-dl">⬇️ Descargar .GLB</a>
+          <a href="/example/" class="btn-action btn-back">← Volver al Selector</a>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    const mv = document.getElementById('mv');
+    const overlay = document.getElementById('loading-overlay');
+    const qrWrap = document.getElementById('qr-viewer-wrap');
+    const btnModeModel = document.getElementById('btn-mode-model');
+    const btnModeQr = document.getElementById('btn-mode-qr');
+    const btnModeAerial = document.getElementById('btn-mode-aerial');
+    let liveQrId = null;
+    let mvPointerDown = null;
+
+    mv.addEventListener('load', () => overlay.classList.add('hidden'));
+    mv.addEventListener('error', () => {
+      overlay.querySelector('div:last-child').textContent = '⚠️ Error al cargar el modelo 3D';
+    });
+
+    // Clic corto sobre la maqueta abre la Vista Aérea 90° para escanear
+    mv.addEventListener('pointerdown', (e) => {
+      if (e.button === 0) mvPointerDown = { x: e.clientX, y: e.clientY, time: performance.now() };
+    });
+    mv.addEventListener('pointerup', (e) => {
+      if (!mvPointerDown || e.button !== 0) return;
+      const dist = Math.hypot(e.clientX - mvPointerDown.x, e.clientY - mvPointerDown.y);
+      const dt = performance.now() - mvPointerDown.time;
+      mvPointerDown = null;
+      if (dist < 6 && dt < 350) {
+        showQrMode({ aerial: true });
+      }
+    });
+
+    window.setCamera = (orbit, target, fov) => {
+      if (mv.style.display === 'none') showModelMode();
+      mv.setAttribute('camera-orbit', orbit);
+      if (target) mv.setAttribute('camera-target', target);
+      if (fov) mv.setAttribute('field-of-view', fov);
+    };
+
+    function showModelMode() {
+      mv.style.display = 'block';
+      qrWrap.style.display = 'none';
+      btnModeModel.classList.add('active');
+      btnModeQr.classList.remove('active');
+      btnModeAerial.classList.remove('active');
+    }
+
+    async function showQrMode({ aerial = false } = {}) {
+      mv.style.display = 'none';
+      qrWrap.style.display = 'block';
+      btnModeModel.classList.remove('active');
+      btnModeQr.classList.toggle('active', !aerial);
+      btnModeAerial.classList.toggle('active', aerial);
+
+      if (!liveQrId) {
+        qrWrap.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#93c5fd;">Generando QR 3D integrado con museo_tumbas_reales_sipan.glb…</div>';
+        try {
+          const res = await fetch('/api/qr', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': 'tk_live_demo_123456789'
+            },
+            body: JSON.stringify({
+              title: 'Museo Tumbas Reales de Sipán',
+              target_url: window.location.origin + '/example/sipan-nuevo.html',
+              rotation_strategy: 'one_time',
+              model_preset: 'museo_tumbas_reales_sipan.glb'
+            })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Error al crear QR 3D');
+          liveQrId = data.qr.id;
+        } catch (err) {
+          qrWrap.innerHTML = `<div style="color:#f87171;padding:24px;">No se pudo inicializar el QR 3D: ${err.message}</div>`;
+          return;
+        }
+      }
+
+      const existing = qrWrap.querySelector('qr-3d-viewer');
+      if (existing && existing.getAttribute('qr-id') === liveQrId) {
+        existing.setAttribute('aerial-scan', aerial ? 'true' : 'false');
+      } else {
+        qrWrap.innerHTML = `<qr-3d-viewer qr-id="${liveQrId}" api-url="${window.location.origin}" width="100%" height="528px" auto-rotate="true" aerial-scan="${aerial ? 'true' : 'false'}"></qr-3d-viewer>`;
+      }
+    }
+
+    btnModeModel.addEventListener('click', showModelMode);
+    btnModeQr.addEventListener('click', () => showQrMode({ aerial: false }));
+    btnModeAerial.addEventListener('click', () => showQrMode({ aerial: true }));
+    document.getElementById('btn-create-live-qr').addEventListener('click', () => showQrMode({ aerial: false }));
+    document.getElementById('btn-aerial-scan').addEventListener('click', () => showQrMode({ aerial: true }));
+  </script>
+</body>
+</html>
