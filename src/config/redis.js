@@ -11,6 +11,11 @@ class RealtimeEventBus extends EventEmitter {
   }
 
   async init() {
+    if (config.nodeEnv === 'production' && !process.env.REDIS_URL) {
+      console.log('📦 REDIS_URL no configurado: usando EventEmitter local para SSE en tiempo real');
+      this.isRedisConnected = false;
+      return;
+    }
     try {
       this.redisPublisher = new Redis(config.redisUrl, {
         maxRetriesPerRequest: 1,

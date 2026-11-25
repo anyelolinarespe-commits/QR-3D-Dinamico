@@ -1,15 +1,12 @@
-# Node.js 22 LTS
-FROM node:22-alpine
+# Node.js 22 LTS (Debian slim usa binarios precompilados de sharp para builds rápidos)
+FROM node:22-slim
 
 WORKDIR /app
-
-# Instalar dependencias para Sharp si hiciera falta en Alpine
-RUN apk add --no-cache vips-dev build-base python3
 
 # Copiar manifiesto de dependencias
 COPY package*.json ./
 
-RUN npm ci --only=production
+RUN npm ci --omit=dev
 
 # Copiar código fuente
 COPY . .

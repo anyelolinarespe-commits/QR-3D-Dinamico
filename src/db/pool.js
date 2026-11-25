@@ -280,10 +280,18 @@ export async function initDb(options = {}) {
 
   if (engine === 'postgres' || engine === 'auto') {
     try {
+      const dbUrl = config.databaseUrl || '';
+      const isLocalDb = /@(localhost|127\.0\.0\.1|postgres)(:|\/|$)/i.test(dbUrl);
+      const needsSsl = /[?&]sslmode=(require|verify-full|verify-ca|no-verify)/i.test(dbUrl) || !isLocalDb;
       pool = new Pool({
-        connectionString: config.databaseUrl,
-        connectionTimeoutMillis: 3000,
-        max: 20
+        connectionString: dbUrl,
+        connectionTimeoutMillis: isLocalDb ? 3000 : 10000,
+        idleTimeoutMillis: 30000,
+        max: 15,
+        ...(needsSsl ? { ssl: { rejectUnauthorized: false } } : {})
+      });
+      pool.on('error', (poolErr) => {
+        console.warn('⚠️  Cliente inactivo de PostgreSQL desconectado (se reconectará automáticamente):', poolErr.message);
       });
 
       const client = await pool.connect();
