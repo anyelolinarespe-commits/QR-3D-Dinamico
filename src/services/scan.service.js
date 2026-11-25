@@ -1,104 +1,77 @@
-import crypto from 'crypto';
 import { db } from '../db/pool.js';
-import { config } from '../config/env.js';
 import { eventBus } from '../config/redis.js';
-import { generateQrPngBuffer } from './qr.service.js';
+import {
+  buildScanUrl,
+  getDailyStatsForQr,
+  parseMetadata,
+  rotateQrItemLink
+} from './qrLink.service.js';
 
 /**
- * Procesa el escaneo público de un QR desechable
+ * Procesa el escaneo público de un QR (estático, desechable 1-uso, por intervalo o dinámico)
  * @param {string} qrId 
  * @param {string} token 
  * @param {object} reqInfo { ip, userAgent }
- * @returns {Promise<{ redirectUrl: string, expired: boolean, reason?: string }>}
+ * @returns {Promise<{ redirectUrl?: string, expired: boolean, reason?: string, badgeLabel?: string }>}
  */
 export async function processQrScan(qrId, token, reqInfo = {}) {
   const result = await db.query('SELECT * FROM qr_items WHERE id = $1', [qrId]);
   if (result.rows.length === 0) {
-    return { expired: true, reason: 'Código QR no encontrado' };
-  }
-
-  const item = result.rows[0];
-  const metadata = typeof item.metadata === 'string' ? JSON.parse(item.metadata) : (item.metadata || {});
-
-  if (!item.is_active) {
-    return { expired: true, reason: 'Este código QR ha sido desactivado permanentemente' };
-  }
-
-  // Si tiene token desechable y no coincide con el activo
-  if (metadata.currentToken && token && metadata.currentToken !== token) {
     return {
       expired: true,
-      reason: 'Este código QR ya fue escaneado y descartado. Por favor use el nuevo código mostrado en pantalla.'
+      badgeLabel: 'QR no encontrado',
+      reason: 'Código QR no encontrado'
     };
   }
 
-  const newScanCount = item.scan_count + 1;
-  const isOneTime = item.rotation_strategy === 'one_time';
+  const item = result.rows[0];
+  const metadata = parseMetadata(item.metadata);
+
+  if (!item.is_active) {
+    return {
+      expired: true,
+      badgeLabel: 'QR desactivado',
+      reason: 'Este código QR ha sido desactivado permanentemente'
+    };
+  }
+
+  // Si tiene token activo y no coincide con el token escaneado
+  if (metadata.currentToken && token && metadata.currentToken !== token) {
+    const isTimed = item.rotation_strategy === 'timed';
+    return {
+      expired: true,
+      badgeLabel: isTimed ? 'Código Dinámico Expirado' : 'Código de 1 solo uso',
+      reason: isTimed
+        ? 'Este código QR dinámico expiró porque su enlace rotó automáticamente. Mira la vista 3D para escanear el código activo.'
+        : 'Este código QR ya fue escaneado y descartado. Por favor use el nuevo código mostrado en pantalla.'
+    };
+  }
+
+  const shouldRotateOnScan =
+    item.rotation_strategy === 'one_time' || item.rotation_strategy === 'dynamic';
+
+  let newScanCount = Number(item.scan_count || 0) + 1;
   let rotated = false;
-  let nextToken = null;
+  let rotRes = null;
 
-  if (isOneTime) {
+  if (shouldRotateOnScan) {
     rotated = true;
-    nextToken = crypto.randomBytes(4).toString('hex');
-    metadata.currentToken = nextToken;
-    metadata.lastRotatedAt = new Date().toISOString();
-
-    // Generar nuevo buffer de QR para el siguiente usuario
-    const nextScanUrl = `${config.publicBaseUrl}/scan/${qrId}?token=${nextToken}`;
-    const newQrPng = await generateQrPngBuffer(nextScanUrl, {
-      primary: item.color_primary,
-      secondary: item.color_secondary
+    rotRes = await rotateQrItemLink(item, {
+      reason: 'one_time_scan_consumed',
+      previousScanUrl: buildScanUrl(qrId, token || 'initial'),
+      incrementScanCount: true,
+      publishEvent: false
     });
-
-    // Actualizar en base de datos
-    await db.query(
-      `UPDATE qr_items 
-       SET scan_count = scan_count + 1,
-           current_qr_png = $1,
-           metadata = $2,
-           updated_at = NOW()
-       WHERE id = $3`,
-      [newQrPng, JSON.stringify(metadata), qrId]
-    );
-
-    // Registrar en historial de rotación
-    await db.query(
-      `INSERT INTO qr_rotation_history (id, qr_id, previous_url, new_url, reason, rotated_at)
-       VALUES ($1, $2, $3, $4, $5, NOW())`,
-      [
-        crypto.randomUUID(),
-        qrId,
-        `${config.publicBaseUrl}/scan/${qrId}?token=${token || 'initial'}`,
-        nextScanUrl,
-        'one_time_scan_consumed'
-      ]
-    );
-
-    // Notificar en tiempo real al widget via Redis / EventBus
-    await eventBus.publish(`qr_events:${qrId}`, {
-      type: 'qr_updated',
-      qrId,
-      scanCount: newScanCount,
-      rotated: true,
-      newQrImageUrl: `${config.publicBaseUrl}/api/qr/${qrId}/image?t=${Date.now()}`,
-      timestamp: Date.now()
-    });
+    newScanCount = rotRes.scanCount;
   } else {
-    // Si no es desechable de 1 solo uso, solo incrementa el conteo
+    // Estático / Continuo / Timed: incrementa el contador sin rotar por este escaneo
     await db.query(
       'UPDATE qr_items SET scan_count = scan_count + 1, updated_at = NOW() WHERE id = $1',
       [qrId]
     );
-
-    await eventBus.publish(`qr_events:${qrId}`, {
-      type: 'scan_count_updated',
-      qrId,
-      scanCount: newScanCount,
-      timestamp: Date.now()
-    });
   }
 
-  // Registrar log de escaneo
+  // Registrar log de escaneo antes de calcular estadísticas y emitir evento SSE
   await db.query(
     `INSERT INTO scan_logs (qr_id, tenant_id, ip_address, user_agent, rotated, target_url)
      VALUES ($1, $2, $3, $4, $5, $6)`,
@@ -112,10 +85,28 @@ export async function processQrScan(qrId, token, reqInfo = {}) {
     ]
   );
 
+  const dailyStats = await getDailyStatsForQr(qrId);
+
+  if (shouldRotateOnScan && rotRes?.eventPayload) {
+    await eventBus.publish(`qr_events:${qrId}`, {
+      ...rotRes.eventPayload,
+      ...dailyStats
+    });
+  } else {
+    await eventBus.publish(`qr_events:${qrId}`, {
+      type: 'scan_count_updated',
+      qrId,
+      scanCount: newScanCount,
+      ...dailyStats,
+      timestamp: Date.now()
+    });
+  }
+
   return {
     expired: false,
     redirectUrl: item.target_url,
     scanCount: newScanCount,
+    ...dailyStats,
     rotated
   };
 }

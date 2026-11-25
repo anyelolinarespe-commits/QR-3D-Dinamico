@@ -9,9 +9,15 @@ import { fileURLToPath } from 'url';
 import { config } from './config/env.js';
 import { initDb, db } from './db/pool.js';
 import { eventBus } from './config/redis.js';
+import { registerServiceHealthAndGuard } from './middleware/serviceGuard.js';
 import { qrRoutes } from './routes/qr.routes.js';
+import { filesRoutes } from './routes/files.routes.js';
 import { scanRoutes } from './routes/scan.routes.js';
 import { tenantRoutes } from './routes/tenant.routes.js';
+import { authRoutes } from './routes/auth.routes.js';
+import { usersRoutes } from './routes/users.routes.js';
+import { viewRoutes } from './routes/view.routes.js';
+import { startQrRotationScheduler, stopQrRotationScheduler } from './services/qrScheduler.service.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -33,7 +39,7 @@ async function bootstrap() {
     // 2. Seguridad & CORS
     await server.register(cors, {
       origin: '*',
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
     });
 
     await server.register(helmet, {
@@ -67,29 +73,37 @@ async function bootstrap() {
       decorateReply: false
     });
 
-    // 5. Rutas API
+    // 5. Guard de servicio activo, Healthcheck y Rutas API
+    registerServiceHealthAndGuard(server);
+    await server.register(authRoutes);
+    await server.register(usersRoutes);
     await server.register(qrRoutes);
+    await server.register(filesRoutes);
     await server.register(scanRoutes);
     await server.register(tenantRoutes);
+    await server.register(viewRoutes);
 
-    // 6. Health check
-    server.get('/health', async () => {
-      return {
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        uptimeSeconds: Math.floor(process.uptime()),
-        storageMode: db.isFallback() ? 'embedded-resilient' : 'postgresql-cluster',
-        redisConnected: eventBus.isRedisConnected
-      };
+    server.addHook('onClose', async () => {
+      stopQrRotationScheduler();
     });
 
-    // 7. Redirigir raíz al panel de administración
+    // 6. Redirigir raíz al panel de administración
     server.get('/', async (request, reply) => {
       return reply.redirect('/admin/', 302);
     });
 
     // Iniciar servidor
     await server.listen({ port: config.port, host: config.host });
+    startQrRotationScheduler(1000);
+    const dbStatus = db.getStatus();
+    if (!dbStatus.ready) {
+      console.error(`\n⛔ ADVERTENCIA CRÍTICA: El servicio HTTP inició, pero la base de datos NO se activó (${dbStatus.error}).`);
+      console.error('   Las rutas API devolverán 503 SERVICE_INACTIVE hasta activar la base de datos.\n');
+    } else {
+      console.log(
+        `💾 Base de datos activa (${dbStatus.engine}): ${dbStatus.startupStats.savedFiles} archivo(s) y ${dbStatus.startupStats.qrItems} QR(s) cargados.`
+      );
+    }
     console.log(`\n🚀 Servidor API 3D-QR escuchando en http://localhost:${config.port}`);
     console.log(`📱 Widget JS disponible en: http://localhost:${config.port}/widget/3dqr-viewer.js`);
     console.log(`🖥️  Panel Administrativo en: http://localhost:${config.port}/admin/`);

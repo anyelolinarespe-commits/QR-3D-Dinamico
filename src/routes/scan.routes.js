@@ -1,5 +1,14 @@
 import { processQrScan } from '../services/scan.service.js';
 
+function escapeHtml(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 export async function scanRoutes(fastify, options) {
   fastify.get('/scan/:qrId', async (request, reply) => {
     const { qrId } = request.params;
@@ -13,6 +22,11 @@ export async function scanRoutes(fastify, options) {
     const result = await processQrScan(qrId, token, reqInfo);
 
     if (result.expired) {
+      const badgeLabel = escapeHtml(result.badgeLabel || 'Código de 1 solo uso');
+      const reasonText = escapeHtml(
+        result.reason ||
+          'Este código QR desechable ya fue escaneado por otro usuario. Mira la pantalla interactiva para ver el nuevo código generado.'
+      );
       reply.type('text/html').send(`<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -32,9 +46,9 @@ export async function scanRoutes(fastify, options) {
 <body>
   <div class="card">
     <div class="icon">⌛</div>
-    <span class="badge">Código de 1 solo uso</span>
-    <h1 style="margin-top: 16px;">QR Ya Utilizado</h1>
-    <p>${result.reason || 'Este código QR desechable ya fue escaneado por otro usuario. Mira la pantalla interactiva para ver el nuevo código generado.'}</p>
+    <span class="badge">${badgeLabel}</span>
+    <h1 style="margin-top: 16px;">QR Ya Utilizado o Expirado</h1>
+    <p>${reasonText}</p>
   </div>
 </body>
 </html>`);

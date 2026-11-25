@@ -79,16 +79,30 @@ Envía tu clave en el encabezado HTTP:
 
 | Método | Ruta | Descripción | Auth |
 |--------|------|-------------|------|
-| `POST` | `/api/qr` | Crea un nuevo QR 3D (acepta multipart con `image` y `model`) | ✅ Requerido |
-| `GET` | `/api/qr` | Lista todos los QRs del inquilino | ✅ Requerido |
-| `GET` | `/api/qr/:qrId` | Retorna metadatos de un QR (título, colores, estadísticas) | Opcional |
+| `POST` | `/api/qr` | Crea un nuevo QR 3D (soporta `target_url` http(s) o `/ruta`, `view_slug`, `link_mode: static \| dynamic`, `rotation_strategy`, `rotation_interval_seconds`, `rotating_urls`) | ✅ Requerido |
+| `GET` | `/api/qr` | Lista todos los QRs del inquilino (incluye `viewUrl`, estado estático/dinámico y conteo diario `summary`) | ✅ Requerido |
+| `GET` | `/api/stats/daily` | Resumen diario global de ingresos al link y personas únicas de hoy | ✅ Requerido |
+| `GET` | `/api/qr/:qrId/daily-stats` | Conteo diario (`dailyScans`, `dailyUniqueVisitors`) e historial por día (`?days=30`) | ✅ Requerido |
+| `GET` | `/api/qr/:qrId` | Retorna metadatos de un QR (título, colores, estadísticas diarias/totales, `viewUrl`) | Opcional |
+| `GET` | `/api/qr/:qrId/view-link` | Retorna exclusivamente el link público de vista (`viewUrl`) para sistemas o empresas externas | ✅ Requerido |
+| `PATCH` | `/api/qr/:qrId/view-link` | Edita la ruta pública personalizada (`/view/<view_slug>`) o activa/desactiva `view_enabled` | ✅ Requerido |
+| `POST` | `/api/qr/:qrId/view-link/rotate` | Revoca y regenera el `viewToken` del link público de vista | ✅ Requerido |
+| `PATCH` | `/api/qr/:qrId/link` | Cambia `target_url` (URL o `/ruta`), `view_slug`, `rotating_urls`, modo estático/dinámico, intervalo o visibilidad sin tocar el modelo 3D | ✅ Requerido |
+| `POST` | `/api/qr/:qrId/rotate` | Rota inmediatamente el enlace activo del QR y notifica por SSE | ✅ Requerido |
+| `GET` | `/view/:viewToken` | **Vista Pública Unida (Modelo 3D + QR)** solo lectura, aislada del panel administrativo e incrustable en `<iframe>` | Público |
 | `GET` | `/api/qr/:qrId/model` | Descarga el modelo 3D GLB con la textura QR incrustada | Público |
 | `GET` | `/api/qr/:qrId/image` | Retorna la imagen PNG activa del código QR | Público |
 | `GET` | `/api/qr/:qrId/events` | Stream SSE en tiempo real para eventos de recambio | Público |
 | `GET` | `/scan/:qrId` | Endpoint público de escaneo (redirige al destino o marca expirado) | Público |
-| `PUT` | `/api/qr/:qrId` | Actualiza título, URL o rota el código manualmente | ✅ Requerido |
+| `PUT` | `/api/qr/:qrId` | Actualiza título, URL, estrategia, estilo visual o rota el código manualmente | ✅ Requerido |
 | `DELETE`| `/api/qr/:qrId` | Elimina un item QR | ✅ Requerido |
 | `GET` | `/health` | Healthcheck del sistema (estado de DB y Redis) | Público |
+
+### Estrategias de Enlace (Estático vs Dinámico)
+- **`static` / `continuous`**: El código QR permanece estático con enlace fijo sin rotar al escanearse ni por tiempo.
+- **`one_time`**: Desechable tras 1 escaneo; rota automáticamente y se actualiza por SSE sin recargar la vista.
+- **`timed`**: Cambia su enlace automáticamente cada `rotation_interval_seconds` segundos (mín. 2s), con soporte opcional de lista `rotating_urls`.
+- **`dynamic`**: Combina rotación automática por intervalo de tiempo y descarte inmediato tras cada escaneo.
 
 ---
 
@@ -98,12 +112,12 @@ Para incrustar el visor interactivo en cualquier sitio web externo (React, Vue, 
 
 ```html
 <!-- 1. Importar el Web Component -->
-<script src="http://localhost:3000/widget/3dqr-viewer.js" type="module"></script>
+<script src="http://localhost:3100/widget/3dqr-viewer.js" type="module"></script>
 
 <!-- 2. Colocar el visor -->
 <qr-3d-viewer
   qr-id="qr_abc123"
-  api-url="http://localhost:3000"
+  api-url="http://localhost:3100"
   width="100%"
   height="480px"
   auto-rotate="true">

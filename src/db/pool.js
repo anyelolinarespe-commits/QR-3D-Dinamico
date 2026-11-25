@@ -3,7 +3,9 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { DatabaseSync } from 'node:sqlite';
 import { config } from '../config/env.js';
+import { hashPassword } from '../services/auth.service.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,73 +13,399 @@ const __dirname = path.dirname(__filename);
 const { Pool } = pg;
 
 let pool = null;
-let useFallbackStorage = false;
+let sqliteDb = null;
 
-// Fallback in-memory / disk store for environments without active PostgreSQL
-const mockStore = {
-  tenants: new Map(),
-  qr_items: new Map(),
-  scan_logs: [],
-  qr_rotation_history: []
+const dbStatus = {
+  ready: false,
+  engine: null,
+  location: null,
+  error: null,
+  startupStats: {
+    tenants: 0,
+    savedFiles: 0,
+    qrItems: 0
+  },
+  preloadedFiles: [],
+  initializedAt: null
 };
 
 export function hashApiKey(key) {
   return crypto.createHash('sha256').update(key).digest('hex');
 }
 
-export async function initDb() {
-  try {
-    pool = new Pool({
-      connectionString: config.databaseUrl,
-      connectionTimeoutMillis: 3000,
-      max: 20
-    });
+const SQLITE_SCHEMA = `
+CREATE TABLE IF NOT EXISTS tenants (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    website_url TEXT DEFAULT '',
+    api_key_hash TEXT NOT NULL UNIQUE,
+    api_key_prefix TEXT NOT NULL,
+    is_active INTEGER DEFAULT 1,
+    rate_limit_rpm INTEGER DEFAULT 120,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
 
-    // Test connection
-    const client = await pool.connect();
-    console.log('✅ Conexión exitosa a PostgreSQL');
+CREATE TABLE IF NOT EXISTS users (
+    id TEXT PRIMARY KEY,
+    username TEXT NOT NULL UNIQUE,
+    email TEXT UNIQUE,
+    full_name TEXT DEFAULT '',
+    password_hash TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'user',
+    tenant_id TEXT REFERENCES tenants(id) ON DELETE CASCADE,
+    created_by_user_id TEXT,
+    is_active INTEGER DEFAULT 1,
+    last_login_at TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
 
-    // Run schema
-    const schemaSql = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf-8');
-    await client.query(schemaSql);
+CREATE TABLE IF NOT EXISTS user_sessions (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token_hash TEXT NOT NULL UNIQUE,
+    expires_at TEXT NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
 
-    // Seed default developer tenant if not exists
-    const devKeyHash = hashApiKey(config.devTenantKey);
-    const existingTenant = await client.query('SELECT id FROM tenants WHERE id = $1', ['tenant_default']);
-    if (existingTenant.rows.length === 0) {
-      await client.query(
-        `INSERT INTO tenants (id, name, api_key_hash, api_key_prefix, is_active, rate_limit_rpm)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
-        ['tenant_default', 'Default Dev Tenant', devKeyHash, config.devTenantKey.slice(0, 10), true, 300]
-      );
-      console.log(`🔑 Inquilino por defecto creado con API Key: ${config.devTenantKey}`);
+CREATE TABLE IF NOT EXISTS qr_items (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    owner_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+    view_token TEXT,
+    title TEXT DEFAULT 'Sin título',
+    target_url TEXT NOT NULL,
+    rotation_strategy TEXT DEFAULT 'one_time',
+    scan_count INTEGER DEFAULT 0,
+    max_scans INTEGER DEFAULT 1,
+    is_active INTEGER DEFAULT 1,
+    color_primary TEXT DEFAULT '#1e293b',
+    color_secondary TEXT DEFAULT '#ffffff',
+    model_blob BLOB,
+    model_filename TEXT,
+    model_format TEXT DEFAULT 'glb',
+    image_blob BLOB,
+    image_mime TEXT DEFAULT 'image/png',
+    current_qr_png BLOB,
+    metadata TEXT DEFAULT '{}',
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS saved_files (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    owner_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+    file_kind TEXT NOT NULL,
+    filename TEXT NOT NULL,
+    mime_type TEXT DEFAULT 'application/octet-stream',
+    format TEXT DEFAULT 'glb',
+    size_bytes INTEGER NOT NULL,
+    sha256 TEXT NOT NULL,
+    file_blob BLOB NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS scan_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    qr_id TEXT NOT NULL REFERENCES qr_items(id) ON DELETE CASCADE,
+    tenant_id TEXT NOT NULL,
+    scanned_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    ip_address TEXT,
+    user_agent TEXT,
+    rotated INTEGER DEFAULT 0,
+    target_url TEXT
+);
+
+CREATE TABLE IF NOT EXISTS qr_rotation_history (
+    id TEXT PRIMARY KEY,
+    qr_id TEXT NOT NULL REFERENCES qr_items(id) ON DELETE CASCADE,
+    previous_url TEXT,
+    new_url TEXT,
+    reason TEXT DEFAULT 'scan_exhausted',
+    rotated_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_qr_items_tenant ON qr_items(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_saved_files_tenant ON saved_files(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_saved_files_hash ON saved_files(tenant_id, sha256, file_kind);
+CREATE INDEX IF NOT EXISTS idx_scan_logs_qr ON scan_logs(qr_id);
+CREATE INDEX IF NOT EXISTS idx_scan_logs_qr_date ON scan_logs(qr_id, scanned_at);
+CREATE INDEX IF NOT EXISTS idx_scan_logs_tenant_date ON scan_logs(tenant_id, scanned_at);
+CREATE INDEX IF NOT EXISTS idx_tenants_key_hash ON tenants(api_key_hash);
+CREATE INDEX IF NOT EXISTS idx_users_tenant ON users(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
+CREATE INDEX IF NOT EXISTS idx_user_sessions_user ON user_sessions(user_id);
+`;
+
+async function backfillViewTokens() {
+  const missing = await db.query(
+    `SELECT id, metadata FROM qr_items WHERE view_token IS NULL OR view_token = ''`
+  );
+  for (const row of missing.rows) {
+    let meta = {};
+    try {
+      meta = typeof row.metadata === 'string' ? JSON.parse(row.metadata) : (row.metadata || {});
+    } catch {
+      meta = {};
     }
-
-    client.release();
-  } catch (err) {
-    console.warn('⚠️  PostgreSQL no detectado en localhost o falló la conexión:', err.message);
-    console.log('📦 Activando adaptador de almacenamiento embebido resiliente (Zero-config local mode)');
-    useFallbackStorage = true;
-
-    // Seed default tenant in mock store
-    const devKeyHash = hashApiKey(config.devTenantKey);
-    mockStore.tenants.set('tenant_default', {
-      id: 'tenant_default',
-      name: 'Default Dev Tenant',
-      api_key_hash: devKeyHash,
-      api_key_prefix: config.devTenantKey.slice(0, 10),
-      is_active: true,
-      rate_limit_rpm: 300,
-      created_at: new Date()
-    });
+    const viewToken = meta.viewToken || ('vw_' + crypto.randomBytes(8).toString('hex'));
+    meta.viewToken = viewToken;
+    await db.query(
+      'UPDATE qr_items SET view_token = $1, metadata = $2 WHERE id = $3',
+      [viewToken, JSON.stringify(meta), row.id]
+    );
   }
 }
 
+function toSqliteSql(sql) {
+  return sql
+    .replace(/\bNOW\(\)/gi, 'CURRENT_TIMESTAMP')
+    .replace(/\$(\d+)\b/g, '?$1');
+}
+
+function bindSqliteParam(val) {
+  if (val === undefined) return null;
+  if (typeof val === 'boolean') return val ? 1 : 0;
+  if (val instanceof Date) return val.toISOString();
+  return val;
+}
+
+function normalizeSqliteRow(row) {
+  const out = {};
+  for (const [key, val] of Object.entries(row)) {
+    if (val instanceof Uint8Array) {
+      out[key] = Buffer.from(val);
+    } else if (
+      key === 'is_active' ||
+      key === 'rotated' ||
+      key === 'user_is_active' ||
+      key === 'tenant_is_active'
+    ) {
+      out[key] = Boolean(val);
+    } else {
+      out[key] = val;
+    }
+  }
+  return out;
+}
+
+async function seedDefaultTenant() {
+  const devKeyHash = hashApiKey(config.devTenantKey);
+  const existingTenant = await db.query('SELECT id FROM tenants WHERE id = $1', ['tenant_default']);
+  if (existingTenant.rows.length === 0) {
+    await db.query(
+      `INSERT INTO tenants (id, name, website_url, api_key_hash, api_key_prefix, is_active, rate_limit_rpm)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      ['tenant_default', 'Default Dev Tenant', '', devKeyHash, config.devTenantKey.slice(0, 10), true, 300]
+    );
+    console.log(`🔑 Inquilino por defecto creado con API Key: ${config.devTenantKey}`);
+  }
+}
+
+async function seedDefaultUsers() {
+  const existingSuper = await db.query(
+    `SELECT id FROM users WHERE role = 'superadmin' LIMIT 1`
+  );
+  if (existingSuper.rows.length === 0) {
+    const pwdHash = hashPassword(config.superadminPassword);
+    await db.query(
+      `INSERT INTO users (
+        id, username, email, full_name, password_hash, role, tenant_id, is_active
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [
+        'usr_superadmin',
+        config.superadminUsername,
+        config.superadminEmail || null,
+        'Super Administrador',
+        pwdHash,
+        'superadmin',
+        null,
+        true
+      ]
+    );
+    console.log(`👑 Superadmin inicial listo (usuario: ${config.superadminUsername})`);
+  }
+}
+
+export async function refreshStartupStats() {
+  if (!dbStatus.ready) return dbStatus.startupStats;
+  const [tenantsRes, filesRes, qrRes, preloadedRes] = await Promise.all([
+    db.query('SELECT COUNT(*) AS cnt FROM tenants'),
+    db.query('SELECT COUNT(*) AS cnt FROM saved_files'),
+    db.query('SELECT COUNT(*) AS cnt FROM qr_items'),
+    db.query(
+      `SELECT id, tenant_id, file_kind, filename, mime_type, format, size_bytes, created_at
+       FROM saved_files
+       ORDER BY created_at DESC`
+    )
+  ]);
+
+  dbStatus.startupStats = {
+    tenants: Number(tenantsRes.rows[0]?.cnt || 0),
+    savedFiles: Number(filesRes.rows[0]?.cnt || 0),
+    qrItems: Number(qrRes.rows[0]?.cnt || 0)
+  };
+  dbStatus.preloadedFiles = preloadedRes.rows;
+  return dbStatus.startupStats;
+}
+
+export async function closeDb() {
+  if (pool) {
+    await pool.end().catch(() => {});
+    pool = null;
+  }
+  if (sqliteDb) {
+    try {
+      sqliteDb.close();
+    } catch {
+      // ignore close errors
+    }
+    sqliteDb = null;
+  }
+  dbStatus.ready = false;
+  dbStatus.engine = null;
+  dbStatus.location = null;
+  dbStatus.preloadedFiles = [];
+}
+
+export async function initDb(options = {}) {
+  await closeDb();
+  dbStatus.error = null;
+  dbStatus.initializedAt = null;
+  dbStatus.startupStats = { tenants: 0, savedFiles: 0, qrItems: 0 };
+
+  const engine = (options.dbEngine || config.dbEngine || 'auto').toLowerCase();
+  const targetSqlitePath = options.sqlitePath || config.sqliteDbPath;
+
+  if (engine === 'postgres' || engine === 'auto') {
+    try {
+      pool = new Pool({
+        connectionString: config.databaseUrl,
+        connectionTimeoutMillis: 3000,
+        max: 20
+      });
+
+      const client = await pool.connect();
+      try {
+        const schemaSql = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf-8');
+        await client.query(schemaSql);
+      } finally {
+        client.release();
+      }
+
+      dbStatus.ready = true;
+      dbStatus.engine = 'postgresql';
+      dbStatus.location = 'postgresql';
+      await seedDefaultTenant();
+      await seedDefaultUsers();
+      await backfillViewTokens();
+      const stats = await refreshStartupStats();
+      dbStatus.initializedAt = new Date().toISOString();
+      console.log(
+        `✅ Conexión exitosa a PostgreSQL (${stats.savedFiles} archivo(s) guardado(s), ${stats.qrItems} QR(s) cargados)`
+      );
+      return getDbStatus();
+    } catch (err) {
+      if (pool) {
+        await pool.end().catch(() => {});
+        pool = null;
+      }
+      if (engine === 'postgres') {
+        dbStatus.ready = false;
+        dbStatus.engine = null;
+        dbStatus.error = `No se pudo conectar a PostgreSQL: ${err.message}`;
+        console.error(`❌ El servicio no se activó (${dbStatus.error})`);
+        return getDbStatus();
+      }
+      console.warn('⚠️  PostgreSQL no disponible en localhost:', err.message);
+      console.log(`📦 Activando base de datos SQLite persistente en disco: ${targetSqlitePath}`);
+    }
+  }
+
+  try {
+    if (targetSqlitePath !== ':memory:') {
+      fs.mkdirSync(path.dirname(targetSqlitePath), { recursive: true });
+    }
+    sqliteDb = new DatabaseSync(targetSqlitePath);
+    sqliteDb.exec('PRAGMA foreign_keys = ON;');
+    if (targetSqlitePath !== ':memory:') {
+      sqliteDb.exec('PRAGMA journal_mode = WAL;');
+    }
+    sqliteDb.exec(SQLITE_SCHEMA);
+    const tenantCols = sqliteDb.prepare('PRAGMA table_info(tenants)').all();
+    if (!tenantCols.some((c) => c.name === 'website_url')) {
+      sqliteDb.exec("ALTER TABLE tenants ADD COLUMN website_url TEXT DEFAULT '';");
+    }
+    const qrCols = sqliteDb.prepare('PRAGMA table_info(qr_items)').all();
+    if (!qrCols.some((c) => c.name === 'view_token')) {
+      sqliteDb.exec('ALTER TABLE qr_items ADD COLUMN view_token TEXT;');
+    }
+    if (!qrCols.some((c) => c.name === 'owner_user_id')) {
+      sqliteDb.exec('ALTER TABLE qr_items ADD COLUMN owner_user_id TEXT REFERENCES users(id) ON DELETE SET NULL;');
+    }
+    const fileCols = sqliteDb.prepare('PRAGMA table_info(saved_files)').all();
+    if (!fileCols.some((c) => c.name === 'owner_user_id')) {
+      sqliteDb.exec('ALTER TABLE saved_files ADD COLUMN owner_user_id TEXT REFERENCES users(id) ON DELETE SET NULL;');
+    }
+    sqliteDb.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_qr_items_view_token ON qr_items(view_token);');
+    sqliteDb.exec('CREATE INDEX IF NOT EXISTS idx_qr_items_owner ON qr_items(owner_user_id);');
+    sqliteDb.exec('CREATE INDEX IF NOT EXISTS idx_saved_files_owner ON saved_files(owner_user_id);');
+
+    dbStatus.ready = true;
+    dbStatus.engine = 'sqlite';
+    dbStatus.location = targetSqlitePath;
+    await seedDefaultTenant();
+    await seedDefaultUsers();
+    await backfillViewTokens();
+    const stats = await refreshStartupStats();
+    dbStatus.initializedAt = new Date().toISOString();
+    console.log(
+      `✅ Base de datos SQLite lista (${targetSqlitePath}): ${stats.savedFiles} archivo(s) y ${stats.qrItems} QR(s) cargados al iniciar.`
+    );
+    return getDbStatus();
+  } catch (err) {
+    if (sqliteDb) {
+      try { sqliteDb.close(); } catch {}
+      sqliteDb = null;
+    }
+    dbStatus.ready = false;
+    dbStatus.engine = null;
+    dbStatus.location = null;
+    dbStatus.error = `Error al abrir la base de datos persistente: ${err.message}`;
+    console.error(`❌ El servicio no se activó: ${dbStatus.error}`);
+    return getDbStatus();
+  }
+}
+
+export function getDbStatus() {
+  return {
+    ...dbStatus,
+    startupStats: { ...dbStatus.startupStats },
+    preloadedFiles: [...dbStatus.preloadedFiles]
+  };
+}
+
+export function setDbErrorForTest(message) {
+  dbStatus.ready = false;
+  dbStatus.error = message || 'Servicio de base de datos desactivado manualmente';
+}
+
 export const db = {
-  isFallback: () => useFallbackStorage,
+  isReady: () => dbStatus.ready,
+  isFallback: () => dbStatus.engine === 'sqlite',
+  getStatus: () => getDbStatus(),
+  getError: () => dbStatus.error,
 
   async query(text, params = []) {
-    if (!useFallbackStorage && pool) {
+    if (!dbStatus.ready) {
+      const err = new Error(dbStatus.error || 'El servicio no se activó: base de datos no disponible');
+      err.code = 'DB_SERVICE_INACTIVE';
+      err.statusCode = 503;
+      throw err;
+    }
+
+    if (dbStatus.engine === 'postgresql' && pool) {
       try {
         return await pool.query(text, params);
       } catch (err) {
@@ -86,154 +414,25 @@ export const db = {
       }
     }
 
-    // Emulated queries for local standalone dev without postgres
-    const normalizedText = text.replace(/\s+/g, ' ').trim();
+    if (dbStatus.engine === 'sqlite' && sqliteDb) {
+      const sql = toSqliteSql(text);
+      const bound = params.map(bindSqliteParam);
+      const stmt = sqliteDb.prepare(sql);
+      const isSelect = /^\s*(SELECT|PRAGMA|WITH)\b/i.test(sql) || /\bRETURNING\b/i.test(sql);
 
-    // SELECT FROM tenants WHERE api_key_hash = $1
-    if (normalizedText.includes('FROM tenants WHERE api_key_hash = $1')) {
-      const hash = params[0];
-      for (const tenant of mockStore.tenants.values()) {
-        if (tenant.api_key_hash === hash && tenant.is_active) {
-          return { rows: [tenant] };
-        }
+      if (isSelect) {
+        const rawRows = stmt.all(...bound);
+        const rows = rawRows.map(normalizeSqliteRow);
+        return { rows, rowCount: rows.length };
       }
-      return { rows: [] };
+
+      const info = stmt.run(...bound);
+      return { rows: [], rowCount: Number(info.changes || 0) };
     }
 
-    // SELECT FROM tenants WHERE id = $1
-    if (normalizedText.includes('FROM tenants WHERE id = $1')) {
-      const id = params[0];
-      const tenant = mockStore.tenants.get(id);
-      return { rows: tenant ? [tenant] : [] };
-    }
-
-    // INSERT INTO qr_items
-    if (normalizedText.startsWith('INSERT INTO qr_items')) {
-      const [
-        id, tenant_id, title, target_url, rotation_strategy,
-        scan_count, max_scans, is_active, color_primary, color_secondary,
-        model_blob, model_filename, model_format, image_blob, image_mime,
-        current_qr_png, metadata
-      ] = params;
-
-      const item = {
-        id, tenant_id, title, target_url, rotation_strategy,
-        scan_count: scan_count || 0,
-        max_scans: max_scans || 1,
-        is_active: is_active ?? true,
-        color_primary, color_secondary,
-        model_blob, model_filename, model_format,
-        image_blob, image_mime, current_qr_png,
-        metadata: typeof metadata === 'string' ? JSON.parse(metadata) : metadata,
-        created_at: new Date(),
-        updated_at: new Date()
-      };
-
-      mockStore.qr_items.set(id, item);
-      return { rows: [item] };
-    }
-
-    // SELECT FROM qr_items WHERE id = $1
-    if (normalizedText.includes('FROM qr_items WHERE id = $1')) {
-      const id = params[0];
-      const item = mockStore.qr_items.get(id);
-      if (!item) return { rows: [] };
-      if (params.length > 1) {
-        // Checking tenant_id as second parameter
-        if (item.tenant_id !== params[1]) return { rows: [] };
-      }
-      return { rows: [item] };
-    }
-
-    // SELECT list from qr_items WHERE tenant_id = $1
-    if (normalizedText.includes('FROM qr_items WHERE tenant_id = $1')) {
-      const tenant_id = params[0];
-      const items = Array.from(mockStore.qr_items.values())
-        .filter(i => i.tenant_id === tenant_id)
-        .sort((a, b) => b.created_at - a.created_at);
-      return { rows: items };
-    }
-
-    // UPDATE qr_items
-    if (normalizedText.startsWith('UPDATE qr_items')) {
-      const id = params[params.length - 1];
-      const item = mockStore.qr_items.get(id);
-      if (item) {
-        if (normalizedText.includes('scan_count = scan_count + 1')) {
-          item.scan_count += 1;
-          if (normalizedText.includes('current_qr_png = $1')) {
-            item.current_qr_png = params[0];
-          }
-          if (normalizedText.includes('metadata = $2')) {
-            item.metadata = typeof params[1] === 'string' ? JSON.parse(params[1]) : params[1];
-          }
-        } else if (normalizedText.includes('target_url = $1')) {
-          item.target_url = params[0];
-          if (normalizedText.includes('title = $2')) {
-            item.title = params[1];
-          }
-          if (normalizedText.includes('is_active = $3')) {
-            item.is_active = params[2];
-          }
-          if (normalizedText.includes('current_qr_png = $4')) {
-            item.current_qr_png = params[3];
-          }
-          if (normalizedText.includes('metadata = $5')) {
-            item.metadata = typeof params[4] === 'string' ? JSON.parse(params[4]) : params[4];
-          }
-        }
-        item.updated_at = new Date();
-        return { rows: [item] };
-      }
-      return { rows: [] };
-    }
-
-    // DELETE FROM qr_items WHERE id = $1
-    if (normalizedText.startsWith('DELETE FROM qr_items WHERE id = $1')) {
-      const id = params[0];
-      const deleted = mockStore.qr_items.delete(id);
-      return { rowCount: deleted ? 1 : 0 };
-    }
-
-    // INSERT INTO scan_logs
-    if (normalizedText.startsWith('INSERT INTO scan_logs')) {
-      const log = {
-        id: mockStore.scan_logs.length + 1,
-        qr_id: params[0],
-        tenant_id: params[1],
-        ip_address: params[2],
-        user_agent: params[3],
-        rotated: params[4],
-        target_url: params[5],
-        scanned_at: new Date()
-      };
-      mockStore.scan_logs.push(log);
-      return { rows: [log] };
-    }
-
-    // SELECT FROM scan_logs WHERE qr_id = $1
-    if (normalizedText.includes('FROM scan_logs WHERE qr_id = $1')) {
-      const qr_id = params[0];
-      const logs = mockStore.scan_logs
-        .filter(l => l.qr_id === qr_id)
-        .sort((a, b) => b.scanned_at - a.scanned_at);
-      return { rows: logs };
-    }
-
-    // INSERT INTO qr_rotation_history
-    if (normalizedText.startsWith('INSERT INTO qr_rotation_history')) {
-      const rot = {
-        id: params[0],
-        qr_id: params[1],
-        previous_url: params[2],
-        new_url: params[3],
-        reason: params[4],
-        rotated_at: new Date()
-      };
-      mockStore.qr_rotation_history.push(rot);
-      return { rows: [rot] };
-    }
-
-    return { rows: [] };
+    const err = new Error('Motor de base de datos no inicializado');
+    err.code = 'DB_SERVICE_INACTIVE';
+    err.statusCode = 503;
+    throw err;
   }
 };

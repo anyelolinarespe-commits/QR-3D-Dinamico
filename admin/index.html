@@ -62,7 +62,7 @@
     /* Stats Row */
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
       gap: 16px;
     }
     .stat-card {
@@ -494,28 +494,571 @@
       color: #34d399;
       font-weight: 600;
     }
+
+    /* Banners de estado del servicio y cola pendiente */
+    .service-banner {
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 13px;
+    }
+    .service-banner.error {
+      display: flex;
+      background: rgba(239, 68, 68, 0.14);
+      border: 1px solid rgba(239, 68, 68, 0.55);
+      color: #fecaca;
+    }
+    .service-banner.pending {
+      display: flex;
+      background: rgba(245, 158, 11, 0.14);
+      border: 1px solid rgba(245, 158, 11, 0.45);
+      color: #fde68a;
+    }
+    .service-banner strong { display: block; font-size: 14px; margin-bottom: 2px; }
+    .inline-form-error {
+      display: none;
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: rgba(239, 68, 68, 0.14);
+      border: 1px solid rgba(239, 68, 68, 0.5);
+      color: #fecaca;
+      font-size: 12.5px;
+      line-height: 1.45;
+    }
+    .modal-content-sm {
+      max-width: 640px;
+    }
+    .edit-form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 640px) {
+      .edit-form-grid { grid-template-columns: 1fr; }
+    }
+    .qr-desc-sub {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      margin-top: 3px;
+      max-width: 280px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .badge-paused {
+      background: rgba(239, 68, 68, 0.16);
+      color: #fca5a5;
+    }
+
+    /* Centro Rápido Desplegable de Links Públicos */
+    .share-hub-card {
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.96) 0%, rgba(17, 24, 39, 0.96) 60%, rgba(30, 41, 59, 0.9) 100%);
+      border: 1px solid rgba(56, 189, 248, 0.34);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 18px 40px -12px rgba(2, 132, 199, 0.22);
+      transition: border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+    .share-hub-card:hover {
+      border-color: rgba(56, 189, 248, 0.55);
+    }
+    .share-hub-header {
+      width: 100%;
+      background: linear-gradient(90deg, rgba(56, 189, 248, 0.12) 0%, rgba(168, 85, 247, 0.08) 100%);
+      border: none;
+      border-bottom: 1px solid rgba(56, 189, 248, 0.18);
+      padding: 16px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      cursor: pointer;
+      color: #f8fafc;
+      text-align: left;
+      transition: background 0.2s ease;
+    }
+    .share-hub-header:hover {
+      background: linear-gradient(90deg, rgba(56, 189, 248, 0.18) 0%, rgba(168, 85, 247, 0.12) 100%);
+    }
+    .share-hub-card.collapsed .share-hub-header {
+      border-bottom-color: transparent;
+    }
+    .share-hub-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .share-hub-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 11px;
+      background: linear-gradient(135deg, #0284c7, #6366f1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+      flex-shrink: 0;
+    }
+    .share-hub-title-wrap h2 {
+      font-size: 16px;
+      font-weight: 800;
+      color: #f8fafc;
+      letter-spacing: -0.01em;
+    }
+    .share-hub-title-wrap p {
+      font-size: 12.5px;
+      color: #94a3b8;
+      margin-top: 2px;
+    }
+    .share-hub-header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .share-hub-pill {
+      background: rgba(56, 189, 248, 0.16);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: #7dd3fc;
+      font-size: 11.5px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 9999px;
+    }
+    .share-hub-chevron {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.06);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: #cbd5e1;
+      transition: transform 0.25s ease, background 0.2s ease;
+    }
+    .share-hub-card.collapsed .share-hub-chevron {
+      transform: rotate(-90deg);
+    }
+    .share-hub-body {
+      padding: 20px 22px;
+      display: block;
+    }
+    .share-hub-card.collapsed .share-hub-body {
+      display: none;
+    }
+    .share-hub-grid {
+      display: grid;
+      grid-template-columns: 124px 1fr;
+      gap: 20px;
+      align-items: center;
+    }
+    @media (max-width: 720px) {
+      .share-hub-grid {
+        grid-template-columns: 1fr;
+      }
+      .share-qr-thumb-box {
+        margin: 0 auto;
+      }
+    }
+    .share-qr-thumb-box {
+      width: 124px;
+      height: 124px;
+      background: #ffffff;
+      border-radius: 14px;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.14);
+      position: relative;
+      overflow: hidden;
+    }
+    .share-qr-thumb-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+    .share-qr-empty {
+      font-size: 11px;
+      color: #475569;
+      font-weight: 700;
+      text-align: center;
+    }
+    .share-controls-col {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-width: 0;
+    }
+    .share-select-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .share-select-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 240px;
+    }
+    .share-select {
+      width: 100%;
+      appearance: none;
+      background: #090e1a;
+      border: 1px solid #334155;
+      color: #f8fafc;
+      padding: 11px 38px 11px 14px;
+      border-radius: 10px;
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .share-select:focus {
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.16);
+    }
+    .share-select-arrow {
+      position: absolute;
+      right: 13px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+      color: #7dd3fc;
+      font-size: 13px;
+    }
+    .share-meta-pills {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .share-link-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      background: #090e1a;
+      border: 1px solid #263449;
+      border-radius: 12px;
+      padding: 6px 8px;
+    }
+    .share-link-input {
+      flex: 1;
+      min-width: 200px;
+      background: transparent;
+      border: none;
+      color: #7dd3fc;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12.5px;
+      padding: 6px 8px;
+      outline: none;
+    }
+    .btn-copy-primary {
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: transform 0.12s ease, filter 0.2s ease, background 0.2s ease;
+    }
+    .btn-copy-primary:hover { filter: brightness(1.1); }
+    .btn-copy-primary:active { transform: scale(0.97); }
+    .btn-copy-primary.copied,
+    .btn-secondary.copied {
+      background: linear-gradient(135deg, #059669, #10b981) !important;
+      border-color: #34d399 !important;
+      color: #ffffff !important;
+    }
+    .admin-toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: linear-gradient(135deg, #065f46, #059669);
+      color: #ffffff;
+      border: 1px solid rgba(52, 211, 153, 0.5);
+      padding: 12px 18px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 18px 34px rgba(0, 0, 0, 0.45);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      opacity: 0;
+      transform: translateY(14px);
+      pointer-events: none;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+      z-index: 2000;
+    }
+    .admin-toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Login Screen */
+    .login-screen {
+      min-height: calc(100vh - 48px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .login-card {
+      width: 100%;
+      max-width: 440px;
+      background: linear-gradient(160deg, rgba(17, 24, 39, 0.98), rgba(15, 23, 42, 0.96));
+      border: 1px solid #263449;
+      border-radius: 18px;
+      padding: 32px 28px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.65);
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .login-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .login-brand h2 {
+      font-size: 22px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #60a5fa, #a855f7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .login-roles-note {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 12px;
+      color: #94a3b8;
+      line-height: 1.5;
+    }
+    .login-roles-note strong { color: #cbd5e1; }
+
+    /* User Session Header Bar */
+    .user-session-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      background: #141e30;
+      padding: 8px 14px;
+      border-radius: var(--radius);
+      border: 1px solid #263449;
+    }
+    .role-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 11.5px;
+      font-weight: 700;
+    }
+    .role-superadmin { background: rgba(245, 158, 11, 0.18); color: #fcd34d; border: 1px solid rgba(245, 158, 11, 0.45); }
+    .role-admin { background: rgba(56, 189, 248, 0.16); color: #7dd3fc; border: 1px solid rgba(56, 189, 248, 0.4); }
+    .role-user { background: rgba(16, 185, 129, 0.16); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.4); }
+
+    /* Management Panels */
+    .mgmt-tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .mgmt-tab {
+      background: #0f172a;
+      border: 1px solid #334155;
+      color: #cbd5e1;
+      padding: 8px 14px;
+      border-radius: 9px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .mgmt-tab.active {
+      background: linear-gradient(135deg, #2563eb, #3b82f6);
+      border-color: #60a5fa;
+      color: #ffffff;
+    }
+    .mgmt-form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 12px;
+      align-items: end;
+      background: #0d1424;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+    .cred-box {
+      display: none;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(52, 211, 153, 0.45);
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+      font-size: 13px;
+      color: #ecfdf5;
+    }
+    .cred-box.show { display: block; }
+    .cred-code {
+      background: #090d16;
+      border: 1px solid #263449;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+      color: #7dd3fc;
+      margin-top: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .site-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.35fr;
+      gap: 20px;
+    }
+    @media (max-width: 980px) {
+      .site-grid { grid-template-columns: 1fr; }
+    }
+    .password-field-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .password-field-wrap .form-control {
+      padding-right: 44px;
+    }
+    .btn-toggle-pwd {
+      position: absolute;
+      right: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(30, 41, 59, 0.9);
+      border: 1px solid #334155;
+      color: #cbd5e1;
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 13px;
+      line-height: 1.2;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s, color 0.15s;
+    }
+    .btn-toggle-pwd:hover {
+      background: #334155;
+      color: #ffffff;
+    }
   </style>
 </head>
 <body>
-  <div class="container">
+  <!-- Pantalla de Login (Acceso cerrado por roles) -->
+  <div id="login-screen" class="login-screen" style="display: none;">
+    <div class="login-card">
+      <div class="login-brand">
+        <span style="font-size: 36px;">🧊</span>
+        <div>
+          <h2>API 3D-QR</h2>
+          <p style="font-size: 12.5px; color: #94a3b8;">Inicia sesión para gestionar modelos 3D y QRs</p>
+        </div>
+      </div>
+
+      <div id="login-service-warn" class="inline-form-error" style="margin-top: 0;"></div>
+
+      <form id="login-form" style="display: flex; flex-direction: column; gap: 14px;">
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="login-identifier">Usuario o correo electrónico</label>
+          <input type="text" id="login-identifier" class="form-control" autocomplete="username" placeholder="Ej: superadmin o usuario@sitio.com" required />
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="login-password">Contraseña</label>
+          <div class="password-field-wrap">
+            <input type="password" id="login-password" class="form-control" autocomplete="current-password" placeholder="Ingresa tu contraseña" required />
+            <button type="button" class="btn-toggle-pwd" data-toggle-pwd="login-password" aria-label="Mostrar u ocultar contraseña" aria-pressed="false" title="Ver contraseña">👁️</button>
+          </div>
+        </div>
+        <div id="login-error" class="inline-form-error" style="margin-top: 0;"></div>
+        <button type="submit" class="btn" id="btn-login">🔐 Iniciar Sesión</button>
+      </form>
+
+      <div class="login-roles-note">
+        <strong>Acceso por jerarquía sin registro público:</strong><br />
+        • <strong>Superadmin:</strong> control global de sitios web, administradores, usuarios y modelos.<br />
+        • <strong>Administrador de sitio web:</strong> gestiona su sitio, API Key y entrega cuentas a sus usuarios.<br />
+        • <strong>Usuario 3D:</strong> aloja y gestiona sus propios modelos 3D y códigos QR en el servidor.<br />
+        <span style="display:inline-block;margin-top:6px;color:#7dd3fc;">ℹ️ Superadmin inicial: usuario/correo y clave configurados en <code>.env</code> (<code>SUPERADMIN_USERNAME</code> / <code>SUPERADMIN_PASSWORD</code>).</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="container" id="app-shell" style="display: none;">
     <!-- Header -->
     <header>
       <div class="brand">
         <span class="brand-logo">🧊</span>
         <div>
           <h1>Panel de Control 3D-QR</h1>
-          <p>Gestión de modelos 3D, códigos QR desechables y API multi-inquilino</p>
+          <p id="header-subtitle">Gestión de modelos 3D, códigos QR desechables y API multi-inquilino</p>
         </div>
       </div>
-      <div class="api-key-bar">
-        <a href="/example/sipan-nuevo.html" target="_blank" class="btn btn-sm" style="background: linear-gradient(135deg, #0284c7, #2563eb); color: #fff; text-decoration: none; padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">🏛️ Sipán 3D (Nuevo)</a>
-        <a href="/example/museo-sipan.html" target="_blank" class="btn btn-sm" style="background: rgba(223, 166, 52, 0.2); border: 1px solid #dfa634; color: #ffd782; text-decoration: none; padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">🏛️ Sipán V1</a>
-        <a href="/example/sipan-ejemplo2.html" target="_blank" class="btn btn-sm" style="background: linear-gradient(135deg, #932c1e, #dfa634); color: #fff; text-decoration: none; padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">🌟 Sipán V2 (HD+)</a>
-        <span style="font-size: 12px; color: #94a3b8;">API Key:</span>
-        <input type="text" id="api-key-input" value="tk_live_demo_123456789" />
-        <button class="btn btn-secondary btn-sm" id="btn-save-key">Guardar</button>
+      <div class="user-session-bar">
+        <a href="/example/sipan-nuevo.html" target="_blank" class="btn btn-sm" style="background: linear-gradient(135deg, #0284c7, #2563eb); color: #fff; text-decoration: none; padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">🏛️ Sipán 3D</a>
+        <span id="hdr-role-pill" class="role-pill role-user">—</span>
+        <div style="display: flex; flex-direction: column; line-height: 1.25;">
+          <strong id="hdr-user-name" style="font-size: 12.5px; color: #f8fafc;">Usuario</strong>
+          <span id="hdr-site-label" style="font-size: 11px; color: #94a3b8;">Sitio</span>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" id="btn-open-change-password" title="Cambiar tu contraseña">🔑 Clave</button>
+        <button type="button" class="btn btn-secondary btn-sm" id="btn-logout" style="color: #fca5a5;">🚪 Salir</button>
       </div>
     </header>
+
+    <!-- Banner de Error si el servicio o la base de datos no se activó -->
+    <div id="service-error-banner" class="service-banner" role="alert">
+      <div>
+        <strong>⛔ El servicio no se activó</strong>
+        <span id="service-error-detail">No se pudo conectar con la API o la base de datos. Los archivos no se pueden enviar todavía.</span>
+      </div>
+      <button type="button" class="btn btn-secondary btn-sm" id="btn-retry-health">🔄 Reintentar conexión</button>
+    </div>
+
+    <!-- Banner de Cola Local pendiente de envío al servidor -->
+    <div id="pending-queue-banner" class="service-banner">
+      <div>
+        <strong id="pending-queue-title">⏳ Hay envíos pendientes guardados localmente</strong>
+        <span id="pending-queue-desc">Se enviarán al servidor automáticamente en cuanto el servicio esté activo.</span>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button type="button" class="btn btn-sm" id="btn-flush-queue" style="width:auto;">📤 Enviar al servidor ahora</button>
+        <button type="button" class="btn btn-secondary btn-sm" id="btn-clear-queue">🗑️ Descartar cola</button>
+      </div>
+    </div>
 
     <!-- Stats -->
     <div class="stats-grid">
@@ -524,18 +1067,324 @@
         <div class="stat-value" id="stat-total-qrs">0</div>
       </div>
       <div class="stat-card">
+        <div class="stat-label">Archivos en Base de Datos</div>
+        <div class="stat-value" id="stat-saved-files">0</div>
+      </div>
+      <div class="stat-card" style="border-color: rgba(16, 185, 129, 0.35); background: linear-gradient(145deg, rgba(16, 185, 129, 0.12), rgba(15, 23, 42, 0.92));">
+        <div class="stat-label" style="color: #86efac;">📅 Ingresos Hoy al Link</div>
+        <div class="stat-value" id="stat-daily-scans" style="color: #ecfdf5;">0</div>
+        <div id="stat-daily-visitors" style="font-size: 12px; color: #94a3b8;">👥 0 personas únicas hoy</div>
+      </div>
+      <div class="stat-card">
         <div class="stat-label">Escaneos Totales</div>
         <div class="stat-value" id="stat-total-scans">0</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Estrategia</div>
-        <div class="stat-value" style="font-size: 20px; color: #34d399;">Desechable (1-scan)</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Estado del Servidor</div>
-        <div class="stat-value" style="font-size: 20px; color: #60a5fa;" id="stat-status">Conectado</div>
+        <div class="stat-label">Estado del Servicio</div>
+        <div class="stat-value" style="font-size: 18px; color: #94a3b8;" id="stat-status">Verificando...</div>
       </div>
     </div>
+
+    <!-- Panel Exclusivo Superadmin: Sitios Web + Todos los Usuarios -->
+    <section class="card" id="panel-superadmin" style="display: none; border-color: rgba(245, 158, 11, 0.35);">
+      <div class="card-title" style="margin-bottom: 12px;">
+        <span>👑 Centro Global de Superadmin — Sitios Web y Usuarios</span>
+        <button type="button" class="btn btn-secondary btn-sm" id="btn-sa-refresh">🔄 Actualizar todo</button>
+      </div>
+
+      <div class="mgmt-tabs">
+        <button type="button" class="mgmt-tab active" id="sa-tab-tenants">🌐 Sitios Web (Administrados)</button>
+        <button type="button" class="mgmt-tab" id="sa-tab-users">👥 Administradores y Usuarios 3D</button>
+      </div>
+
+      <!-- Subpanel Sitios Web / Tenants -->
+      <div id="sa-pane-tenants">
+        <form id="sa-create-tenant-form" class="mgmt-form-grid">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="sa-tenant-name">Nombre del Sitio / Empresa</label>
+            <input type="text" id="sa-tenant-name" class="form-control" placeholder="Ej: Museo Larco" required />
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="sa-tenant-url">Sitio Web (URL)</label>
+            <input type="text" id="sa-tenant-url" class="form-control" placeholder="https://museolarco.org" />
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="sa-tenant-admin-user">Usuario Admin Inicial (opcional)</label>
+            <input type="text" id="sa-tenant-admin-user" class="form-control" placeholder="Ej: admin_larco" />
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="sa-tenant-admin-email">Correo Admin (opcional)</label>
+            <input type="email" id="sa-tenant-admin-email" class="form-control" placeholder="admin@sitio.com" />
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="sa-tenant-admin-pass">Contraseña Admin (vacío = auto)</label>
+            <div class="password-field-wrap">
+              <input type="password" id="sa-tenant-admin-pass" class="form-control" placeholder="Mínimo 6 caracteres o vacío" />
+              <button type="button" class="btn-toggle-pwd" data-toggle-pwd="sa-tenant-admin-pass" aria-label="Mostrar u ocultar contraseña" aria-pressed="false" title="Ver contraseña">👁️</button>
+            </div>
+          </div>
+          <button type="submit" class="btn" id="btn-sa-create-tenant">➕ Crear Sitio Web</button>
+        </form>
+
+        <div id="sa-credential-box" class="cred-box">
+          <div id="sa-credential-title" style="font-weight: 700;"></div>
+          <div class="cred-code">
+            <span id="sa-credential-text"></span>
+            <button type="button" class="btn-copy-primary" id="btn-sa-copy-cred" style="padding: 5px 10px; font-size: 11.5px;">📋 Copiar</button>
+          </div>
+        </div>
+
+        <div class="table-responsive" style="margin-top: 8px;">
+          <table class="qr-table">
+            <thead>
+              <tr>
+                <th>Sitio Web / Tenant</th>
+                <th>API Key (Prefijo)</th>
+                <th>Cuentas</th>
+                <th>Recursos 3D</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="sa-tenants-tbody">
+              <tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:16px;">Cargando sitios...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Subpanel Todos los Usuarios -->
+      <div id="sa-pane-users" style="display: none;">
+        <form id="sa-create-user-form" class="mgmt-form-grid">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="sa-user-role">Rol de Cuenta</label>
+            <select id="sa-user-role" class="form-control">
+              <option value="admin">🌐 Administrador de Sitio Web</option>
+              <option value="user">🧊 Usuario 3D (Gestor de modelos)</option>
+              <option value="superadmin">👑 Superadmin</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;" id="sa-user-tenant-wrap">
+            <label for="sa-user-tenant">Sitio Web Asignado</label>
+            <select id="sa-user-tenant" class="form-control"></select>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="sa-user-username">Usuario</label>
+            <input type="text" id="sa-user-username" class="form-control" placeholder="Ej: carlos_3d" required />
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="sa-user-fullname">Nombre completo</label>
+            <input type="text" id="sa-user-fullname" class="form-control" placeholder="Ej: Carlos Pérez" />
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="sa-user-email">Correo (opcional)</label>
+            <input type="email" id="sa-user-email" class="form-control" placeholder="carlos@sitio.com" />
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="sa-user-password">Contraseña (vacío = generar)</label>
+            <div class="password-field-wrap">
+              <input type="password" id="sa-user-password" class="form-control" placeholder="Auto-generar si queda vacío" />
+              <button type="button" class="btn-toggle-pwd" data-toggle-pwd="sa-user-password" aria-label="Mostrar u ocultar contraseña" aria-pressed="false" title="Ver contraseña">👁️</button>
+            </div>
+          </div>
+          <button type="submit" class="btn" id="btn-sa-create-user">➕ Crear Cuenta</button>
+        </form>
+
+        <div id="sa-user-cred-box" class="cred-box">
+          <div id="sa-user-cred-title" style="font-weight: 700;"></div>
+          <div class="cred-code">
+            <span id="sa-user-cred-text"></span>
+            <button type="button" class="btn-copy-primary" id="btn-sa-copy-user-cred" style="padding: 5px 10px; font-size: 11.5px;">📋 Copiar Credenciales</button>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 8px; flex-wrap: wrap;">
+          <span style="font-size: 12px; color: #94a3b8;">Filtrar por sitio:</span>
+          <select id="sa-filter-tenant" class="form-control" style="width: auto; min-width: 220px; padding: 6px 10px; font-size: 12.5px;">
+            <option value="">Todos los sitios</option>
+          </select>
+        </div>
+
+        <div class="table-responsive" style="margin-top: 8px;">
+          <table class="qr-table">
+            <thead>
+              <tr>
+                <th>Usuario</th>
+                <th>Nombre / Correo</th>
+                <th>Rol</th>
+                <th>Sitio Web</th>
+                <th>Modelos / QRs</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="sa-users-tbody">
+              <tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:16px;">Cargando usuarios...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Panel Administrador de Sitio Web: Sitio + API Key + Usuarios 3D -->
+    <section class="card" id="panel-admin-site" style="display: none; border-color: rgba(56, 189, 248, 0.35);">
+      <div class="card-title" style="margin-bottom: 14px;">
+        <span>🌐 Administración de mi Sitio Web y Usuarios 3D</span>
+        <button type="button" class="btn btn-secondary btn-sm" id="btn-adm-refresh">🔄 Actualizar</button>
+      </div>
+
+      <div class="site-grid">
+        <!-- Datos del Sitio e Integración API -->
+        <div style="background: #0d1424; border: 1px solid #1e293b; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+          <div style="font-weight: 700; font-size: 14px; color: #7dd3fc;">🔌 Configuración del Sitio Web e API Key</div>
+          <form id="adm-site-form" style="display: flex; flex-direction: column; gap: 10px;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="adm-site-name">Nombre del Sitio Web</label>
+              <input type="text" id="adm-site-name" class="form-control" required />
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="adm-site-url">URL de tu Sitio Web</label>
+              <input type="text" id="adm-site-url" class="form-control" placeholder="https://tusitio.com" />
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button type="submit" class="btn btn-sm" id="btn-adm-save-site">💾 Guardar Sitio</button>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-adm-rotate-key">🔑 Regenerar API Key</button>
+            </div>
+          </form>
+
+          <div style="font-size: 12px; color: #94a3b8;">
+            API Key actual del sitio: <code id="adm-api-prefix" style="color: #38bdf8;">—</code>
+          </div>
+
+          <div id="adm-new-key-box" class="cred-box" style="margin-bottom: 0;">
+            <div style="font-weight: 700;">🔑 Nueva API Key generada (guárdala ahora, no se volverá a mostrar):</div>
+            <div class="cred-code">
+              <span id="adm-new-key-val"></span>
+              <button type="button" class="btn-copy-primary" id="btn-adm-copy-key" style="padding: 5px 10px; font-size: 11.5px;">📋 Copiar API Key</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gestión de Usuarios 3D que alojan modelos en este sitio -->
+        <div style="background: #0d1424; border: 1px solid #1e293b; border-radius: 10px; padding: 16px;">
+          <div style="font-weight: 700; font-size: 14px; color: #6ee7b7; margin-bottom: 10px;">👥 Entregar Usuario a Gestores de Modelos 3D</div>
+          <form id="adm-create-user-form" class="mgmt-form-grid" style="background: transparent; border: none; padding: 0; margin-bottom: 12px;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="adm-user-username">Usuario</label>
+              <input type="text" id="adm-user-username" class="form-control" placeholder="Ej: disenador1" required />
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="adm-user-fullname">Nombre</label>
+              <input type="text" id="adm-user-fullname" class="form-control" placeholder="Ej: Ana Gómez" />
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="adm-user-email">Correo (opcional)</label>
+              <input type="email" id="adm-user-email" class="form-control" placeholder="ana@tusitio.com" />
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="adm-user-password">Contraseña (vacío = generar)</label>
+              <div class="password-field-wrap">
+                <input type="password" id="adm-user-password" class="form-control" placeholder="Auto-generar si queda vacío" />
+                <button type="button" class="btn-toggle-pwd" data-toggle-pwd="adm-user-password" aria-label="Mostrar u ocultar contraseña" aria-pressed="false" title="Ver contraseña">👁️</button>
+              </div>
+            </div>
+            <button type="submit" class="btn" id="btn-adm-create-user">➕ Crear y Entregar Usuario</button>
+          </form>
+
+          <div id="adm-user-cred-box" class="cred-box">
+            <div id="adm-user-cred-title" style="font-weight: 700;"></div>
+            <div class="cred-code">
+              <span id="adm-user-cred-text"></span>
+              <button type="button" class="btn-copy-primary" id="btn-adm-copy-user-cred" style="padding: 5px 10px; font-size: 11.5px;">📋 Copiar Credenciales</button>
+            </div>
+          </div>
+
+          <div class="table-responsive" style="margin-top: 8px;">
+            <table class="qr-table">
+              <thead>
+                <tr>
+                  <th>Usuario</th>
+                  <th>Nombre / Correo</th>
+                  <th>Modelos / QRs</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="adm-users-tbody">
+                <tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:14px;">Cargando usuarios...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Centro Rápido Desplegable para Copiar Link Público (Modelo 3D + QR) -->
+    <section class="share-hub-card" id="share-hub-card">
+      <button type="button" class="share-hub-header" id="share-hub-toggle" aria-expanded="true">
+        <div class="share-hub-title-wrap">
+          <span class="share-hub-icon">🔗</span>
+          <div>
+            <h2>Compartir Vista Pública (Modelo 3D + QR)</h2>
+            <p>Selecciona un QR del desplegable y copia el link único de solo lectura para sistemas o empresas externas</p>
+          </div>
+        </div>
+        <div class="share-hub-header-right">
+          <span class="share-hub-pill" id="share-hub-count">0 vistas disponibles</span>
+          <span class="share-hub-chevron" aria-hidden="true">▾</span>
+        </div>
+      </button>
+
+      <div class="share-hub-body" id="share-hub-body">
+        <div class="share-hub-grid">
+          <div class="share-qr-thumb-box" id="share-qr-thumb-box">
+            <img id="share-hub-qr-img" src="" alt="Vista previa QR" style="display: none;" />
+            <span id="share-hub-qr-empty" class="share-qr-empty">Sin QR seleccionado</span>
+          </div>
+
+          <div class="share-controls-col">
+            <div class="share-select-row">
+              <div class="share-select-wrap">
+                <select id="share-qr-select" class="share-select" aria-label="Seleccionar QR 3D para copiar su enlace público">
+                  <option value="">Cargando códigos QR 3D...</option>
+                </select>
+                <span class="share-select-arrow">▾</span>
+              </div>
+              <div class="share-meta-pills" id="share-hub-pills"></div>
+            </div>
+
+            <div class="share-link-bar">
+              <input type="text" id="share-hub-url" class="share-link-input" readonly placeholder="Selecciona o crea un QR 3D para obtener su link público..." />
+              <button type="button" class="btn-copy-primary" id="btn-share-copy">📋 Copiar Link</button>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-share-iframe" title="Copia código iframe listo para incrustar">🧩 Iframe</button>
+              <a id="btn-share-open" href="#" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" style="text-decoration: none;">🌐 Abrir Vista</a>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-share-edit-slug" title="Editar la ruta personalizada de la vista pública">✏️ Editar Ruta</button>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-share-rotate-link" title="Revoca el enlace actual y genera uno nuevo">🔁 Nuevo Link</button>
+            </div>
+
+            <div id="share-slug-editor" class="share-link-bar" style="display: none; border-color: rgba(56, 189, 248, 0.45); background: #0d1526;">
+              <span id="share-slug-prefix" style="font-family: monospace; font-size: 12px; color: #94a3b8; padding-left: 6px; white-space: nowrap;">/view/</span>
+              <input type="text" id="share-slug-input" class="share-link-input" placeholder="mi-ruta-personalizada" style="color: #fde68a;" />
+              <button type="button" class="btn-copy-primary" id="btn-share-save-slug" style="padding: 7px 12px; font-size: 12px;">💾 Guardar Ruta</button>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-share-cancel-slug">✖</button>
+            </div>
+
+            <div class="share-link-bar" style="border-color: rgba(16, 185, 129, 0.28);">
+              <span style="font-size: 12px; font-weight: 700; color: #86efac; padding-left: 6px; white-space: nowrap;">🎯 Destino del QR:</span>
+              <input type="text" id="share-target-url" list="target-url-suggestions" class="share-link-input" placeholder="https://otra-pagina.com o /example/sipan-nuevo.html" style="color: #e2e8f0;" />
+              <button type="button" class="btn-copy-primary" id="btn-share-save-target" style="background: linear-gradient(135deg, #059669, #10b981); padding: 7px 12px; font-size: 12px;">💾 Cambiar Destino</button>
+            </div>
+
+            <datalist id="target-url-suggestions">
+              <option value="/example/sipan-nuevo.html"></option>
+              <option value="/example/museo-sipan.html"></option>
+              <option value="/example/sipan-ejemplo2.html"></option>
+              <option value="https://google.com"></option>
+            </datalist>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <!-- Main Grid: Creador + Guía 3D / IA -->
     <div class="main-grid">
@@ -545,22 +1394,60 @@
           <span>✨ Crear Nuevo QR 3D</span>
         </div>
         <form id="create-qr-form">
+          <div id="create-tenant-group" class="form-group" style="display: none;">
+            <label for="create-tenant-id">🌐 Sitio Web Destino (Superadmin)</label>
+            <select id="create-tenant-id" class="form-control"></select>
+          </div>
+          <div id="create-owner-group" class="form-group" style="display: none;">
+            <label for="create-owner-user-id">👤 Asignar Propietario (Opcional)</label>
+            <select id="create-owner-user-id" class="form-control">
+              <option value="">Mi cuenta actual</option>
+            </select>
+          </div>
           <div class="form-group">
             <label for="qr-title">Título / Nombre</label>
             <input type="text" id="qr-title" class="form-control" placeholder="Ej: Evento Innovación 2026" required value="Evento Innovación 2026" />
           </div>
 
           <div class="form-group">
-            <label for="qr-target-url">Enlace de Destino (URL real)</label>
-            <input type="url" id="qr-target-url" class="form-control" placeholder="https://miempresa.com/acceso-vip" required value="https://google.com" />
+            <label for="qr-target-url">
+              <span>Enlace de Destino (Página o ruta a la que lleva el QR)</span>
+              <span style="font-size: 11px; color: #94a3b8;">URL o /ruta</span>
+            </label>
+            <input type="text" id="qr-target-url" list="target-url-suggestions" class="form-control" placeholder="https://miempresa.com/acceso-vip o /example/sipan-nuevo.html" required value="https://google.com" />
           </div>
 
           <div class="form-group">
-            <label for="qr-strategy">Estrategia de Descarte</label>
+            <label for="qr-view-slug">
+              <span>🔗 Ruta de Vista Pública personalizada</span>
+              <span style="font-size: 11px; color: #94a3b8;">Opcional (/view/tu-ruta)</span>
+            </label>
+            <input type="text" id="qr-view-slug" class="form-control" placeholder="Ej: museo-sipan-vip (vacío = automático)" />
+          </div>
+
+          <div class="form-group">
+            <label for="qr-strategy">Comportamiento del Enlace QR</label>
             <select id="qr-strategy" class="form-control">
-              <option value="one_time" selected>Desechable tras 1 escaneo (Auto-renovación en tiempo real)</option>
-              <option value="continuous">Continuo (Sin descarte)</option>
+              <option value="one_time" selected>⚡ Dinámico — 1 solo uso (Cambia tras cada escaneo)</option>
+              <option value="timed">🔄 Dinámico — Cambia constantemente por tiempo (Cada N seg)</option>
+              <option value="dynamic">🔄⚡ Dinámico total — Por tiempo y por cada escaneo</option>
+              <option value="static">🔒 Estático — Enlace fijo permanente</option>
+              <option value="continuous">🔒 Continuo — Estático sin descarte</option>
             </select>
+          </div>
+
+          <div id="create-rotation-interval-group" style="display: none; background: #0f172a; border: 1px solid #1e293b; border-radius: 10px; padding: 12px; margin-bottom: 16px;">
+            <div class="form-group" style="margin-bottom: 10px;">
+              <label for="qr-rotation-interval">⏱️ Intervalo de cambio automático (segundos)</label>
+              <input type="number" id="qr-rotation-interval" class="form-control" min="2" max="86400" value="30" />
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="qr-rotating-urls">
+                <span>🔁 Lista de URLs rotativas (opcional)</span>
+                <span style="font-size: 11px; color: #94a3b8;">1 por línea</span>
+              </label>
+              <textarea id="qr-rotating-urls" class="form-control" rows="2" placeholder="https://ejemplo.com/link-1&#10;https://ejemplo.com/link-2"></textarea>
+            </div>
           </div>
 
           <!-- Archivo Imagen / Textura (Extrae color automáticamente) -->
@@ -617,6 +1504,7 @@
           <button type="submit" class="btn" id="btn-submit">
             🚀 Generar QR 3D Interactivo
           </button>
+          <div id="form-service-error" class="inline-form-error"></div>
         </form>
       </div>
 
@@ -710,6 +1598,43 @@
       </div>
     </div>
 
+    <!-- Biblioteca de Archivos Guardados en Base de Datos -->
+    <div class="card">
+      <div class="card-title">
+        <span>💾 Archivos Subidos Guardados en Base de Datos</span>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <input type="file" id="direct-upload-file" accept=".glb,.gltf,.obj,.fbx,.stl,image/png,image/jpeg,image/webp,image/svg+xml" style="display:none;" />
+          <button type="button" class="btn btn-sm" id="btn-direct-upload" style="width:auto;">📤 Guardar Archivo en BD</button>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-refresh-files">🔄 Actualizar</button>
+        </div>
+      </div>
+      <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 10px;">
+        Todos los modelos 3D e imágenes que subas se guardan en la base de datos y se cargan automáticamente cada vez que inicia la API.
+      </p>
+      <div class="table-responsive">
+        <table class="qr-table">
+          <thead>
+            <tr>
+              <th>Archivo</th>
+              <th>Tipo</th>
+              <th>Formato</th>
+              <th>Tamaño</th>
+              <th id="th-files-owner" style="display: none;">Sitio / Propietario</th>
+              <th>Guardado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="files-table-body">
+            <tr>
+              <td colspan="7" style="text-align: center; color: #94a3b8; padding: 20px;">
+                Cargando archivos guardados...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- Lista de QRs del Inquilino -->
     <div class="card">
       <div class="card-title">
@@ -723,6 +1648,7 @@
             <tr>
               <th>ID</th>
               <th>Título</th>
+              <th id="th-qr-owner" style="display: none;">Sitio / Propietario</th>
               <th>Destino Real</th>
               <th>Estrategia</th>
               <th>Escaneos</th>
@@ -732,7 +1658,7 @@
           </thead>
           <tbody id="qr-table-body">
             <tr>
-              <td colspan="7" style="text-align: center; color: #94a3b8; padding: 24px;">
+              <td colspan="8" style="text-align: center; color: #94a3b8; padding: 24px;">
                 Cargando códigos QR...
               </td>
             </tr>
@@ -755,6 +1681,16 @@
         <div class="studio-left">
           <div id="modal-viewer-container" style="width: 100%; height: 470px; border-radius: 12px; overflow: hidden;">
             <!-- Se inserta dinámicamente <qr-3d-viewer> -->
+          </div>
+          <div style="background: #0f172a; padding: 12px; border-radius: 8px; font-size: 13px; border: 1px solid #1e3a5f;">
+            <div style="font-weight: 700; color: #7dd3fc; margin-bottom: 6px;">🔗 Link Público de Vista (Solo lectura — Modelo 3D + QR, sin acceso administrativo):</div>
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+              <input type="text" id="view-link-area" class="form-control" readonly style="flex: 1; min-width: 220px; font-family: monospace; font-size: 12px; color: #7dd3fc;" />
+              <button type="button" class="btn-copy-primary" id="btn-copy-view-link" style="padding: 7px 12px; font-size: 12px;">📋 Copiar Link</button>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-view-iframe" style="width: auto;">🧩 Iframe</button>
+              <a id="btn-open-view-link" href="#" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" style="width: auto; text-decoration: none;">🌐 Abrir Vista</a>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-rotate-view-link" style="width: auto;" title="Revoca el enlace actual y genera uno nuevo">🔁 Regenerar</button>
+            </div>
           </div>
           <div style="background: #0f172a; padding: 12px; border-radius: 8px; font-size: 13px;">
             <div style="font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Código para Embeber en Sitios Externos (aplica tu estilo automáticamente):</div>
@@ -852,6 +1788,13 @@
             </div>
 
             <div class="studio-section-label">Escena y Encuadre</div>
+            <div>
+              <div class="slider-head" style="margin-bottom: 4px;"><span>🎥 Estilo de Cámara</span></div>
+              <select id="ctrl-camera-mode" class="studio-select">
+                <option value="smooth">🎬 Cinematográfica (suave con inercia)</option>
+                <option value="direct">⚡ Directa 1:1 (sin inercia)</option>
+              </select>
+            </div>
             <label class="switch-row">
               <span>🔄 Auto-giro al abrir</span>
               <input type="checkbox" id="ctrl-auto-rotate" checked />
@@ -875,6 +1818,191 @@
     </div>
   </div>
 
+  <!-- Modal de Edición de Información del QR 3D -->
+  <div class="modal-overlay" id="edit-qr-modal">
+    <div class="modal-content modal-content-sm">
+      <div class="modal-header">
+        <div>
+          <h2 style="font-size: 18px; font-weight: 700;">✏️ Editar Información del QR 3D</h2>
+          <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">
+            ID: <code id="edit-qr-id-badge" style="color: #38bdf8;"></code>
+          </div>
+        </div>
+        <button class="close-btn" id="edit-modal-close" type="button">&times;</button>
+      </div>
+
+      <form id="edit-qr-form" style="display: flex; flex-direction: column; gap: 12px;">
+        <input type="hidden" id="edit-qr-id" />
+
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="edit-qr-title">Título / Nombre</label>
+          <input type="text" id="edit-qr-title" class="form-control" required placeholder="Ej: Complejo Arqueológico de Túcume" />
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="edit-qr-description">
+            <span>Descripción / Información adicional</span>
+            <span style="font-size: 11px; color: #94a3b8;">Opcional</span>
+          </label>
+          <textarea id="edit-qr-description" class="form-control" rows="2" placeholder="Detalles de la pieza, ubicación, proyecto o notas..."></textarea>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="edit-qr-target-url">Enlace de Destino (Página o ruta del QR)</label>
+          <input type="text" id="edit-qr-target-url" list="target-url-suggestions" class="form-control" required placeholder="https://ejemplo.com/destino o /example/sipan-nuevo.html" />
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="edit-qr-view-slug">
+            <span>🔗 Ruta de Vista Pública (/view/...)</span>
+            <span style="font-size: 11px; color: #94a3b8;">Editable</span>
+          </label>
+          <input type="text" id="edit-qr-view-slug" class="form-control" placeholder="vw_... o ruta-personalizada" />
+        </div>
+
+        <div class="edit-form-grid">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="edit-qr-strategy">Comportamiento del Enlace</label>
+            <select id="edit-qr-strategy" class="form-control">
+              <option value="one_time">⚡ Dinámico — 1 solo uso</option>
+              <option value="timed">🔄 Dinámico — Por tiempo (Cada N seg)</option>
+              <option value="dynamic">🔄⚡ Dinámico total — Tiempo + 1 uso</option>
+              <option value="static">🔒 Estático — Enlace fijo</option>
+              <option value="continuous">🔒 Continuo — Estático sin descarte</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="edit-qr-active">Estado del QR</label>
+            <select id="edit-qr-active" class="form-control">
+              <option value="true">🟢 Activo</option>
+              <option value="false">⏸️ Pausado / Inactivo</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="edit-rotation-interval-group" style="display: none; background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 10px 12px;">
+          <div class="form-group" style="margin-bottom: 8px;">
+            <label for="edit-qr-interval">⏱️ Intervalo de rotación automática (segundos)</label>
+            <input type="number" id="edit-qr-interval" class="form-control" min="2" max="86400" value="30" />
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="edit-qr-rotating-urls">🔁 URLs rotativas opcionales (1 por línea)</label>
+            <textarea id="edit-qr-rotating-urls" class="form-control" rows="2" placeholder="https://ejemplo.com/a&#10;https://ejemplo.com/b"></textarea>
+          </div>
+        </div>
+
+        <label class="switch-row" style="background: #0f172a; padding: 10px 12px; border-radius: 8px; border: 1px solid #1e293b;">
+          <span>🌐 Habilitar Link Público de Vista (Solo lectura)</span>
+          <input type="checkbox" id="edit-view-enabled" checked />
+        </label>
+
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="edit-model-preset">
+            <span>🧊 Modelo 3D (opcional: reemplazar)</span>
+            <span style="font-size: 11px; color: #94a3b8;" id="edit-current-model-label"></span>
+          </label>
+          <select id="edit-model-preset" class="form-control" style="margin-bottom: 8px;">
+            <option value="">🔒 Mantener modelo actual</option>
+          </select>
+          <input type="file" id="edit-model-file" class="form-control" accept=".glb,.gltf,.obj,.fbx,.stl" style="padding: 8px;" />
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="edit-image-file">
+            <span>🖼️ Imagen / Logo (opcional: actualizar paleta y QR)</span>
+          </label>
+          <input type="file" id="edit-image-file" class="form-control" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="padding: 8px;" />
+        </div>
+
+        <label class="switch-row" style="background: #0f172a; padding: 10px 12px; border-radius: 8px; border: 1px solid #1e293b;">
+          <span>🔄 Regenerar / rotar código QR al guardar</span>
+          <input type="checkbox" id="edit-rotate-now" />
+        </label>
+
+        <div id="edit-qr-status" class="studio-save-status"></div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px;">
+          <button type="button" class="btn btn-secondary" id="btn-edit-cancel" style="width: auto;">Cancelar</button>
+          <button type="submit" class="btn" id="btn-edit-save" style="width: auto;">💾 Guardar Cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Historial Diario de Escaneos / Ingresos -->
+  <div class="modal-overlay" id="daily-stats-modal">
+    <div class="modal-content" style="max-width: 680px; width: 95%;">
+      <div class="modal-header">
+        <div>
+          <h3 id="daily-modal-title">📅 Estadísticas Diarias de Ingresos</h3>
+          <p id="daily-modal-subtitle" style="font-size: 12px; color: #94a3b8; margin-top: 2px;">Personas que escanearon el QR y entraron al link por día</p>
+        </div>
+        <button class="modal-close" id="btn-daily-close">✕</button>
+      </div>
+
+      <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 16px;">
+        <div class="stat-card" style="padding: 12px;">
+          <div class="stat-label">Personas Hoy</div>
+          <div class="stat-value" id="daily-modal-visitors" style="font-size: 22px; color: #38bdf8;">0</div>
+        </div>
+        <div class="stat-card" style="padding: 12px;">
+          <div class="stat-label">Ingresos Hoy</div>
+          <div class="stat-value" id="daily-modal-scans" style="font-size: 22px; color: #34d399;">0</div>
+        </div>
+        <div class="stat-card" style="padding: 12px;">
+          <div class="stat-label">Total Histórico</div>
+          <div class="stat-value" id="daily-modal-total" style="font-size: 22px;">0</div>
+        </div>
+      </div>
+
+      <div class="table-responsive" style="max-height: 290px; overflow-y: auto;">
+        <table class="qr-table">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Personas únicas</th>
+              <th>Ingresos al link</th>
+            </tr>
+          </thead>
+          <tbody id="daily-modal-tbody">
+            <tr><td colspan="3" style="text-align:center;color:#94a3b8;padding:16px;">Cargando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Cambio de Contraseña Propia -->
+  <div class="modal-overlay" id="change-password-modal">
+    <div class="modal-content" style="max-width: 420px; width: 95%;">
+      <div class="modal-header">
+        <h3 style="font-size: 17px; font-weight: 700;">🔑 Cambiar mi Contraseña</h3>
+        <button type="button" class="close-btn" id="btn-pwd-close">&times;</button>
+      </div>
+      <form id="change-password-form" style="display: flex; flex-direction: column; gap: 12px;">
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="pwd-current">Contraseña actual</label>
+          <div class="password-field-wrap">
+            <input type="password" id="pwd-current" class="form-control" required />
+            <button type="button" class="btn-toggle-pwd" data-toggle-pwd="pwd-current" aria-label="Mostrar u ocultar contraseña" aria-pressed="false" title="Ver contraseña">👁️</button>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="pwd-new">Nueva contraseña (mín. 6 caracteres)</label>
+          <div class="password-field-wrap">
+            <input type="password" id="pwd-new" class="form-control" minlength="6" required />
+            <button type="button" class="btn-toggle-pwd" data-toggle-pwd="pwd-new" aria-label="Mostrar u ocultar contraseña" aria-pressed="false" title="Ver contraseña">👁️</button>
+          </div>
+        </div>
+        <div id="pwd-status" class="studio-save-status"></div>
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-pwd-cancel">Cancelar</button>
+          <button type="submit" class="btn btn-sm" id="btn-pwd-save">💾 Actualizar Contraseña</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Script de Interacción del Panel -->
   <script type="module">
     import { VIEWER_PRESETS } from '/widget/3dqr-viewer.js';
@@ -888,14 +2016,314 @@
     };
 
     const state = {
-      apiKey: localStorage.getItem('qr3d_api_key') || 'tk_live_demo_123456789',
+      currentUser: null,
+      currentTenant: null,
+      tenants: [],
+      users: [],
       currentItems: [],
+      savedFiles: [],
+      systemModels: [],
+      selectedSavedImageId: null,
+      serviceActive: null,
+      serviceError: null,
+      isFlushingQueue: false,
       selectedQr: null,
+      shareSelectedQrId: null,
       createVisualChoice: 'auto',
       studioConfig: { ...VIEWER_PRESETS.auto }
     };
 
-    document.getElementById('api-key-input').value = state.apiKey;
+    const loginScreen = document.getElementById('login-screen');
+    const appShell = document.getElementById('app-shell');
+    const loginForm = document.getElementById('login-form');
+    const loginErrorEl = document.getElementById('login-error');
+    const loginServiceWarn = document.getElementById('login-service-warn');
+
+    const serviceErrorBanner = document.getElementById('service-error-banner');
+    const serviceErrorDetail = document.getElementById('service-error-detail');
+    const pendingQueueBanner = document.getElementById('pending-queue-banner');
+    const pendingQueueTitle = document.getElementById('pending-queue-title');
+    const pendingQueueDesc = document.getElementById('pending-queue-desc');
+    const formServiceError = document.getElementById('form-service-error');
+    const statStatusEl = document.getElementById('stat-status');
+
+    function showLoginScreen(message = '') {
+      state.currentUser = null;
+      state.currentTenant = null;
+      state.tenants = [];
+      state.users = [];
+      state.currentItems = [];
+      state.savedFiles = [];
+      state.selectedQr = null;
+      state.shareSelectedQrId = null;
+
+      document.getElementById('preview-modal')?.classList.remove('active');
+      document.getElementById('edit-qr-modal')?.classList.remove('active');
+      document.getElementById('daily-stats-modal')?.classList.remove('active');
+      document.getElementById('change-password-modal')?.classList.remove('active');
+      document.getElementById('modal-viewer-container').innerHTML = '';
+
+      ['sa-credential-box', 'sa-user-cred-box', 'adm-new-key-box', 'adm-user-cred-box'].forEach((id) => {
+        document.getElementById(id)?.classList.remove('show');
+      });
+
+      appShell.style.display = 'none';
+      loginScreen.style.display = 'flex';
+      if (message) {
+        loginErrorEl.textContent = message;
+        loginErrorEl.style.display = 'block';
+      } else {
+        loginErrorEl.style.display = 'none';
+      }
+    }
+
+    async function apiFetch(url, options = {}) {
+      const res = await fetch(url, {
+        ...options,
+        credentials: 'same-origin'
+      });
+      if (res.status === 401 && state.currentUser && !String(url).startsWith('/api/auth/')) {
+        showLoginScreen('Tu sesión expiró o fue revocada. Inicia sesión nuevamente.');
+      }
+      return res;
+    }
+
+    function applyRoleLayout() {
+      const user = state.currentUser;
+      const tenant = state.currentTenant;
+      if (!user) return;
+
+      const role = user.role;
+      const isSuper = role === 'superadmin';
+      const isAdmin = role === 'admin';
+      const canSeeOwners = isSuper || isAdmin;
+
+      const rolePill = document.getElementById('hdr-role-pill');
+      rolePill.className = `role-pill role-${role}`;
+      rolePill.textContent = isSuper ? '👑 Superadmin' : (isAdmin ? '🌐 Admin de Sitio' : '🧊 Usuario 3D');
+
+      document.getElementById('hdr-user-name').textContent = `${user.full_name || user.username} (@${user.username})`;
+      document.getElementById('hdr-site-label').textContent = isSuper
+        ? 'Control global de la plataforma'
+        : `Sitio: ${tenant?.name || user.tenant_name || 'Sin sitio'}`;
+
+      document.getElementById('panel-superadmin').style.display = isSuper ? 'block' : 'none';
+      document.getElementById('panel-admin-site').style.display = isAdmin ? 'block' : 'none';
+
+      document.getElementById('create-tenant-group').style.display = isSuper ? 'block' : 'none';
+      document.getElementById('create-owner-group').style.display = canSeeOwners ? 'block' : 'none';
+      document.getElementById('th-files-owner').style.display = canSeeOwners ? '' : 'none';
+      document.getElementById('th-qr-owner').style.display = canSeeOwners ? '' : 'none';
+    }
+
+    function setServiceInactiveUI(reason) {
+      const wasActive = state.serviceActive;
+      state.serviceActive = false;
+      state.serviceError = reason || 'El servidor o la base de datos no está disponible.';
+      statStatusEl.textContent = '🔴 No activado';
+      statStatusEl.style.color = '#f87171';
+      serviceErrorDetail.textContent = `${state.serviceError} Los archivos quedarán en cola local hasta que el servicio se active.`;
+      serviceErrorBanner.classList.add('error');
+      if (loginServiceWarn) {
+        loginServiceWarn.textContent = `⛔ El servicio no se activó: ${state.serviceError}`;
+        loginServiceWarn.style.display = 'block';
+      }
+      if (wasActive !== false) {
+        document.getElementById('files-table-body').innerHTML =
+          `<tr><td colspan="7" style="text-align:center;color:#f87171;padding:20px;">⛔ El servicio no se activó: ${escapeHtml(state.serviceError)}</td></tr>`;
+        document.getElementById('qr-table-body').innerHTML =
+          `<tr><td colspan="8" style="text-align:center;color:#f87171;padding:20px;">⛔ El servicio no se activó: ${escapeHtml(state.serviceError)}</td></tr>`;
+      }
+    }
+
+    function setServiceActiveUI(healthData) {
+      const wasInactiveOrUnknown = state.serviceActive !== true;
+      state.serviceActive = true;
+      state.serviceError = null;
+      const engineLabel = healthData.databaseEngine === 'postgresql' ? 'PostgreSQL' : 'SQLite';
+      statStatusEl.textContent = `🟢 Activo (${engineLabel})`;
+      statStatusEl.style.color = '#34d399';
+      serviceErrorBanner.classList.remove('error');
+      formServiceError.style.display = 'none';
+      if (loginServiceWarn) loginServiceWarn.style.display = 'none';
+      return wasInactiveOrUnknown;
+    }
+
+    // Cola persistente en IndexedDB para envíos cuando el servicio no está activo
+    function openPendingQueueDb() {
+      return new Promise((resolve, reject) => {
+        if (!window.indexedDB) return reject(new Error('IndexedDB no disponible'));
+        const req = indexedDB.open('qr3d_local_queue', 1);
+        req.onupgradeneeded = () => {
+          const idb = req.result;
+          if (!idb.objectStoreNames.contains('pending')) {
+            idb.createObjectStore('pending', { keyPath: 'id', autoIncrement: true });
+          }
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function enqueuePendingUpload(entry) {
+      const idb = await openPendingQueueDb();
+      await new Promise((resolve, reject) => {
+        const tx = idb.transaction('pending', 'readwrite');
+        tx.objectStore('pending').add({ ...entry, queuedAt: new Date().toISOString() });
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+      await refreshPendingBanner();
+    }
+
+    async function getAllPendingUploads() {
+      try {
+        const idb = await openPendingQueueDb();
+        return await new Promise((resolve, reject) => {
+          const tx = idb.transaction('pending', 'readonly');
+          const req = tx.objectStore('pending').getAll();
+          req.onsuccess = () => resolve(req.result || []);
+          req.onerror = () => reject(req.error);
+        });
+      } catch {
+        return [];
+      }
+    }
+
+    async function deletePendingUpload(id) {
+      const idb = await openPendingQueueDb();
+      return new Promise((resolve, reject) => {
+        const tx = idb.transaction('pending', 'readwrite');
+        tx.objectStore('pending').delete(id);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    async function clearPendingQueue() {
+      const idb = await openPendingQueueDb();
+      await new Promise((resolve, reject) => {
+        const tx = idb.transaction('pending', 'readwrite');
+        tx.objectStore('pending').clear();
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+      await refreshPendingBanner();
+    }
+
+    async function refreshPendingBanner() {
+      const pending = await getAllPendingUploads();
+      if (pending.length === 0) {
+        pendingQueueBanner.classList.remove('pending');
+        return pending;
+      }
+      pendingQueueBanner.classList.add('pending');
+      pendingQueueTitle.textContent = `⏳ ${pending.length} archivo(s) / envío(s) pendiente(s) por enviar al servidor`;
+      pendingQueueDesc.textContent = state.serviceActive
+        ? 'El servidor ya está activo. Pulsa enviar o espera la sincronización automática.'
+        : 'Guardados localmente mientras el servicio no esté activo; se enviarán cuando el servidor responda.';
+      return pending;
+    }
+
+    async function flushPendingQueue({ silent = false } = {}) {
+      if (state.isFlushingQueue || !state.serviceActive || !state.currentUser) return;
+      const pending = await getAllPendingUploads();
+      if (pending.length === 0) return;
+
+      state.isFlushingQueue = true;
+      let sentCount = 0;
+      try {
+        for (const job of pending) {
+          const fd = new FormData();
+          if (job.kind === 'file') {
+            if (!job.fileBlob) {
+              await deletePendingUpload(job.id);
+              continue;
+            }
+            fd.append('file', job.fileBlob, job.filename || 'archivo.bin');
+            if (job.fileKind) fd.append('file_kind', job.fileKind);
+            if (job.tenantId) fd.append('tenant_id', job.tenantId);
+            const res = await apiFetch('/api/files', {
+              method: 'POST',
+              body: fd
+            });
+            if (res.status === 503) throw new Error('El servicio no se activó');
+            if (res.ok) {
+              await deletePendingUpload(job.id);
+              sentCount++;
+            }
+          } else if (job.kind === 'qr') {
+            fd.append('title', job.title || 'QR 3D Interactivo');
+            fd.append('target_url', job.targetUrl || 'https://google.com');
+            fd.append('rotation_strategy', job.rotationStrategy || 'one_time');
+            if (job.tenantId) fd.append('tenant_id', job.tenantId);
+            if (job.ownerUserId) fd.append('owner_user_id', job.ownerUserId);
+            if (job.rotationIntervalSeconds) fd.append('rotation_interval_seconds', String(job.rotationIntervalSeconds));
+            if (job.rotatingUrls) fd.append('rotating_urls', job.rotatingUrls);
+            if (job.viewerConfig) fd.append('viewer_config', JSON.stringify(job.viewerConfig));
+            if (job.imageBlob) fd.append('image', job.imageBlob, job.imageName || 'imagen.png');
+            else if (job.savedImageId) fd.append('saved_image_id', job.savedImageId);
+            if (job.modelBlob) fd.append('model', job.modelBlob, job.modelName || 'modelo.glb');
+            else if (job.savedModelId) fd.append('saved_model_id', job.savedModelId);
+            else if (job.modelPreset) fd.append('model_preset', job.modelPreset);
+
+            const res = await apiFetch('/api/qr', {
+              method: 'POST',
+              body: fd
+            });
+            if (res.status === 503) throw new Error('El servicio no se activó');
+            if (res.ok) {
+              await deletePendingUpload(job.id);
+              sentCount++;
+            }
+          }
+        }
+        await refreshPendingBanner();
+        if (sentCount > 0) {
+          await Promise.all([loadSavedFiles(), loadQrs()]);
+          if (!silent) {
+            alert(`✅ Se enviaron ${sentCount} archivo(s) pendiente(s) al servidor y quedaron guardados en la base de datos.`);
+          }
+        }
+      } catch (err) {
+        if (!silent) {
+          alert(`⛔ Error: El servicio no se activó (${err.message})`);
+        }
+      } finally {
+        state.isFlushingQueue = false;
+      }
+    }
+
+    async function checkServiceStatus({ triggerFlush = true } = {}) {
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 4000);
+        const res = await fetch('/health', { signal: controller.signal, cache: 'no-store' });
+        clearTimeout(timer);
+
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data || data.serviceActive === false || data.databaseReady === false) {
+          const msg = (data && (data.error || data.message)) || `El servicio respondió HTTP ${res.status}`;
+          setServiceInactiveUI(msg);
+          await refreshPendingBanner();
+          return false;
+        }
+
+        const becameActive = setServiceActiveUI(data);
+        await refreshPendingBanner();
+        if (becameActive && state.currentUser) {
+          await loadAuthenticatedWorkspace();
+        }
+        if (triggerFlush && state.currentUser) {
+          await flushPendingQueue({ silent: true });
+        }
+        return true;
+      } catch (err) {
+        setServiceInactiveUI('No hay conexión con el servidor API (el servicio no se inició o no responde).');
+        await refreshPendingBanner();
+        return false;
+      }
+    }
 
     // Selector visual inicial en el formulario de creación
     const createModePills = document.querySelectorAll('#create-mode-pills .mode-pill');
@@ -907,13 +2335,6 @@
         state.createVisualChoice = pill.dataset.createPreset || 'auto';
         createModeDesc.textContent = CREATE_MODE_DESCRIPTIONS[state.createVisualChoice] || CREATE_MODE_DESCRIPTIONS.auto;
       });
-    });
-
-    // Guardar API Key
-    document.getElementById('btn-save-key').addEventListener('click', () => {
-      state.apiKey = document.getElementById('api-key-input').value.trim();
-      localStorage.setItem('qr3d_api_key', state.apiKey);
-      loadQrs();
     });
 
     const imageInput = document.getElementById('image-file');
@@ -929,30 +2350,172 @@
     const btnClearModel = document.getElementById('btn-clear-model');
     const modelPresetSelect = document.getElementById('model-preset');
 
+    function escapeHtml(val) {
+      return String(val ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function renderModelPresetOptions() {
+      const currentVal = modelPresetSelect.value;
+      modelPresetSelect.innerHTML = '<option value="">✨ Automático (Generar Totem 3D por defecto)</option>';
+
+      const editModelSelect = document.getElementById('edit-model-preset');
+      const editCurrentVal = editModelSelect ? editModelSelect.value : '';
+      if (editModelSelect) {
+        editModelSelect.innerHTML = '<option value="">🔒 Mantener modelo actual</option>';
+      }
+
+      const savedModels = state.savedFiles.filter((f) => f.file_kind === 'model');
+      if (savedModels.length > 0) {
+        const grpSaved = document.createElement('optgroup');
+        grpSaved.label = '💾 Mis Modelos Guardados en Base de Datos';
+        for (const f of savedModels) {
+          const opt = document.createElement('option');
+          opt.value = `saved:${f.id}`;
+          opt.textContent = `📦 ${f.filename} (${f.sizeFormatted})`;
+          grpSaved.appendChild(opt);
+        }
+        modelPresetSelect.appendChild(grpSaved);
+        if (editModelSelect) editModelSelect.appendChild(grpSaved.cloneNode(true));
+      }
+
+      if (state.systemModels.length > 0) {
+        const grpSys = document.createElement('optgroup');
+        grpSys.label = '🏛️ Modelos Integrados del Sistema';
+        for (const m of state.systemModels) {
+          const opt = document.createElement('option');
+          opt.value = m.filename;
+          opt.textContent = `🏛️ ${m.name} (${m.sizeFormatted})`;
+          grpSys.appendChild(opt);
+        }
+        modelPresetSelect.appendChild(grpSys);
+        if (editModelSelect) editModelSelect.appendChild(grpSys.cloneNode(true));
+      }
+
+      if (currentVal && Array.from(modelPresetSelect.options).some((o) => o.value === currentVal)) {
+        modelPresetSelect.value = currentVal;
+      }
+      if (editModelSelect && editCurrentVal && Array.from(editModelSelect.options).some((o) => o.value === editCurrentVal)) {
+        editModelSelect.value = editCurrentVal;
+      }
+    }
+
     async function loadModelsCatalog() {
       try {
         const res = await fetch('/api/models');
         if (!res.ok) return;
         const data = await res.json();
-        if (!Array.isArray(data.models) || data.models.length === 0) return;
-
-        const currentVal = modelPresetSelect.value;
-        modelPresetSelect.innerHTML = '<option value="">✨ Automático (Generar Totem 3D por defecto)</option>';
-        for (const m of data.models) {
-          const opt = document.createElement('option');
-          opt.value = m.filename;
-          opt.textContent = `🏛️ ${m.name} (${m.sizeFormatted})`;
-          modelPresetSelect.appendChild(opt);
-        }
-        if (currentVal) modelPresetSelect.value = currentVal;
+        state.systemModels = Array.isArray(data.models) ? data.models : [];
+        renderModelPresetOptions();
       } catch (err) {
         // Mantener opciones por defecto si falla la carga
       }
     }
 
+    async function loadSavedFiles() {
+      const tbody = document.getElementById('files-table-body');
+      const canSeeOwners = state.currentUser && (state.currentUser.role === 'superadmin' || state.currentUser.role === 'admin');
+      const colSpan = canSeeOwners ? 7 : 6;
+      try {
+        const res = await apiFetch('/api/files');
+        if (res.status === 503) {
+          const errData = await res.json().catch(() => ({}));
+          setServiceInactiveUI(errData.message || 'El servicio no se activó');
+          return;
+        }
+        if (!res.ok) {
+          tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align:center;color:#f87171;">No se pudieron cargar los archivos guardados.</td></tr>`;
+          return;
+        }
+        const data = await res.json();
+        state.savedFiles = data.files || [];
+        document.getElementById('stat-saved-files').textContent = state.savedFiles.length;
+        renderModelPresetOptions();
+
+        if (state.savedFiles.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align:center;color:#94a3b8;padding:20px;">Aún no hay archivos subidos guardados en la base de datos.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = state.savedFiles.map((file) => {
+          const isModel = file.file_kind === 'model';
+          const dateStr = file.created_at ? new Date(file.created_at).toLocaleString() : '—';
+          const ownerHtml = canSeeOwners
+            ? `<td><div style="font-size:12px;">${escapeHtml(file.tenant_name || file.tenant_id || '—')}</div><div style="font-size:11px;color:#94a3b8;">${file.owner_username ? `👤 @${escapeHtml(file.owner_username)}` : '🔌 API / Sitio'}</div></td>`
+            : '';
+          return `
+            <tr>
+              <td><strong>${escapeHtml(file.filename)}</strong></td>
+              <td><span class="badge ${isModel ? 'badge-info' : 'badge-success'}">${isModel ? '🧊 Modelo 3D' : '🖼️ Imagen'}</span></td>
+              <td><code>${escapeHtml((file.format || '').toUpperCase())}</code></td>
+              <td>${escapeHtml(file.sizeFormatted)}</td>
+              ${ownerHtml}
+              <td style="font-size:12px; color:#94a3b8;">${escapeHtml(dateStr)}</td>
+              <td>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="useSavedFile('${escapeHtml(file.id)}')">🎯 Usar</button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="downloadSavedFile('${escapeHtml(file.id)}')">⬇️</button>
+                <button type="button" class="btn btn-secondary btn-sm" style="color:#f87171;" onclick="deleteSavedFile('${escapeHtml(file.id)}')">🗑️</button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        setServiceInactiveUI('No se pudo comunicar con el servidor al cargar archivos guardados.');
+      }
+    }
+
+    window.useSavedFile = function(fileId) {
+      const file = state.savedFiles.find((f) => f.id === fileId);
+      if (!file) return;
+      if (file.file_kind === 'model') {
+        modelInput.value = '';
+        modelPresetSelect.value = `saved:${file.id}`;
+        modelLabel.innerHTML = `💾 Modelo guardado seleccionado: <strong>${escapeHtml(file.filename)}</strong> (${escapeHtml(file.sizeFormatted)})`;
+        btnClearModel.style.display = 'inline-block';
+      } else {
+        imageInput.value = '';
+        state.selectedSavedImageId = file.id;
+        imagePreview.src = `/api/files/${file.id}/download`;
+        imagePreviewContainer.style.display = 'block';
+        imageLabel.innerHTML = `💾 Imagen guardada seleccionada: <strong>${escapeHtml(file.filename)}</strong>`;
+        btnClearImage.style.display = 'inline-block';
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.downloadSavedFile = function(fileId) {
+      window.open(`/api/files/${fileId}/download`, '_blank');
+    };
+
+    window.deleteSavedFile = async function(fileId) {
+      if (!confirm('¿Eliminar este archivo guardado de la base de datos?')) return;
+      try {
+        const res = await apiFetch(`/api/files/${fileId}`, {
+          method: 'DELETE'
+        });
+        if (res.status === 503) {
+          const d = await res.json().catch(() => ({}));
+          setServiceInactiveUI(d.message || 'El servicio no se activó');
+          alert('⛔ Error: El servicio no se activó.');
+          return;
+        }
+        if (res.ok) {
+          await loadSavedFiles();
+        }
+      } catch (err) {
+        setServiceInactiveUI('Servidor sin conexión');
+        alert('⛔ Error: El servicio no se activó.');
+      }
+    };
+
     // Manejo de Imagen seleccionada
     function handleImageFile(file) {
       if (!file) return;
+      state.selectedSavedImageId = null;
       imageLabel.innerHTML = `✅ <strong>${file.name}</strong> (${(file.size / 1024).toFixed(1)} KB)`;
       btnClearImage.style.display = 'inline-block';
 
@@ -976,6 +2539,7 @@
       e.preventDefault();
       e.stopPropagation();
       imageInput.value = '';
+      state.selectedSavedImageId = null;
       imagePreview.src = '';
       imagePreviewContainer.style.display = 'none';
       imageLabel.innerHTML = '📎 <strong>Haz clic aquí</strong> o arrastra una imagen/logo (PNG, JPG, WebP)';
@@ -995,7 +2559,13 @@
     modelPresetSelect.addEventListener('change', () => {
       if (modelPresetSelect.value) {
         modelInput.value = '';
-        modelLabel.innerHTML = `🏛️ Modelo del sistema seleccionado: <strong>${modelPresetSelect.value}</strong>`;
+        const val = modelPresetSelect.value;
+        if (val.startsWith('saved:')) {
+          const labelText = modelPresetSelect.options[modelPresetSelect.selectedIndex]?.textContent || val;
+          modelLabel.innerHTML = `💾 Modelo guardado seleccionado: <strong>${labelText}</strong>`;
+        } else {
+          modelLabel.innerHTML = `🏛️ Modelo del sistema seleccionado: <strong>${val}</strong>`;
+        }
         btnClearModel.style.display = 'inline-block';
       } else {
         modelLabel.innerHTML = '📦 <strong>Haz clic aquí</strong> o arrastra un modelo (.glb, .gltf, .obj, .fbx, .stl)';
@@ -1055,65 +2625,215 @@
     setupDragAndDrop(imageDropzone, imageInput, handleImageFile);
     setupDragAndDrop(modelDropzone, modelInput, handleModelFile);
 
+    const qrStrategySelect = document.getElementById('qr-strategy');
+    const createRotationGroup = document.getElementById('create-rotation-interval-group');
+    function syncCreateIntervalVisibility() {
+      const v = qrStrategySelect.value;
+      createRotationGroup.style.display = (v === 'timed' || v === 'dynamic') ? 'block' : 'none';
+    }
+    qrStrategySelect.addEventListener('change', syncCreateIntervalVisibility);
+    syncCreateIntervalVisibility();
+
+    function resetCreateForm() {
+      document.getElementById('create-qr-form').reset();
+      imageInput.value = '';
+      modelInput.value = '';
+      state.selectedSavedImageId = null;
+      imagePreview.src = '';
+      imagePreviewContainer.style.display = 'none';
+      imageLabel.innerHTML = '📎 <strong>Haz clic aquí</strong> o arrastra una imagen/logo (PNG, JPG, WebP)';
+      modelLabel.innerHTML = '📦 <strong>Haz clic aquí</strong> o arrastra un modelo (.glb, .gltf, .obj, .fbx, .stl)';
+      btnClearImage.style.display = 'none';
+      btnClearModel.style.display = 'none';
+      state.createVisualChoice = 'auto';
+      createModePills.forEach((p) => p.classList.toggle('active', p.dataset.createPreset === 'auto'));
+      createModeDesc.textContent = CREATE_MODE_DESCRIPTIONS.auto;
+      syncCreateIntervalVisibility();
+    }
+
+    // Subida directa a Biblioteca / Base de Datos
+    const directUploadInput = document.getElementById('direct-upload-file');
+    document.getElementById('btn-direct-upload').addEventListener('click', () => {
+      directUploadInput.click();
+    });
+
+    directUploadInput.addEventListener('change', async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      directUploadInput.value = '';
+
+      const selectedTenantId = state.currentUser?.role === 'superadmin'
+        ? (document.getElementById('create-tenant-id')?.value || '')
+        : '';
+
+      const isActive = await checkServiceStatus({ triggerFlush: false });
+      if (!isActive) {
+        await enqueuePendingUpload({
+          kind: 'file',
+          fileBlob: file,
+          filename: file.name,
+          tenantId: selectedTenantId || undefined
+        });
+        alert('⛔ Error: El servicio no se activó. Tu archivo quedó en cola local y se enviará al servidor cuando esté activo.');
+        return;
+      }
+
+      try {
+        const fd = new FormData();
+        fd.append('file', file, file.name);
+        if (selectedTenantId) fd.append('tenant_id', selectedTenantId);
+        const res = await apiFetch('/api/files', {
+          method: 'POST',
+          body: fd
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 503) {
+          setServiceInactiveUI(data.message || 'El servicio no se activó');
+          await enqueuePendingUpload({ kind: 'file', fileBlob: file, filename: file.name, tenantId: selectedTenantId || undefined });
+          alert('⛔ Error: El servicio no se activó. Archivo guardado en espera local.');
+          return;
+        }
+        if (!res.ok) {
+          alert('Error: ' + (data.message || data.error));
+          return;
+        }
+        await loadSavedFiles();
+        alert(`💾 Archivo "${data.file.filename}" guardado en la base de datos.`);
+      } catch (err) {
+        setServiceInactiveUI('No hay conexión con el servidor API');
+        await enqueuePendingUpload({ kind: 'file', fileBlob: file, filename: file.name, tenantId: selectedTenantId || undefined });
+        alert('⛔ Error: El servicio no se activó. Archivo guardado en espera local.');
+      }
+    });
+
+    document.getElementById('btn-refresh-files').addEventListener('click', loadSavedFiles);
+    document.getElementById('btn-retry-health').addEventListener('click', () => checkServiceStatus({ triggerFlush: true }));
+    document.getElementById('btn-flush-queue').addEventListener('click', () => flushPendingQueue({ silent: false }));
+    document.getElementById('btn-clear-queue').addEventListener('click', () => {
+      if (confirm('¿Descartar los archivos pendientes en cola local?')) clearPendingQueue();
+    });
+
     // Formulario Crear QR
     document.getElementById('create-qr-form').addEventListener('submit', async (e) => {
       e.preventDefault();
+      formServiceError.style.display = 'none';
       const btn = document.getElementById('btn-submit');
       btn.disabled = true;
-      btn.innerText = '⏳ Procesando modelo 3D y QR...';
+      btn.innerText = '⏳ Verificando servicio y subiendo...';
 
-      const formData = new FormData();
-      formData.append('title', document.getElementById('qr-title').value);
-      formData.append('target_url', document.getElementById('qr-target-url').value);
-      formData.append('rotation_strategy', document.getElementById('qr-strategy').value);
+      const titleVal = document.getElementById('qr-title').value;
+      const targetUrlVal = document.getElementById('qr-target-url').value;
+      const strategyVal = document.getElementById('qr-strategy').value;
+      const intervalVal = document.getElementById('qr-rotation-interval').value;
+      const rotatingUrlsVal = document.getElementById('qr-rotating-urls').value.trim();
 
       const imgFile = imageInput.files && imageInput.files[0];
-      if (imgFile && imgFile.size > 0) {
-        formData.append('image', imgFile);
-      }
-
       const modelFile = modelInput.files && modelInput.files[0];
-      if (modelFile && modelFile.size > 0) {
-        formData.append('model', modelFile);
-      } else if (modelPresetSelect.value) {
-        formData.append('model_preset', modelPresetSelect.value);
-      }
+      const presetVal = modelPresetSelect.value || '';
+      const savedModelId = presetVal.startsWith('saved:') ? presetVal.slice(6) : null;
+      const modelPreset = presetVal && !presetVal.startsWith('saved:') ? presetVal : null;
 
       const openManualAfter = state.createVisualChoice === 'manual_after';
       const initialPreset = openManualAfter
         ? VIEWER_PRESETS.auto
         : (VIEWER_PRESETS[state.createVisualChoice] || VIEWER_PRESETS.auto);
+      const selectedTenantId = state.currentUser?.role === 'superadmin'
+        ? (document.getElementById('create-tenant-id')?.value || '')
+        : '';
+      const selectedOwnerId = (state.currentUser?.role === 'superadmin' || state.currentUser?.role === 'admin')
+        ? (document.getElementById('create-owner-user-id')?.value || '')
+        : '';
+
+      const queueCurrentSubmission = async (reasonMsg) => {
+        setServiceInactiveUI(reasonMsg);
+        formServiceError.innerHTML = `<strong>⛔ El servicio no se activó.</strong> ${reasonMsg} Tu envío se guardó en cola local para enviarlo al servidor cuando esté activo.`;
+        formServiceError.style.display = 'block';
+        await enqueuePendingUpload({
+          kind: 'qr',
+          title: titleVal,
+          targetUrl: targetUrlVal,
+          rotationStrategy: strategyVal,
+          rotationIntervalSeconds: (strategyVal === 'timed' || strategyVal === 'dynamic') ? Number(intervalVal || 30) : 0,
+          rotatingUrls: (strategyVal === 'timed' || strategyVal === 'dynamic') ? rotatingUrlsVal : '',
+          viewerConfig: initialPreset,
+          imageBlob: imgFile && imgFile.size > 0 ? imgFile : null,
+          imageName: imgFile ? imgFile.name : null,
+          savedImageId: state.selectedSavedImageId || null,
+          modelBlob: modelFile && modelFile.size > 0 ? modelFile : null,
+          modelName: modelFile ? modelFile.name : null,
+          savedModelId,
+          modelPreset,
+          tenantId: selectedTenantId || undefined,
+          ownerUserId: selectedOwnerId || undefined
+        });
+      };
+
+      const isActive = await checkServiceStatus({ triggerFlush: false });
+      if (!isActive) {
+        await queueCurrentSubmission(state.serviceError || 'El servidor o base de datos no está activo.');
+        btn.disabled = false;
+        btn.innerText = '🚀 Generar QR 3D Interactivo';
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('title', titleVal);
+      formData.append('target_url', targetUrlVal);
+      if (selectedTenantId) formData.append('tenant_id', selectedTenantId);
+      if (selectedOwnerId) formData.append('owner_user_id', selectedOwnerId);
+      const viewSlugVal = (document.getElementById('qr-view-slug').value || '').trim();
+      if (viewSlugVal) {
+        formData.append('view_slug', viewSlugVal);
+      }
+      formData.append('rotation_strategy', strategyVal);
+      if (strategyVal === 'timed' || strategyVal === 'dynamic') {
+        formData.append('rotation_interval_seconds', String(Math.max(2, parseInt(intervalVal || '30', 10) || 30)));
+        if (rotatingUrlsVal) {
+          formData.append('rotating_urls', rotatingUrlsVal);
+        }
+      }
+
+      if (imgFile && imgFile.size > 0) {
+        formData.append('image', imgFile);
+      } else if (state.selectedSavedImageId) {
+        formData.append('saved_image_id', state.selectedSavedImageId);
+      }
+
+      if (modelFile && modelFile.size > 0) {
+        formData.append('model', modelFile);
+      } else if (savedModelId) {
+        formData.append('saved_model_id', savedModelId);
+      } else if (modelPreset) {
+        formData.append('model_preset', modelPreset);
+      }
+
       formData.append('viewer_config', JSON.stringify(initialPreset));
 
       try {
-        const res = await fetch('/api/qr', {
+        const res = await apiFetch('/api/qr', {
           method: 'POST',
-          headers: { 'x-api-key': state.apiKey },
           body: formData
         });
 
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 503) {
+          await queueCurrentSubmission(data.message || 'El servicio no se activó.');
+          return;
+        }
         if (res.ok) {
-          alert('🎉 ¡QR 3D creado con éxito!');
-          document.getElementById('create-qr-form').reset();
-          imageInput.value = '';
-          modelInput.value = '';
-          imagePreview.src = '';
-          imagePreviewContainer.style.display = 'none';
-          imageLabel.innerHTML = '📎 <strong>Haz clic aquí</strong> o arrastra una imagen/logo (PNG, JPG, WebP)';
-          modelLabel.innerHTML = '📦 <strong>Haz clic aquí</strong> o arrastra un modelo (.glb, .gltf, .obj, .fbx, .stl)';
-          btnClearImage.style.display = 'none';
-          btnClearModel.style.display = 'none';
-          state.createVisualChoice = 'auto';
-          createModePills.forEach((p) => p.classList.toggle('active', p.dataset.createPreset === 'auto'));
-          createModeDesc.textContent = CREATE_MODE_DESCRIPTIONS.auto;
-          loadQrs();
+          if (data.qr && data.qr.id) {
+            state.shareSelectedQrId = data.qr.id;
+          }
+          resetCreateForm();
+          await Promise.all([loadSavedFiles(), loadQrs()]);
+          showAdminToast('🎉 ¡QR 3D creado y link público listo para compartir!');
           openPreview(data.qr.id, { openManual: openManualAfter });
         } else {
-          alert('Error: ' + (data.message || data.error));
+          formServiceError.textContent = 'Error: ' + (data.message || data.error);
+          formServiceError.style.display = 'block';
         }
       } catch (err) {
-        alert('Error de red: ' + err.message);
+        await queueCurrentSubmission('No se pudo conectar con el servidor (' + err.message + ').');
       } finally {
         btn.disabled = false;
         btn.innerText = '🚀 Generar QR 3D Interactivo';
@@ -1123,13 +2843,19 @@
     // Cargar Lista de QRs
     async function loadQrs() {
       const tbody = document.getElementById('qr-table-body');
+      const canSeeOwners = state.currentUser && (state.currentUser.role === 'superadmin' || state.currentUser.role === 'admin');
+      const colSpan = canSeeOwners ? 8 : 7;
       try {
-        const res = await fetch('/api/qr', {
-          headers: { 'x-api-key': state.apiKey }
-        });
+        const res = await apiFetch('/api/qr');
+
+        if (res.status === 503) {
+          const errData = await res.json().catch(() => ({}));
+          setServiceInactiveUI(errData.message || 'El servicio no se activó');
+          return;
+        }
 
         if (!res.ok) {
-          tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#f87171;">Error al autenticar con API Key. Verifícala en la parte superior.</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align:center;color:#f87171;">No se pudo cargar la lista de QRs.</td></tr>`;
           return;
         }
 
@@ -1140,53 +2866,592 @@
         document.getElementById('stat-total-qrs').innerText = state.currentItems.length;
         const totalScans = state.currentItems.reduce((acc, i) => acc + (i.scan_count || 0), 0);
         document.getElementById('stat-total-scans').innerText = totalScans;
+        const dailyScans = Number(
+          data.summary?.dailyScans !== undefined
+            ? data.summary.dailyScans
+            : state.currentItems.reduce((acc, i) => acc + (i.dailyScans || 0), 0)
+        );
+        const dailyVisitors = Number(data.summary?.dailyUniqueVisitors || 0);
+        const todayDateLabel = data.summary?.todayDate ? ` · ${data.summary.todayDate}` : '';
+        const statDailyScansEl = document.getElementById('stat-daily-scans');
+        const statDailyVisitorsEl = document.getElementById('stat-daily-visitors');
+        if (statDailyScansEl) statDailyScansEl.innerText = dailyScans;
+        if (statDailyVisitorsEl) {
+          const visitorWord = dailyVisitors === 1 ? 'persona única' : 'personas únicas';
+          statDailyVisitorsEl.innerText = `👥 ${dailyVisitors} ${visitorWord} hoy${todayDateLabel}`;
+        }
+
+        syncShareHub();
 
         if (state.currentItems.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:24px;">No hay QRs creados aún. ¡Crea el primero arriba!</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align:center;color:#94a3b8;padding:24px;">No hay QRs creados aún. ¡Crea el primero arriba!</td></tr>`;
           return;
         }
 
         tbody.innerHTML = state.currentItems.map(item => {
           const isManual = item.viewerConfig && item.viewerConfig.mode === 'manual';
           const visualLabel = isManual ? '🎛️ Manual' : '✨ Auto';
+          const safeId = escapeHtml(item.id);
+          const safeTitle = escapeHtml(item.title || 'Sin título');
+          const safeDesc = item.description ? escapeHtml(item.description) : '';
+          const safeUrl = escapeHtml(item.target_url || '');
+          const shortUrl = safeUrl.length > 34 ? `${safeUrl.slice(0, 34)}...` : safeUrl;
+          const safeViewUrl = escapeHtml(resolveItemViewUrl(item));
+          const inactiveBadge = item.is_active === false
+            ? '<span class="badge badge-paused" style="margin-left:6px;">⏸️ Pausado</span>'
+            : '';
+          const ownerColHtml = canSeeOwners
+            ? `<td><div style="font-size:12px;">${escapeHtml(item.tenant_name || item.tenant_id || '—')}</div><div style="font-size:11px;color:#94a3b8;">${item.owner_username ? `👤 @${escapeHtml(item.owner_username)}` : '🔌 API / Sitio'}</div></td>`
+            : '';
+          let strategyLabel = escapeHtml(item.rotation_strategy);
+          let strategyBadgeClass = 'badge-info';
+          if (item.rotation_strategy === 'static' || item.rotation_strategy === 'continuous') {
+            strategyLabel = '🔒 Estático';
+            strategyBadgeClass = 'badge-info';
+          } else if (item.rotation_strategy === 'timed') {
+            strategyLabel = `🔄 Cada ${Number(item.rotationIntervalSeconds || 30)}s`;
+            strategyBadgeClass = 'badge-success';
+          } else if (item.rotation_strategy === 'dynamic') {
+            strategyLabel = `🔄⚡ ${Number(item.rotationIntervalSeconds || 30)}s + 1 uso`;
+            strategyBadgeClass = 'badge-success';
+          } else {
+            strategyLabel = '⚡ 1 uso';
+            strategyBadgeClass = 'badge-success';
+          }
           return `
           <tr>
-            <td><code style="color:#38bdf8;">${item.id}</code></td>
+            <td><code style="color:#38bdf8;">${safeId}</code></td>
             <td>
-              <strong>${item.title || 'Sin título'}</strong>
+              <strong>${safeTitle}</strong>
               <span class="badge ${isManual ? 'badge-info' : 'badge-success'}" style="margin-left:6px;">${visualLabel}</span>
+              ${inactiveBadge}
+              ${safeDesc ? `<div class="qr-desc-sub" title="${safeDesc}">${safeDesc}</div>` : ''}
             </td>
-            <td><a href="${item.target_url}" target="_blank" style="color:#60a5fa; text-decoration:none;">${item.target_url.slice(0, 30)}...</a></td>
-            <td><span class="badge ${item.rotation_strategy === 'one_time' ? 'badge-success' : 'badge-info'}">${item.rotation_strategy}</span></td>
-            <td><strong>${item.scan_count}</strong></td>
+            ${ownerColHtml}
+            <td><a href="${safeUrl}" target="_blank" rel="noopener" style="color:#60a5fa; text-decoration:none;">${shortUrl}</a></td>
+            <td><span class="badge ${strategyBadgeClass}">${strategyLabel}</span></td>
             <td>
-              <span class="color-dot" style="background:${item.color_primary};"></span>
-              <span style="font-family:monospace;font-size:11px;">${item.color_primary}</span>
+              <button type="button" onclick="openDailyStatsModal('${safeId}')" title="Ver detalle diario e historial" style="background:rgba(16,185,129,0.12);border:1px solid rgba(52,211,153,0.3);color:#ecfdf5;border-radius:8px;padding:5px 9px;cursor:pointer;text-align:left;display:inline-flex;flex-direction:column;gap:2px;">
+                <span style="font-size:12.5px;font-weight:700;">📅 ${Number(item.dailyScans || 0)} hoy <span style="font-weight:500;color:#86efac;">(${Number(item.dailyUniqueVisitors || 0)} pers.)</span></span>
+                <span style="font-size:11px;color:#94a3b8;">Total: ${Number(item.scan_count || 0)} · Ver días ▸</span>
+              </button>
             </td>
             <td>
-              <button class="btn btn-secondary btn-sm" onclick="openPreview('${item.id}')">👁️ Ver / Ajustar 3D</button>
-              <button class="btn btn-secondary btn-sm" onclick="rotateQr('${item.id}')">🔄 Rotar</button>
-              <button class="btn btn-secondary btn-sm" style="color:#f87171;" onclick="deleteQr('${item.id}')">🗑️</button>
+              <span class="color-dot" style="background:${escapeHtml(item.color_primary)};"></span>
+              <span style="font-family:monospace;font-size:11px;">${escapeHtml(item.color_primary)}</span>
+            </td>
+            <td>
+              ${safeViewUrl ? `<button class="btn btn-secondary btn-sm" onclick="copyViewLink('${safeId}', this)">🔗 Link Vista</button> <a class="btn btn-secondary btn-sm" href="${safeViewUrl}" target="_blank" rel="noopener" style="text-decoration:none;">🌐</a>` : ''}
+              <button class="btn btn-secondary btn-sm" onclick="openEditModal('${safeId}')">✏️ Editar</button>
+              <button class="btn btn-secondary btn-sm" onclick="openPreview('${safeId}')">👁️ Ver / Ajustar 3D</button>
+              <button class="btn btn-secondary btn-sm" onclick="rotateQr('${safeId}')">🔄 Rotar</button>
+              <button class="btn btn-secondary btn-sm" style="color:#f87171;" onclick="deleteQr('${safeId}')">🗑️</button>
             </td>
           </tr>
         `;
         }).join('');
       } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#f87171;">Error: ${err.message}</td></tr>`;
+        setServiceInactiveUI('No hay conexión con el servidor API.');
       }
     }
 
     document.getElementById('btn-refresh-list').addEventListener('click', loadQrs);
 
+    // Editar Información del QR 3D
+    const editModal = document.getElementById('edit-qr-modal');
+    const editForm = document.getElementById('edit-qr-form');
+    const editStatusEl = document.getElementById('edit-qr-status');
+    const editModelPresetEl = document.getElementById('edit-model-preset');
+    const editModelFileEl = document.getElementById('edit-model-file');
+    const editImageFileEl = document.getElementById('edit-image-file');
+    const editStrategySelect = document.getElementById('edit-qr-strategy');
+    const editRotationGroup = document.getElementById('edit-rotation-interval-group');
+
+    function syncEditIntervalVisibility() {
+      const v = editStrategySelect.value;
+      editRotationGroup.style.display = (v === 'timed' || v === 'dynamic') ? 'block' : 'none';
+    }
+    editStrategySelect.addEventListener('change', syncEditIntervalVisibility);
+
+    const adminToastEl = document.createElement('div');
+    adminToastEl.id = 'admin-toast';
+    adminToastEl.className = 'admin-toast';
+    document.body.appendChild(adminToastEl);
+    let adminToastTimer = null;
+
+    function showAdminToast(message) {
+      adminToastEl.textContent = message;
+      adminToastEl.classList.add('show');
+      if (adminToastTimer) clearTimeout(adminToastTimer);
+      adminToastTimer = setTimeout(() => adminToastEl.classList.remove('show'), 2600);
+    }
+
+    function flashCopiedButton(btnEl, copiedLabel = '✅ ¡Copiado!') {
+      if (!btnEl) return;
+      const origHtml = btnEl.dataset.origHtml || btnEl.innerHTML;
+      btnEl.dataset.origHtml = origHtml;
+      btnEl.classList.add('copied');
+      btnEl.innerHTML = copiedLabel;
+      clearTimeout(btnEl._copyTimer);
+      btnEl._copyTimer = setTimeout(() => {
+        btnEl.classList.remove('copied');
+        btnEl.innerHTML = origHtml;
+      }, 1700);
+    }
+
+    async function copyToClipboard(text, btnEl, toastMessage) {
+      if (!text) return;
+      try {
+        await navigator.clipboard.writeText(text);
+        flashCopiedButton(btnEl);
+        showAdminToast(toastMessage || '✅ Copiado al portapapeles');
+      } catch {
+        prompt('Copia el enlace:', text);
+      }
+    }
+
+    function buildIframeSnippet(viewUrl) {
+      return `<iframe src="${viewUrl}" width="100%" height="620" style="border:0;border-radius:16px;" allowfullscreen loading="lazy"></iframe>`;
+    }
+
+    function resolveItemViewUrl(item) {
+      if (!item) return '';
+      if (item.viewUrl && !/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?\//i.test(item.viewUrl)) {
+        return item.viewUrl;
+      }
+      if (item.viewToken) {
+        return `${window.location.origin}/view/${item.viewToken}`;
+      }
+      return item.viewUrl || '';
+    }
+
+    // Centro Rápido Desplegable de Links Públicos
+    const shareHubCard = document.getElementById('share-hub-card');
+    const shareHubToggle = document.getElementById('share-hub-toggle');
+    const shareQrSelect = document.getElementById('share-qr-select');
+    const shareHubCount = document.getElementById('share-hub-count');
+    const shareHubUrl = document.getElementById('share-hub-url');
+    const shareHubQrImg = document.getElementById('share-hub-qr-img');
+    const shareHubQrEmpty = document.getElementById('share-hub-qr-empty');
+    const shareHubPills = document.getElementById('share-hub-pills');
+    const btnShareCopy = document.getElementById('btn-share-copy');
+    const btnShareIframe = document.getElementById('btn-share-iframe');
+    const btnShareOpen = document.getElementById('btn-share-open');
+    const btnShareEditSlug = document.getElementById('btn-share-edit-slug');
+    const btnShareRotate = document.getElementById('btn-share-rotate-link');
+    const shareSlugEditor = document.getElementById('share-slug-editor');
+    const shareSlugPrefix = document.getElementById('share-slug-prefix');
+    const shareSlugInput = document.getElementById('share-slug-input');
+    const btnShareSaveSlug = document.getElementById('btn-share-save-slug');
+    const btnShareCancelSlug = document.getElementById('btn-share-cancel-slug');
+    const shareTargetUrlInput = document.getElementById('share-target-url');
+    const btnShareSaveTarget = document.getElementById('btn-share-save-target');
+
+    shareHubToggle.addEventListener('click', () => {
+      const collapsed = shareHubCard.classList.toggle('collapsed');
+      shareHubToggle.setAttribute('aria-expanded', String(!collapsed));
+    });
+
+    function getStrategyBadgeMeta(item) {
+      if (!item) return { label: '—', cls: 'badge-info', short: '—' };
+      if (item.rotation_strategy === 'static' || item.rotation_strategy === 'continuous') {
+        return { label: '🔒 Estático · Fijo', cls: 'badge-info', short: 'Estático' };
+      }
+      if (item.rotation_strategy === 'timed') {
+        const sec = Number(item.rotationIntervalSeconds || 30);
+        return { label: `🔄 Dinámico · Cada ${sec}s`, cls: 'badge-success', short: `Cada ${sec}s` };
+      }
+      if (item.rotation_strategy === 'dynamic') {
+        const sec = Number(item.rotationIntervalSeconds || 30);
+        return { label: `🔄⚡ Dinámico · ${sec}s + 1 uso`, cls: 'badge-success', short: `${sec}s + 1 uso` };
+      }
+      return { label: '⚡ Dinámico · 1 uso', cls: 'badge-success', short: '1 uso' };
+    }
+
+    function renderShareHubSelected() {
+      const item = state.currentItems.find((i) => i.id === state.shareSelectedQrId) || null;
+      shareSlugPrefix.textContent = `${window.location.origin}/view/`;
+      if (!item) {
+        shareHubUrl.value = '';
+        shareTargetUrlInput.value = '';
+        shareSlugInput.value = '';
+        shareSlugEditor.style.display = 'none';
+        shareHubQrImg.style.display = 'none';
+        shareHubQrEmpty.style.display = 'block';
+        shareHubPills.innerHTML = '';
+        btnShareCopy.disabled = true;
+        btnShareIframe.disabled = true;
+        btnShareEditSlug.disabled = true;
+        btnShareRotate.disabled = true;
+        btnShareSaveTarget.disabled = true;
+        shareTargetUrlInput.disabled = true;
+        btnShareOpen.href = '#';
+        btnShareOpen.style.pointerEvents = 'none';
+        btnShareOpen.style.opacity = '0.5';
+        return;
+      }
+
+      const meta = getStrategyBadgeMeta(item);
+      const isEnabled = item.is_active !== false && item.viewEnabled !== false;
+      const resolvedUrl = resolveItemViewUrl(item);
+      shareHubUrl.value = resolvedUrl;
+      if (document.activeElement !== shareTargetUrlInput) {
+        shareTargetUrlInput.value = item.target_url || '';
+      }
+      if (document.activeElement !== shareSlugInput) {
+        shareSlugInput.value = item.viewToken || '';
+      }
+      const qrImgKey = `${item.id}:${item.rotationCount || 0}:${item.viewToken || ''}:${item.target_url || ''}`;
+      if (shareHubQrImg.dataset.qrKey !== qrImgKey) {
+        shareHubQrImg.dataset.qrKey = qrImgKey;
+        shareHubQrImg.src = item.viewToken
+          ? `/view/${encodeURIComponent(item.viewToken)}/image?t=${Date.now()}`
+          : `${item.imageUrl}?t=${Date.now()}`;
+      }
+      shareHubQrImg.style.display = 'block';
+      shareHubQrEmpty.style.display = 'none';
+
+      shareHubPills.innerHTML = `
+        <span class="badge ${meta.cls}">${escapeHtml(meta.label)}</span>
+        <span class="badge ${isEnabled ? 'badge-success' : 'badge-paused'}">${isEnabled ? '🟢 Vista Activa' : '⏸️ Pausada / Oculta'}</span>
+        <span class="badge badge-info">📅 Hoy: ${Number(item.dailyScans || 0)} ingreso(s) · ${Number(item.dailyUniqueVisitors || 0)} pers.</span>
+      `;
+
+      btnShareCopy.disabled = !resolvedUrl;
+      btnShareIframe.disabled = !resolvedUrl;
+      btnShareEditSlug.disabled = false;
+      btnShareRotate.disabled = false;
+      btnShareSaveTarget.disabled = false;
+      shareTargetUrlInput.disabled = false;
+      btnShareOpen.href = resolvedUrl || '#';
+      btnShareOpen.style.pointerEvents = resolvedUrl ? 'auto' : 'none';
+      btnShareOpen.style.opacity = resolvedUrl ? '1' : '0.5';
+    }
+
+    function syncShareHub() {
+      const items = state.currentItems || [];
+      shareHubCount.textContent = items.length === 1 ? '1 vista disponible' : `${items.length} vistas disponibles`;
+
+      if (items.length === 0) {
+        state.shareSelectedQrId = null;
+        shareQrSelect.innerHTML = '<option value="">Aún no hay QRs 3D creados</option>';
+        renderShareHubSelected();
+        return;
+      }
+
+      if (!state.shareSelectedQrId || !items.some((i) => i.id === state.shareSelectedQrId)) {
+        state.shareSelectedQrId = items[0].id;
+      }
+
+      shareQrSelect.innerHTML = '';
+      for (const item of items) {
+        const opt = document.createElement('option');
+        const meta = getStrategyBadgeMeta(item);
+        opt.value = item.id;
+        opt.textContent = `[${meta.short}] ${item.title || 'Sin título'} (${item.id})`;
+        shareQrSelect.appendChild(opt);
+      }
+      shareQrSelect.value = state.shareSelectedQrId;
+      renderShareHubSelected();
+    }
+
+    shareQrSelect.addEventListener('change', () => {
+      state.shareSelectedQrId = shareQrSelect.value || null;
+      renderShareHubSelected();
+    });
+
+    btnShareCopy.addEventListener('click', () => {
+      copyToClipboard(
+        shareHubUrl.value,
+        btnShareCopy,
+        '🔗 Link de vista pública (solo lectura) copiado al portapapeles'
+      );
+    });
+
+    btnShareIframe.addEventListener('click', () => {
+      if (!shareHubUrl.value) return;
+      copyToClipboard(
+        buildIframeSnippet(shareHubUrl.value),
+        btnShareIframe,
+        '🧩 Código iframe copiado para incrustar en sitios externos'
+      );
+    });
+
+    btnShareEditSlug.addEventListener('click', () => {
+      const isOpen = shareSlugEditor.style.display !== 'none';
+      shareSlugEditor.style.display = isOpen ? 'none' : 'flex';
+      if (!isOpen) {
+        shareSlugInput.focus();
+        shareSlugInput.select();
+      }
+    });
+
+    btnShareCancelSlug.addEventListener('click', () => {
+      shareSlugEditor.style.display = 'none';
+    });
+
+    btnShareSaveSlug.addEventListener('click', async () => {
+      if (!state.shareSelectedQrId) return;
+      const newSlug = (shareSlugInput.value || '').trim();
+      if (!newSlug) {
+        alert('Ingresa una ruta válida (mínimo 3 caracteres).');
+        return;
+      }
+      btnShareSaveSlug.disabled = true;
+      try {
+        const res = await apiFetch(`/api/qr/${state.shareSelectedQrId}/view-link`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ view_slug: newSlug })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'No se pudo cambiar la ruta');
+        shareSlugEditor.style.display = 'none';
+        await loadQrs();
+        showAdminToast(`✅ Ruta actualizada a /view/${data.viewToken}`);
+      } catch (err) {
+        alert('Error: ' + err.message);
+      } finally {
+        btnShareSaveSlug.disabled = false;
+      }
+    });
+
+    btnShareSaveTarget.addEventListener('click', async () => {
+      if (!state.shareSelectedQrId) return;
+      const nextTarget = (shareTargetUrlInput.value || '').trim();
+      if (!nextTarget) {
+        alert('Ingresa el nuevo enlace o ruta de destino.');
+        return;
+      }
+      btnShareSaveTarget.disabled = true;
+      try {
+        const res = await apiFetch(`/api/qr/${state.shareSelectedQrId}/link`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ target_url: nextTarget })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'No se pudo cambiar el enlace destino');
+        await loadQrs();
+        flashCopiedButton(btnShareSaveTarget, '✅ ¡Actualizado!');
+        showAdminToast('🎯 Enlace de destino cambiado y QR actualizado en vivo');
+      } catch (err) {
+        alert('Error: ' + err.message);
+      } finally {
+        btnShareSaveTarget.disabled = false;
+      }
+    });
+
+    btnShareRotate.addEventListener('click', async () => {
+      if (!state.shareSelectedQrId) return;
+      if (!confirm('¿Generar un nuevo link público para este QR? El enlace anterior quedará revocado.')) return;
+      try {
+        const res = await apiFetch(`/api/qr/${state.shareSelectedQrId}/view-link/rotate`, {
+          method: 'POST'
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'No se pudo regenerar');
+        await loadQrs();
+        showAdminToast('🔁 Nuevo link público generado correctamente');
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    });
+
+    window.copyViewLink = async function(qrId, btnEl) {
+      const item = state.currentItems.find((i) => i.id === qrId);
+      const url = resolveItemViewUrl(item);
+      if (!url) return;
+      await copyToClipboard(
+        url,
+        btnEl,
+        `🔗 Link copiado: ${item.title || qrId} (solo lectura)`
+      );
+    };
+
+    function closeEditModal() {
+      editModal.classList.remove('active');
+      editStatusEl.textContent = '';
+    }
+
+    function applyEditModalItem(item) {
+      const allowed = ['static', 'continuous', 'one_time', 'timed', 'dynamic'];
+      const strat = allowed.includes(item.rotation_strategy) ? item.rotation_strategy : 'one_time';
+      document.getElementById('edit-qr-title').value = item.title || '';
+      document.getElementById('edit-qr-description').value = item.description || '';
+      document.getElementById('edit-qr-target-url').value = item.target_url || '';
+      document.getElementById('edit-qr-view-slug').value = item.viewToken || '';
+      editStrategySelect.value = strat;
+      document.getElementById('edit-qr-interval').value = Number(item.rotationIntervalSeconds || 30) || 30;
+      document.getElementById('edit-qr-rotating-urls').value = Array.isArray(item.rotatingUrls)
+        ? item.rotatingUrls.join('\n')
+        : '';
+      document.getElementById('edit-qr-active').value = item.is_active === false ? 'false' : 'true';
+      document.getElementById('edit-view-enabled').checked = item.viewEnabled !== false;
+      document.getElementById('edit-current-model-label').textContent = item.model_filename ? `Actual: ${item.model_filename}` : '';
+      syncEditIntervalVisibility();
+    }
+
+    window.openEditModal = async function(qrId) {
+      let item = state.currentItems.find((i) => i.id === qrId);
+      if (!item) return;
+
+      renderModelPresetOptions();
+      document.getElementById('edit-qr-id').value = item.id;
+      document.getElementById('edit-qr-id-badge').textContent = item.id;
+      applyEditModalItem(item);
+      editModelPresetEl.value = '';
+      editModelFileEl.value = '';
+      editImageFileEl.value = '';
+      document.getElementById('edit-rotate-now').checked = false;
+      editStatusEl.textContent = '';
+
+      editModal.classList.add('active');
+
+      // Refrescar detalle exacto desde servidor por si tiene descripción u otros datos actualizados
+      try {
+        const res = await apiFetch(`/api/qr/${qrId}`);
+        if (res.ok) {
+          const detail = await res.json();
+          if (document.getElementById('edit-qr-id').value === qrId) {
+            applyEditModalItem(detail);
+          }
+        }
+      } catch {
+        // Mantener valores en memoria
+      }
+    };
+
+    document.getElementById('edit-modal-close').addEventListener('click', closeEditModal);
+    document.getElementById('btn-edit-cancel').addEventListener('click', closeEditModal);
+    editModal.addEventListener('click', (e) => {
+      if (e.target === editModal) closeEditModal();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && editModal.classList.contains('active')) {
+        closeEditModal();
+      }
+    });
+
+    editForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const qrId = document.getElementById('edit-qr-id').value;
+      if (!qrId) return;
+
+      const btnSave = document.getElementById('btn-edit-save');
+      btnSave.disabled = true;
+      editStatusEl.style.color = '#93c5fd';
+      editStatusEl.textContent = 'Guardando cambios...';
+
+      const titleVal = document.getElementById('edit-qr-title').value.trim();
+      const descVal = document.getElementById('edit-qr-description').value.trim();
+      const targetUrlVal = document.getElementById('edit-qr-target-url').value.trim();
+      const viewSlugVal = document.getElementById('edit-qr-view-slug').value.trim();
+      const strategyVal = document.getElementById('edit-qr-strategy').value;
+      const intervalVal = document.getElementById('edit-qr-interval').value;
+      const rotatingUrlsVal = document.getElementById('edit-qr-rotating-urls').value.trim();
+      const viewEnabledVal = document.getElementById('edit-view-enabled').checked;
+      const isActiveVal = document.getElementById('edit-qr-active').value === 'true';
+      const rotateNowVal = document.getElementById('edit-rotate-now').checked;
+
+      const modelFile = editModelFileEl.files && editModelFileEl.files[0];
+      const imageFile = editImageFileEl.files && editImageFileEl.files[0];
+      const presetVal = editModelPresetEl.value || '';
+
+      try {
+        let res;
+        if ((modelFile && modelFile.size > 0) || (imageFile && imageFile.size > 0)) {
+          const fd = new FormData();
+          fd.append('title', titleVal);
+          fd.append('description', descVal);
+          fd.append('target_url', targetUrlVal);
+          if (viewSlugVal) fd.append('view_slug', viewSlugVal);
+          fd.append('rotation_strategy', strategyVal);
+          fd.append('view_enabled', String(viewEnabledVal));
+          if (strategyVal === 'timed' || strategyVal === 'dynamic') {
+            fd.append('rotation_interval_seconds', String(Math.max(2, parseInt(intervalVal || '30', 10) || 30)));
+            fd.append('rotating_urls', rotatingUrlsVal);
+          } else {
+            fd.append('rotation_interval_seconds', '0');
+          }
+          fd.append('is_active', String(isActiveVal));
+          fd.append('rotate_now', String(rotateNowVal));
+          if (modelFile && modelFile.size > 0) {
+            fd.append('model', modelFile);
+          } else if (presetVal.startsWith('saved:')) {
+            fd.append('saved_model_id', presetVal.slice(6));
+          } else if (presetVal) {
+            fd.append('model_preset', presetVal);
+          }
+          if (imageFile && imageFile.size > 0) {
+            fd.append('image', imageFile);
+          }
+          res = await apiFetch(`/api/qr/${qrId}`, {
+            method: 'PUT',
+            body: fd
+          });
+        } else {
+          const payload = {
+            title: titleVal,
+            description: descVal,
+            target_url: targetUrlVal,
+            view_slug: viewSlugVal || undefined,
+            rotation_strategy: strategyVal,
+            rotation_interval_seconds: (strategyVal === 'timed' || strategyVal === 'dynamic')
+              ? Math.max(2, parseInt(intervalVal || '30', 10) || 30)
+              : 0,
+            rotating_urls: (strategyVal === 'timed' || strategyVal === 'dynamic') ? rotatingUrlsVal : '',
+            view_enabled: viewEnabledVal,
+            is_active: isActiveVal,
+            rotate_now: rotateNowVal
+          };
+          if (presetVal.startsWith('saved:')) {
+            payload.saved_model_id = presetVal.slice(6);
+          } else if (presetVal) {
+            payload.model_preset = presetVal;
+          }
+          res = await apiFetch(`/api/qr/${qrId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+          });
+        }
+
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 503) {
+          setServiceInactiveUI(data.message || 'El servicio no se activó');
+          throw new Error(data.message || 'El servicio no se activó');
+        }
+        if (!res.ok) {
+          throw new Error(data.error || data.message || 'No se pudo actualizar la información');
+        }
+
+        editStatusEl.style.color = '#34d399';
+        editStatusEl.textContent = '✅ Información actualizada correctamente';
+        await Promise.all([loadSavedFiles(), loadQrs()]);
+        setTimeout(() => closeEditModal(), 450);
+      } catch (err) {
+        editStatusEl.style.color = '#f87171';
+        editStatusEl.textContent = `⚠️ ${err.message}`;
+      } finally {
+        btnSave.disabled = false;
+      }
+    });
+
     // Rotar QR manualmente
     window.rotateQr = async function(qrId) {
       if (!confirm('¿Deseas rotar inmediatamente este código QR? El código actual se descartará.')) return;
       try {
-        const res = await fetch(`/api/qr/${qrId}`, {
+        const res = await apiFetch(`/api/qr/${qrId}`, {
           method: 'PUT',
           headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': state.apiKey
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({ rotate_now: true })
         });
@@ -1202,9 +3467,8 @@
     window.deleteQr = async function(qrId) {
       if (!confirm('¿Eliminar definitivamente este QR 3D?')) return;
       try {
-        const res = await fetch(`/api/qr/${qrId}`, {
-          method: 'DELETE',
-          headers: { 'x-api-key': state.apiKey }
+        const res = await apiFetch(`/api/qr/${qrId}`, {
+          method: 'DELETE'
         });
         if (res.ok) loadQrs();
       } catch (err) {
@@ -1227,6 +3491,7 @@
     const ctrlColorBoost = document.getElementById('ctrl-color-boost');
     const ctrlFixSrgb = document.getElementById('ctrl-fix-srgb');
     const ctrlEdgeMode = document.getElementById('ctrl-edge-mode');
+    const ctrlCameraMode = document.getElementById('ctrl-camera-mode');
     const ctrlBgColor = document.getElementById('ctrl-bg-color');
     const ctrlAutoRotate = document.getElementById('ctrl-auto-rotate');
     const ctrlShowTotem = document.getElementById('ctrl-show-totem');
@@ -1263,6 +3528,7 @@
 
       ctrlFixSrgb.value = cfg.fixSrgb || 'auto';
       ctrlEdgeMode.value = cfg.edgeMode || 'smart';
+      ctrlCameraMode.value = cfg.cameraMode === 'direct' ? 'direct' : 'smooth';
       ctrlBgColor.value = cfg.backgroundColor || '#1a1612';
       ctrlAutoRotate.checked = cfg.autoRotate !== false;
       ctrlShowTotem.checked = cfg.showTotem !== false;
@@ -1296,7 +3562,12 @@
     }
 
     tabAuto.addEventListener('click', () => {
-      state.studioConfig = { ...VIEWER_PRESETS.auto, cameraPose: null };
+      state.studioConfig = {
+        ...VIEWER_PRESETS.auto,
+        autoRotate: state.studioConfig.autoRotate,
+        cameraMode: state.studioConfig.cameraMode,
+        cameraPose: null
+      };
       saveStatusEl.textContent = '';
       syncStudioUI();
       pushStudioToViewer({ applyCamera: true });
@@ -1325,6 +3596,9 @@
           ...base,
           mode: 'manual',
           preset: presetKey,
+          autoRotate: state.studioConfig.autoRotate,
+          cameraMode: state.studioConfig.cameraMode,
+          showTotem: state.studioConfig.showTotem,
           cameraPose: state.studioConfig.cameraPose
         };
         saveStatusEl.textContent = '';
@@ -1341,6 +3615,7 @@
     ctrlColorBoost.addEventListener('input', () => markManualCustom({ colorBoost: Number(ctrlColorBoost.value) }));
     ctrlFixSrgb.addEventListener('change', () => markManualCustom({ fixSrgb: ctrlFixSrgb.value }));
     ctrlEdgeMode.addEventListener('change', () => markManualCustom({ edgeMode: ctrlEdgeMode.value }));
+    ctrlCameraMode.addEventListener('change', () => markManualCustom({ cameraMode: ctrlCameraMode.value }));
     ctrlAutoRotate.addEventListener('change', () => markManualCustom({ autoRotate: ctrlAutoRotate.checked }));
     ctrlShowTotem.addEventListener('change', () => markManualCustom({ showTotem: ctrlShowTotem.checked }));
 
@@ -1378,11 +3653,10 @@
       saveStatusEl.style.color = '#93c5fd';
       saveStatusEl.textContent = 'Guardando configuración...';
       try {
-        const res = await fetch(`/api/qr/${state.selectedQr}`, {
+        const res = await apiFetch(`/api/qr/${state.selectedQr}`, {
           method: 'PUT',
           headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': state.apiKey
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({ viewer_config: state.studioConfig })
         });
@@ -1426,6 +3700,12 @@
       syncStudioUI();
 
       const origin = window.location.origin;
+      const viewLinkArea = document.getElementById('view-link-area');
+      const openViewBtn = document.getElementById('btn-open-view-link');
+      const initialViewUrl = resolveItemViewUrl(existingItem);
+      if (viewLinkArea) viewLinkArea.value = initialViewUrl;
+      if (openViewBtn) openViewBtn.href = initialViewUrl || '#';
+
       embedArea.value = `<script src="${origin}/widget/3dqr-viewer.js" type="module"><\/script>\n<qr-3d-viewer qr-id="${qrId}" api-url="${origin}"></qr-3d-viewer>`;
 
       container.innerHTML = `
@@ -1441,7 +3721,11 @@
         });
         viewerEl.addEventListener('viewer-config-change', (e) => {
           if (e.detail) {
-            state.studioConfig = { ...state.studioConfig, ...e.detail };
+            const next = { ...state.studioConfig };
+            if (typeof e.detail.autoRotate === 'boolean') next.autoRotate = e.detail.autoRotate;
+            if (e.detail.edgeMode !== undefined) next.edgeMode = e.detail.edgeMode;
+            if (e.detail.cameraMode !== undefined) next.cameraMode = e.detail.cameraMode;
+            state.studioConfig = next;
             syncStudioUI();
           }
         });
@@ -1451,12 +3735,20 @@
 
       // Refrescar metadata exacta del servidor por si hubo cambios
       try {
-        const res = await fetch(`/api/qr/${qrId}`, { headers: { 'x-api-key': state.apiKey } });
+        const res = await apiFetch(`/api/qr/${qrId}`);
         if (res.ok) {
           const detail = await res.json();
+          const resolvedDetailUrl = resolveItemViewUrl(detail);
+          if (resolvedDetailUrl) {
+            if (viewLinkArea) viewLinkArea.value = resolvedDetailUrl;
+            if (openViewBtn) openViewBtn.href = resolvedDetailUrl;
+          }
           const serverCfg = detail.viewerConfig || (detail.metadata && detail.metadata.viewerConfig);
           if (serverCfg && !(viewerEl && viewerEl._hasLocalStudioEdits)) {
-            state.studioConfig = { ...VIEWER_PRESETS.auto, ...serverCfg };
+            const overrides = viewerEl && viewerEl._hasLocalToolbarEdits && viewerEl._userToolbarOverrides
+              ? viewerEl._userToolbarOverrides
+              : {};
+            state.studioConfig = { ...VIEWER_PRESETS.auto, ...serverCfg, ...overrides };
             if (openManual) state.studioConfig.mode = 'manual';
             syncStudioUI();
           }
@@ -1466,17 +3758,57 @@
       }
     };
 
+    document.getElementById('btn-copy-view-link').addEventListener('click', (e) => {
+      const input = document.getElementById('view-link-area');
+      if (!input || !input.value) return;
+      copyToClipboard(
+        input.value,
+        e.currentTarget,
+        '🔗 Link público de vista copiado al portapapeles'
+      );
+    });
+
+    document.getElementById('btn-copy-view-iframe').addEventListener('click', (e) => {
+      const input = document.getElementById('view-link-area');
+      if (!input || !input.value) return;
+      copyToClipboard(
+        buildIframeSnippet(input.value),
+        e.currentTarget,
+        '🧩 Código iframe de la vista pública copiado'
+      );
+    });
+
+    document.getElementById('btn-rotate-view-link').addEventListener('click', async () => {
+      if (!state.selectedQr) return;
+      if (!confirm('¿Regenerar el link público? El enlace anterior dejará de funcionar.')) return;
+      try {
+        const res = await apiFetch(`/api/qr/${state.selectedQr}/view-link/rotate`, {
+          method: 'POST'
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'No se pudo regenerar');
+        const viewLinkArea = document.getElementById('view-link-area');
+        const openViewBtn = document.getElementById('btn-open-view-link');
+        const nextViewUrl = resolveItemViewUrl(data);
+        if (viewLinkArea) viewLinkArea.value = nextViewUrl;
+        if (openViewBtn) openViewBtn.href = nextViewUrl;
+        await loadQrs();
+        showAdminToast('🔁 Nuevo link público generado correctamente');
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    });
+
     document.getElementById('modal-close').addEventListener('click', () => {
       document.getElementById('preview-modal').classList.remove('active');
       document.getElementById('modal-viewer-container').innerHTML = '';
       loadQrs();
     });
 
-    document.getElementById('btn-copy-embed').addEventListener('click', () => {
+    document.getElementById('btn-copy-embed').addEventListener('click', (e) => {
       const area = document.getElementById('embed-code-area');
-      area.select();
-      navigator.clipboard.writeText(area.value);
-      alert('📋 Código copiado al portapapeles');
+      if (!area || !area.value) return;
+      copyToClipboard(area.value, e.currentTarget, '📋 Código para embeber copiado al portapapeles');
     });
 
     // Simular Escaneo
@@ -1486,9 +3818,725 @@
       window.open(`/scan/${state.selectedQr}`, '_blank');
     });
 
-    // Iniciar
-    loadModelsCatalog();
-    loadQrs();
+    const dailyStatsModal = document.getElementById('daily-stats-modal');
+    const dailyModalTbody = document.getElementById('daily-modal-tbody');
+    document.getElementById('btn-daily-close').addEventListener('click', () => {
+      dailyStatsModal.classList.remove('active');
+    });
+    dailyStatsModal.addEventListener('click', (e) => {
+      if (e.target === dailyStatsModal) dailyStatsModal.classList.remove('active');
+    });
+
+    window.openDailyStatsModal = async function(qrId) {
+      const item = state.currentItems.find((i) => i.id === qrId);
+      document.getElementById('daily-modal-title').textContent = `📅 Ingresos Diarios — ${item?.title || qrId}`;
+      document.getElementById('daily-modal-subtitle').textContent = `Personas que escanearon el QR y entraron al link (${item?.todayDate || 'hoy'})`;
+      document.getElementById('daily-modal-visitors').textContent = String(item?.dailyUniqueVisitors || 0);
+      document.getElementById('daily-modal-scans').textContent = String(item?.dailyScans || 0);
+      document.getElementById('daily-modal-total').textContent = String(item?.scan_count || 0);
+      dailyModalTbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#94a3b8;padding:16px;">Cargando historial diario...</td></tr>';
+      dailyStatsModal.classList.add('active');
+      try {
+        const res = await apiFetch(`/api/qr/${qrId}/daily-stats?days=30`);
+        if (!res.ok) throw new Error('No se pudo cargar el detalle diario');
+        const data = await res.json();
+        document.getElementById('daily-modal-visitors').textContent = String(data.dailyUniqueVisitors || 0);
+        document.getElementById('daily-modal-scans').textContent = String(data.dailyScans || 0);
+        document.getElementById('daily-modal-total').textContent = String(data.totalScans || 0);
+        const days = Array.isArray(data.days) ? data.days : [];
+        if (days.length === 0) {
+          dailyModalTbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#94a3b8;padding:16px;">Sin ingresos registrados aún.</td></tr>';
+          return;
+        }
+        dailyModalTbody.innerHTML = days.map((row) => {
+          const isToday = row.date === data.todayDate;
+          const badge = isToday ? ' <span class="badge badge-success" style="margin-left:6px;">Hoy</span>' : '';
+          return `
+            <tr>
+              <td><code>${escapeHtml(row.date)}</code>${badge}</td>
+              <td><strong>${Number(row.uniqueVisitors || 0)}</strong> persona(s)</td>
+              <td><strong>${Number(row.scans || 0)}</strong> ingreso(s)</td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        dailyModalTbody.innerHTML = `<tr><td colspan="3" style="text-align:center;color:#f87171;padding:16px;">${escapeHtml(err.message)}</td></tr>`;
+      }
+    };
+
+    // =========================================================================
+    // Autenticación, Gestión de Sitios (Superadmin) y Gestión de Usuarios 3D
+    // =========================================================================
+
+    function revealCredentialBox(boxId, titleId, textId, title, text) {
+      const box = document.getElementById(boxId);
+      const tEl = document.getElementById(titleId);
+      const cEl = document.getElementById(textId);
+      if (!box || !tEl || !cEl) return;
+      tEl.textContent = title;
+      cEl.textContent = text;
+      box.classList.add('show');
+    }
+
+    function syncCreateOwnerDropdown() {
+      const tenantSel = document.getElementById('create-tenant-id');
+      const ownerSel = document.getElementById('create-owner-user-id');
+      if (!ownerSel || !state.currentUser) return;
+
+      const prevOwner = ownerSel.value;
+      ownerSel.innerHTML = '<option value="">Mi cuenta actual</option>';
+
+      const targetTenant = state.currentUser.role === 'superadmin'
+        ? (tenantSel?.value || '')
+        : state.currentUser.tenant_id;
+
+      const eligible = (state.users || []).filter((u) => {
+        if (!u.is_active) return false;
+        if (u.id === state.currentUser.id) return false;
+        if (state.currentUser.role === 'superadmin') {
+          return u.role === 'superadmin' || u.tenant_id === targetTenant;
+        }
+        return u.tenant_id === targetTenant && u.role === 'user';
+      });
+
+      for (const u of eligible) {
+        const opt = document.createElement('option');
+        opt.value = u.id;
+        opt.textContent = `@${u.username} — ${u.full_name || u.username} (${u.role === 'admin' ? 'Admin' : 'Usuario 3D'})`;
+        ownerSel.appendChild(opt);
+      }
+      if (prevOwner && Array.from(ownerSel.options).some((o) => o.value === prevOwner)) {
+        ownerSel.value = prevOwner;
+      }
+    }
+
+    function renderSuperadminTenants() {
+      const tbody = document.getElementById('sa-tenants-tbody');
+      const userTenantSel = document.getElementById('sa-user-tenant');
+      const filterTenantSel = document.getElementById('sa-filter-tenant');
+      const createTenantSel = document.getElementById('create-tenant-id');
+
+      const tenants = state.tenants || [];
+      if (userTenantSel) {
+        const prev = userTenantSel.value;
+        userTenantSel.innerHTML = tenants.map((t) =>
+          `<option value="${escapeHtml(t.id)}">${escapeHtml(t.name)} (${escapeHtml(t.id)})</option>`
+        ).join('');
+        if (prev && tenants.some((t) => t.id === prev)) userTenantSel.value = prev;
+      }
+      if (filterTenantSel) {
+        const prev = filterTenantSel.value;
+        filterTenantSel.innerHTML = '<option value="">Todos los sitios</option>' + tenants.map((t) =>
+          `<option value="${escapeHtml(t.id)}">${escapeHtml(t.name)}</option>`
+        ).join('');
+        if (prev) filterTenantSel.value = prev;
+      }
+      if (createTenantSel) {
+        const prev = createTenantSel.value;
+        createTenantSel.innerHTML = tenants.map((t) =>
+          `<option value="${escapeHtml(t.id)}">${escapeHtml(t.name)} (${escapeHtml(t.id)})</option>`
+        ).join('');
+        if (prev && tenants.some((t) => t.id === prev)) createTenantSel.value = prev;
+      }
+
+      if (!tbody) return;
+      if (tenants.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:16px;">No hay sitios registrados.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = tenants.map((t) => {
+        const safeId = escapeHtml(t.id);
+        const safeName = escapeHtml(t.name);
+        const safeUrl = t.website_url ? escapeHtml(t.website_url) : '';
+        const isDef = t.id === 'tenant_default';
+        return `
+          <tr>
+            <td>
+              <strong>${safeName}</strong>
+              <div style="font-size:11px;color:#94a3b8;"><code>${safeId}</code>${safeUrl ? ` · <a href="${safeUrl}" target="_blank" rel="noopener" style="color:#60a5fa;">${safeUrl}</a>` : ''}</div>
+            </td>
+            <td><code>${escapeHtml(t.api_key_prefix || '—')}...</code></td>
+            <td style="font-size:12px;">
+              <div>🌐 ${Number(t.adminCount || 0)} admin(s)</div>
+              <div style="color:#94a3b8;">🧊 ${Number(t.userCount || 0)} usuario(s) 3D</div>
+            </td>
+            <td style="font-size:12px;">
+              <div>📦 ${Number(t.qrCount || 0)} QR(s) · ${Number(t.fileCount || 0)} archivo(s)</div>
+              <div style="color:#94a3b8;">👁️ ${Number(t.totalScans || 0)} escaneos</div>
+            </td>
+            <td><span class="badge ${t.is_active ? 'badge-success' : 'badge-paused'}">${t.is_active ? '🟢 Activo' : '⏸️ Pausado'}</span></td>
+            <td>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="saRotateTenantKey('${safeId}')">🔑 Rotar Key</button>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="saToggleTenant('${safeId}', ${!t.is_active})">${t.is_active ? '⏸️ Pausar' : '▶️ Activar'}</button>
+              ${isDef ? '' : `<button type="button" class="btn btn-secondary btn-sm" style="color:#f87171;" onclick="saDeleteTenant('${safeId}')">🗑️</button>`}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderSuperadminUsers() {
+      const tbody = document.getElementById('sa-users-tbody');
+      if (!tbody) return;
+      const filterTenant = document.getElementById('sa-filter-tenant')?.value || '';
+      const users = (state.users || []).filter((u) => !filterTenant || u.tenant_id === filterTenant);
+
+      if (users.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:16px;">No hay usuarios para este filtro.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = users.map((u) => {
+        const safeId = escapeHtml(u.id);
+        const isSelf = state.currentUser && u.id === state.currentUser.id;
+        const roleLabel = u.role === 'superadmin' ? '👑 Superadmin' : (u.role === 'admin' ? '🌐 Admin' : '🧊 Usuario 3D');
+        return `
+          <tr>
+            <td><strong>@${escapeHtml(u.username)}</strong></td>
+            <td>
+              <div>${escapeHtml(u.full_name || u.username)}</div>
+              <div style="font-size:11px;color:#94a3b8;">${u.email ? escapeHtml(u.email) : 'Sin correo'}</div>
+            </td>
+            <td><span class="role-pill role-${escapeHtml(u.role)}">${roleLabel}</span></td>
+            <td style="font-size:12px;">${escapeHtml(u.tenant_name || (u.role === 'superadmin' ? 'Global' : '—'))}</td>
+            <td style="font-size:12px;">📦 ${Number(u.qrCount || 0)} QR · ${Number(u.fileCount || 0)} arch.</td>
+            <td><span class="badge ${u.is_active ? 'badge-success' : 'badge-paused'}">${u.is_active ? '🟢 Activo' : '⏸️ Pausado'}</span></td>
+            <td>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="saResetUserPassword('${safeId}', '${escapeHtml(u.username)}')">🔑 Reset Clave</button>
+              ${isSelf ? '' : `
+                <button type="button" class="btn btn-secondary btn-sm" onclick="saToggleUserActive('${safeId}', ${!u.is_active})">${u.is_active ? '⏸️' : '▶️'}</button>
+                <button type="button" class="btn btn-secondary btn-sm" style="color:#f87171;" onclick="saDeleteUser('${safeId}')">🗑️</button>
+              `}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function loadSuperadminData() {
+      if (state.currentUser?.role !== 'superadmin') return;
+      try {
+        const [tRes, uRes] = await Promise.all([
+          apiFetch('/api/tenants'),
+          apiFetch('/api/users')
+        ]);
+        if (tRes.ok) {
+          const tData = await tRes.json();
+          state.tenants = tData.tenants || [];
+        }
+        if (uRes.ok) {
+          const uData = await uRes.json();
+          state.users = uData.users || [];
+        }
+        renderSuperadminTenants();
+        renderSuperadminUsers();
+        syncCreateOwnerDropdown();
+      } catch {
+        // Ignore transient network errors
+      }
+    }
+
+    function renderAdminUsers() {
+      const tbody = document.getElementById('adm-users-tbody');
+      if (!tbody) return;
+      const users = state.users || [];
+      if (users.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:16px;">Aún no has creado Usuarios 3D para tu sitio.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = users.map((u) => {
+        const safeId = escapeHtml(u.id);
+        return `
+          <tr>
+            <td><strong>@${escapeHtml(u.username)}</strong></td>
+            <td>
+              <div>${escapeHtml(u.full_name || u.username)}</div>
+              <div style="font-size:11px;color:#94a3b8;">${u.email ? escapeHtml(u.email) : 'Sin correo'}</div>
+            </td>
+            <td style="font-size:12px;">📦 ${Number(u.qrCount || 0)} QR · ${Number(u.fileCount || 0)} arch.</td>
+            <td><span class="badge ${u.is_active ? 'badge-success' : 'badge-paused'}">${u.is_active ? '🟢 Activo' : '⏸️ Pausado'}</span></td>
+            <td>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="admResetUserPassword('${safeId}', '${escapeHtml(u.username)}')">🔑 Clave</button>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="admToggleUserActive('${safeId}', ${!u.is_active})">${u.is_active ? '⏸️' : '▶️'}</button>
+              <button type="button" class="btn btn-secondary btn-sm" style="color:#f87171;" onclick="admDeleteUser('${safeId}')">🗑️</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function loadAdminSiteData() {
+      if (state.currentUser?.role !== 'admin') return;
+      try {
+        const [tRes, uRes] = await Promise.all([
+          apiFetch('/api/tenants/me'),
+          apiFetch('/api/users')
+        ]);
+        if (tRes.ok) {
+          const tData = await tRes.json();
+          if (tData.tenant) {
+            state.currentTenant = tData.tenant;
+            document.getElementById('adm-site-name').value = tData.tenant.name || '';
+            document.getElementById('adm-site-url').value = tData.tenant.website_url || '';
+            document.getElementById('adm-api-prefix').textContent = tData.tenant.api_key_prefix
+              ? `${tData.tenant.api_key_prefix}...`
+              : '—';
+            document.getElementById('hdr-site-label').textContent = `Sitio: ${tData.tenant.name || ''}`;
+          }
+        }
+        if (uRes.ok) {
+          const uData = await uRes.json();
+          state.users = uData.users || [];
+          renderAdminUsers();
+          syncCreateOwnerDropdown();
+        }
+      } catch {
+        // Ignore transient network errors
+      }
+    }
+
+    async function loadAuthenticatedWorkspace() {
+      if (!state.currentUser) return;
+      await Promise.all([
+        loadModelsCatalog(),
+        loadSavedFiles(),
+        loadQrs(),
+        loadSuperadminData(),
+        loadAdminSiteData()
+      ]);
+    }
+
+    // Tabs Superadmin
+    document.getElementById('sa-tab-tenants').addEventListener('click', () => {
+      document.getElementById('sa-tab-tenants').classList.add('active');
+      document.getElementById('sa-tab-users').classList.remove('active');
+      document.getElementById('sa-pane-tenants').style.display = 'block';
+      document.getElementById('sa-pane-users').style.display = 'none';
+    });
+    document.getElementById('sa-tab-users').addEventListener('click', () => {
+      document.getElementById('sa-tab-users').classList.add('active');
+      document.getElementById('sa-tab-tenants').classList.remove('active');
+      document.getElementById('sa-pane-users').style.display = 'block';
+      document.getElementById('sa-pane-tenants').style.display = 'none';
+    });
+    document.getElementById('btn-sa-refresh').addEventListener('click', loadSuperadminData);
+    document.getElementById('btn-adm-refresh').addEventListener('click', loadAdminSiteData);
+    document.getElementById('sa-filter-tenant').addEventListener('change', renderSuperadminUsers);
+    document.getElementById('create-tenant-id').addEventListener('change', syncCreateOwnerDropdown);
+
+    document.getElementById('sa-user-role').addEventListener('change', (e) => {
+      document.getElementById('sa-user-tenant-wrap').style.display = e.target.value === 'superadmin' ? 'none' : 'block';
+    });
+
+    // Crear Sitio Web + Admin inicial (Superadmin)
+    document.getElementById('sa-create-tenant-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('sa-tenant-name').value.trim();
+      const websiteUrl = document.getElementById('sa-tenant-url').value.trim();
+      const adminUser = document.getElementById('sa-tenant-admin-user').value.trim();
+      const adminEmail = document.getElementById('sa-tenant-admin-email').value.trim();
+      const adminPass = document.getElementById('sa-tenant-admin-pass').value;
+
+      const payload = { name, website_url: websiteUrl };
+      if (adminUser) {
+        payload.admin_user = {
+          username: adminUser,
+          email: adminEmail || undefined,
+          password: adminPass || undefined,
+          generate_password: !adminPass
+        };
+      }
+
+      const res = await apiFetch('/api/tenants', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert('Error: ' + (data.error || 'No se pudo crear el sitio'));
+        return;
+      }
+
+      document.getElementById('sa-create-tenant-form').reset();
+      const parts = [`API Key: ${data.tenant.apiKey}`];
+      if (data.adminUser) {
+        const pwdInfo = data.generatedPassword || adminPass;
+        parts.push(`Admin: ${data.adminUser.username} | Clave: ${pwdInfo}`);
+      }
+      revealCredentialBox(
+        'sa-credential-box',
+        'sa-credential-title',
+        'sa-credential-text',
+        `✅ Sitio "${data.tenant.name}" creado — guarda estas credenciales:`,
+        parts.join('  ||  ')
+      );
+      await loadSuperadminData();
+    });
+
+    // Crear usuario / admin (Superadmin)
+    document.getElementById('sa-create-user-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const role = document.getElementById('sa-user-role').value;
+      const tenantId = document.getElementById('sa-user-tenant').value;
+      const username = document.getElementById('sa-user-username').value.trim();
+      const fullName = document.getElementById('sa-user-fullname').value.trim();
+      const email = document.getElementById('sa-user-email').value.trim();
+      const password = document.getElementById('sa-user-password').value;
+
+      const res = await apiFetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          role,
+          tenant_id: role === 'superadmin' ? null : tenantId,
+          username,
+          full_name: fullName || username,
+          email: email || undefined,
+          password: password || undefined,
+          generate_password: !password
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert('Error: ' + (data.error || 'No se pudo crear el usuario'));
+        return;
+      }
+
+      document.getElementById('sa-create-user-form').reset();
+      document.getElementById('sa-user-tenant-wrap').style.display = 'block';
+      const pwdShown = data.generatedPassword || password;
+      revealCredentialBox(
+        'sa-user-cred-box',
+        'sa-user-cred-title',
+        'sa-user-cred-text',
+        `✅ Cuenta "${data.user.username}" (${data.user.role}) lista para entregar:`,
+        `Acceso: ${window.location.origin}/admin/ | Usuario: ${data.user.username} | Contraseña: ${pwdShown}`
+      );
+      await loadSuperadminData();
+    });
+
+    window.saRotateTenantKey = async function(tenantId) {
+      if (!confirm('¿Regenerar la API Key de este sitio? La clave anterior dejará de funcionar.')) return;
+      const res = await apiFetch(`/api/tenants/${tenantId}/rotate-key`, { method: 'POST' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return alert('Error: ' + (data.error || 'No se pudo rotar la API Key'));
+      revealCredentialBox(
+        'sa-credential-box',
+        'sa-credential-title',
+        'sa-credential-text',
+        `🔑 Nueva API Key para ${tenantId}:`,
+        data.apiKey
+      );
+      await loadSuperadminData();
+    };
+
+    window.saToggleTenant = async function(tenantId, nextActive) {
+      const res = await apiFetch(`/api/tenants/${tenantId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active: nextActive })
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        return alert('Error: ' + (d.error || 'No se pudo actualizar'));
+      }
+      await loadSuperadminData();
+    };
+
+    window.saDeleteTenant = async function(tenantId) {
+      if (!confirm('¿Eliminar definitivamente este sitio web, sus usuarios y sus modelos/QRs?')) return;
+      const res = await apiFetch(`/api/tenants/${tenantId}`, { method: 'DELETE' });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) return alert('Error: ' + (d.error || 'No se pudo eliminar'));
+      await Promise.all([loadSuperadminData(), loadQrs(), loadSavedFiles()]);
+    };
+
+    window.saResetUserPassword = async function(userId, username) {
+      if (!confirm(`¿Generar nueva contraseña temporal para @${username}?`)) return;
+      const res = await apiFetch(`/api/users/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reset_password: true })
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) return alert('Error: ' + (d.error || 'No se pudo restablecer'));
+      revealCredentialBox(
+        'sa-user-cred-box',
+        'sa-user-cred-title',
+        'sa-user-cred-text',
+        `🔑 Nueva contraseña generada para @${username}:`,
+        `Acceso: ${window.location.origin}/admin/ | Usuario: ${username} | Contraseña: ${d.generatedPassword}`
+      );
+    };
+
+    window.saToggleUserActive = async function(userId, nextActive) {
+      const res = await apiFetch(`/api/users/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active: nextActive })
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        return alert('Error: ' + (d.error || 'No se pudo actualizar'));
+      }
+      await loadSuperadminData();
+    };
+
+    window.saDeleteUser = async function(userId) {
+      if (!confirm('¿Eliminar este usuario? Sus modelos/QRs permanecerán guardados en el sitio.')) return;
+      const res = await apiFetch(`/api/users/${userId}`, { method: 'DELETE' });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) return alert('Error: ' + (d.error || 'No se pudo eliminar'));
+      await Promise.all([loadSuperadminData(), loadQrs(), loadSavedFiles()]);
+    };
+
+    // Administrador de Sitio: editar sitio, rotar API Key y entregar usuarios 3D
+    document.getElementById('adm-site-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const res = await apiFetch('/api/tenants/me', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: document.getElementById('adm-site-name').value.trim(),
+          website_url: document.getElementById('adm-site-url').value.trim()
+        })
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) return alert('Error: ' + (d.error || 'No se pudo actualizar el sitio'));
+      showAdminToast('✅ Datos del sitio actualizados');
+      await loadAdminSiteData();
+    });
+
+    document.getElementById('btn-adm-rotate-key').addEventListener('click', async () => {
+      if (!confirm('¿Regenerar la API Key de tu sitio web? La clave anterior dejará de funcionar en integraciones externas.')) return;
+      const res = await apiFetch('/api/tenants/me/rotate-key', { method: 'POST' });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) return alert('Error: ' + (d.error || 'No se pudo regenerar la clave'));
+      document.getElementById('adm-new-key-val').textContent = d.apiKey;
+      document.getElementById('adm-new-key-box').classList.add('show');
+      await loadAdminSiteData();
+    });
+
+    document.getElementById('adm-create-user-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = document.getElementById('adm-user-username').value.trim();
+      const fullName = document.getElementById('adm-user-fullname').value.trim();
+      const email = document.getElementById('adm-user-email').value.trim();
+      const password = document.getElementById('adm-user-password').value;
+
+      const res = await apiFetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          role: 'user',
+          username,
+          full_name: fullName || username,
+          email: email || undefined,
+          password: password || undefined,
+          generate_password: !password
+        })
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) return alert('Error: ' + (d.error || 'No se pudo crear el usuario'));
+
+      document.getElementById('adm-create-user-form').reset();
+      const pwdShown = d.generatedPassword || password;
+      revealCredentialBox(
+        'adm-user-cred-box',
+        'adm-user-cred-title',
+        'adm-user-cred-text',
+        `✅ Usuario 3D "@${d.user.username}" creado — entrega estas credenciales:`,
+        `Panel: ${window.location.origin}/admin/ | Usuario: ${d.user.username} | Contraseña: ${pwdShown}`
+      );
+      await loadAdminSiteData();
+    });
+
+    window.admResetUserPassword = async function(userId, username) {
+      if (!confirm(`¿Generar nueva contraseña para @${username}?`)) return;
+      const res = await apiFetch(`/api/users/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reset_password: true })
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) return alert('Error: ' + (d.error || 'No se pudo restablecer'));
+      revealCredentialBox(
+        'adm-user-cred-box',
+        'adm-user-cred-title',
+        'adm-user-cred-text',
+        `🔑 Nueva contraseña para @${username}:`,
+        `Panel: ${window.location.origin}/admin/ | Usuario: ${username} | Contraseña: ${d.generatedPassword}`
+      );
+    };
+
+    window.admToggleUserActive = async function(userId, nextActive) {
+      const res = await apiFetch(`/api/users/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active: nextActive })
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        return alert('Error: ' + (d.error || 'No se pudo actualizar'));
+      }
+      await loadAdminSiteData();
+    };
+
+    window.admDeleteUser = async function(userId) {
+      if (!confirm('¿Eliminar este Usuario 3D? Sus modelos/QRs quedarán respaldados en tu sitio.')) return;
+      const res = await apiFetch(`/api/users/${userId}`, { method: 'DELETE' });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) return alert('Error: ' + (d.error || 'No se pudo eliminar'));
+      await Promise.all([loadAdminSiteData(), loadQrs(), loadSavedFiles()]);
+    };
+
+    // Botones copiar credenciales
+    document.getElementById('btn-sa-copy-cred').addEventListener('click', (e) => {
+      copyToClipboard(document.getElementById('sa-credential-text').textContent, e.currentTarget, '📋 Credenciales copiadas');
+    });
+    document.getElementById('btn-sa-copy-user-cred').addEventListener('click', (e) => {
+      copyToClipboard(document.getElementById('sa-user-cred-text').textContent, e.currentTarget, '📋 Credenciales de usuario copiadas');
+    });
+    document.getElementById('btn-adm-copy-key').addEventListener('click', (e) => {
+      copyToClipboard(document.getElementById('adm-new-key-val').textContent, e.currentTarget, '🔑 API Key copiada');
+    });
+    document.getElementById('btn-adm-copy-user-cred').addEventListener('click', (e) => {
+      copyToClipboard(document.getElementById('adm-user-cred-text').textContent, e.currentTarget, '📋 Credenciales de usuario copiadas');
+    });
+
+    // Toggle Mostrar / Ocultar contraseña en todos los campos de contraseña
+    function resetPasswordVisibility(rootEl = document) {
+      rootEl.querySelectorAll('.btn-toggle-pwd[data-toggle-pwd]').forEach((btn) => {
+        const input = document.getElementById(btn.dataset.togglePwd);
+        if (input) input.type = 'password';
+        btn.textContent = '👁️';
+        btn.title = 'Ver contraseña';
+        btn.setAttribute('aria-pressed', 'false');
+      });
+    }
+
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.btn-toggle-pwd[data-toggle-pwd]');
+      if (!btn) return;
+      const input = document.getElementById(btn.dataset.togglePwd);
+      if (!input) return;
+      const show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      btn.textContent = show ? '🙈' : '👁️';
+      btn.title = show ? 'Ocultar contraseña' : 'Ver contraseña';
+      btn.setAttribute('aria-pressed', String(show));
+    });
+
+    // Modal Cambio de Contraseña Propia
+    const pwdModal = document.getElementById('change-password-modal');
+    const pwdStatusEl = document.getElementById('pwd-status');
+    function closePwdModal() {
+      pwdModal.classList.remove('active');
+      document.getElementById('change-password-form').reset();
+      resetPasswordVisibility(pwdModal);
+      pwdStatusEl.textContent = '';
+    }
+    document.getElementById('btn-open-change-password').addEventListener('click', () => {
+      pwdStatusEl.textContent = '';
+      pwdModal.classList.add('active');
+    });
+    document.getElementById('btn-pwd-close').addEventListener('click', closePwdModal);
+    document.getElementById('btn-pwd-cancel').addEventListener('click', closePwdModal);
+    document.getElementById('change-password-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      pwdStatusEl.style.color = '#93c5fd';
+      pwdStatusEl.textContent = 'Actualizando contraseña...';
+      const res = await apiFetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          current_password: document.getElementById('pwd-current').value,
+          new_password: document.getElementById('pwd-new').value
+        })
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        pwdStatusEl.style.color = '#f87171';
+        pwdStatusEl.textContent = `⚠️ ${d.error || 'No se pudo cambiar la contraseña'}`;
+        return;
+      }
+      pwdStatusEl.style.color = '#34d399';
+      pwdStatusEl.textContent = '✅ Contraseña actualizada';
+      setTimeout(closePwdModal, 600);
+    });
+
+    // Login / Logout / Bootstrap de Sesión
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      loginErrorEl.style.display = 'none';
+      const btn = document.getElementById('btn-login');
+      btn.disabled = true;
+      btn.textContent = '⏳ Verificando...';
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({
+            identifier: document.getElementById('login-identifier').value.trim(),
+            password: document.getElementById('login-password').value
+          })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          loginErrorEl.textContent = data.error || data.message || 'No se pudo iniciar sesión';
+          loginErrorEl.style.display = 'block';
+          return;
+        }
+        loginForm.reset();
+        resetPasswordVisibility(loginForm);
+        await bootstrapSession();
+      } catch (err) {
+        loginErrorEl.textContent = 'No hay conexión con el servidor API.';
+        loginErrorEl.style.display = 'block';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🔐 Iniciar Sesión';
+      }
+    });
+
+    document.getElementById('btn-logout').addEventListener('click', async () => {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' }).catch(() => {});
+      showLoginScreen();
+    });
+
+    async function bootstrapSession() {
+      await checkServiceStatus({ triggerFlush: false });
+      try {
+        const res = await fetch('/api/auth/me', { credentials: 'same-origin', cache: 'no-store' });
+        if (!res.ok) {
+          showLoginScreen();
+          return false;
+        }
+        const me = await res.json();
+        state.currentUser = me.user;
+        state.currentTenant = me.tenant;
+        loginScreen.style.display = 'none';
+        appShell.style.display = 'flex';
+        applyRoleLayout();
+        await loadAuthenticatedWorkspace();
+        await flushPendingQueue({ silent: true });
+        return true;
+      } catch {
+        showLoginScreen();
+        return false;
+      }
+    }
+
+    await bootstrapSession();
+    setInterval(() => {
+      checkServiceStatus({ triggerFlush: true });
+      if (state.currentUser && document.visibilityState === 'visible' && state.serviceActive) {
+        loadQrs();
+      }
+    }, 8000);
   </script>
 </body>
 </html>

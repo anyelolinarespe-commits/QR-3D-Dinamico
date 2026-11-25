@@ -19,6 +19,7 @@ export const VIEWER_PRESETS = {
     backgroundColor: '#1a1612',
     showTotem: true,
     autoRotate: true,
+    cameraMode: 'smooth',
     cameraPose: null
   },
   archaeological: {
@@ -36,6 +37,7 @@ export const VIEWER_PRESETS = {
     backgroundColor: '#1a1612',
     showTotem: true,
     autoRotate: true,
+    cameraMode: 'smooth',
     cameraPose: null
   },
   museum_night: {
@@ -53,6 +55,7 @@ export const VIEWER_PRESETS = {
     backgroundColor: '#090b10',
     showTotem: true,
     autoRotate: true,
+    cameraMode: 'smooth',
     cameraPose: null
   },
   studio: {
@@ -70,6 +73,7 @@ export const VIEWER_PRESETS = {
     backgroundColor: '#e2e8f0',
     showTotem: true,
     autoRotate: true,
+    cameraMode: 'smooth',
     cameraPose: null
   },
   outdoor: {
@@ -87,6 +91,7 @@ export const VIEWER_PRESETS = {
     backgroundColor: '#cfe4f2',
     showTotem: true,
     autoRotate: true,
+    cameraMode: 'smooth',
     cameraPose: null
   }
 };
@@ -95,6 +100,7 @@ const VALID_MODES = new Set(['auto', 'manual']);
 const VALID_PRESETS = new Set(['auto', 'archaeological', 'museum_night', 'studio', 'outdoor', 'custom']);
 const VALID_FIX_SRGB = new Set(['auto', 'on', 'off']);
 const VALID_EDGE_MODES = new Set(['smart', 'all', 'off']);
+const VALID_CAMERA_MODES = new Set(['smooth', 'direct']);
 const VALID_BG_PRESETS = new Set(['auto', 'warm_dark', 'slate', 'night', 'light_studio', 'outdoor', 'custom']);
 
 function clampNum(value, min, max, fallback) {
@@ -152,6 +158,8 @@ export function sanitizeViewerConfig(rawInput) {
   if (mode === 'auto') {
     return {
       ...VIEWER_PRESETS.auto,
+      autoRotate: typeof parsed.autoRotate === 'boolean' ? parsed.autoRotate : VIEWER_PRESETS.auto.autoRotate,
+      cameraMode: VALID_CAMERA_MODES.has(parsed.cameraMode) ? parsed.cameraMode : VIEWER_PRESETS.auto.cameraMode,
       cameraPose: sanitizeCameraPose(parsed.cameraPose)
     };
   }
@@ -176,6 +184,7 @@ export function sanitizeViewerConfig(rawInput) {
     backgroundColor: sanitizeHexColor(parsed.backgroundColor, base.backgroundColor),
     showTotem: typeof parsed.showTotem === 'boolean' ? parsed.showTotem : base.showTotem,
     autoRotate: typeof parsed.autoRotate === 'boolean' ? parsed.autoRotate : base.autoRotate,
+    cameraMode: VALID_CAMERA_MODES.has(parsed.cameraMode) ? parsed.cameraMode : base.cameraMode,
     cameraPose: sanitizeCameraPose(parsed.cameraPose)
   };
 }
