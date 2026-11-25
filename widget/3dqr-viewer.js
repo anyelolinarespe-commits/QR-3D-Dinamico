@@ -15,6 +15,7 @@ export const VIEWER_PRESETS = {
     sunAzimuth: -108,
     sunElevation: 40,
     sunIntensity: 1.55,
+    sunMode: 'scene',
     ambientIntensity: 0.18,
     colorBoost: 1.04,
     fixSrgb: 'auto',
@@ -33,6 +34,7 @@ export const VIEWER_PRESETS = {
     sunAzimuth: -108,
     sunElevation: 38,
     sunIntensity: 1.65,
+    sunMode: 'scene',
     ambientIntensity: 0.14,
     colorBoost: 1.12,
     fixSrgb: 'auto',
@@ -51,6 +53,7 @@ export const VIEWER_PRESETS = {
     sunAzimuth: -52,
     sunElevation: 48,
     sunIntensity: 1.75,
+    sunMode: 'scene',
     ambientIntensity: 0.12,
     colorBoost: 1.1,
     fixSrgb: 'auto',
@@ -69,6 +72,7 @@ export const VIEWER_PRESETS = {
     sunAzimuth: -45,
     sunElevation: 52,
     sunIntensity: 1.35,
+    sunMode: 'scene',
     ambientIntensity: 0.42,
     colorBoost: 1.0,
     fixSrgb: 'auto',
@@ -87,6 +91,7 @@ export const VIEWER_PRESETS = {
     sunAzimuth: -120,
     sunElevation: 55,
     sunIntensity: 1.55,
+    sunMode: 'scene',
     ambientIntensity: 0.34,
     colorBoost: 1.05,
     fixSrgb: 'auto',
@@ -175,7 +180,10 @@ class Qr3dViewer extends HTMLElement {
     this._hasLocalToolbarEdits = false;
     this.modelStats = { generator: '', isLegacyThreeExporter: false };
     this.framingCenter = null;
+    this.localLightingCenter = null;
     this.framingRadius = 2;
+    this._lightingState = null;
+    this._yAxis = null;
 
     // Estado de Vista Aérea 90° y QR cromático
     this.isAerialMode = false;
@@ -290,6 +298,7 @@ class Qr3dViewer extends HTMLElement {
     this.updateRotateButtonLabel();
     this.updateEdgesButtonLabel();
     this.updateCameraModeButtonLabel();
+    this.updateSunModeButtonLabel();
     this.loadDependencies().then(() => {
       if (!this.isConnected) return;
       this.initThree();
@@ -583,6 +592,7 @@ class Qr3dViewer extends HTMLElement {
         <button id="btn-rotate" class="btn-tool">🔄 Auto-Giro: ON</button>
         <button id="btn-edges" class="btn-tool active">✏️ Aristas: Auto</button>
         <button id="btn-camera-mode" class="btn-tool" title="Alternar entre cámara cinematográfica suave y respuesta directa 1:1 sin inercia">🎬 Cámara: Cine</button>
+        <button id="btn-sun-mode" class="btn-tool" title="Alternar entre sol fijo al modelo (la sombra de la casa al suelo se mantiene) y sol dinámico en el escenario (actual)">☀️ Sol: Dinámico</button>
         <button id="btn-reset" class="btn-tool">🎯 Centrar</button>
       </div>
 
@@ -673,12 +683,24 @@ class Qr3dViewer extends HTMLElement {
       this.dispatchEvent(new CustomEvent('viewer-config-change', { detail: this.getViewerConfig() }));
     });
 
+    this.shadowRoot.getElementById('btn-sun-mode').addEventListener('click', () => {
+      const isModel = this.viewerConfig.sunMode === 'model';
+      this.viewerConfig.sunMode = isModel ? 'scene' : 'model';
+      this._userToolbarOverrides.sunMode = this.viewerConfig.sunMode;
+      this._hasLocalToolbarEdits = true;
+      this.updateSunModeButtonLabel();
+      this.syncSunTransform({ updateShadow: true });
+      this.requestRender({ durationMs: 400 });
+      this.dispatchEvent(new CustomEvent('viewer-config-change', { detail: this.getViewerConfig() }));
+    });
+
     this.shadowRoot.getElementById('btn-reset').addEventListener('click', () => {
       if (this.isAerialMode) {
         this.exitAerialScanMode();
       } else if (this.controls) {
         if (this.defaultView && this.modelPivot && this.defaultView.pivotRotY !== undefined) {
           this.modelPivot.rotation.y = this.defaultView.pivotRotY;
+          this.syncSunTransform({ updateShadow: true });
         }
         this.controls.reset();
         this.requestRender({ durationMs: 800 });
@@ -717,6 +739,14 @@ class Qr3dViewer extends HTMLElement {
     btn.innerText = isDirect ? '⚡ Cámara: Directa' : '🎬 Cámara: Cine';
   }
 
+  updateSunModeButtonLabel() {
+    const btn = this.shadowRoot.getElementById('btn-sun-mode');
+    if (!btn) return;
+    const isModel = this.viewerConfig.sunMode === 'model';
+    btn.classList.toggle('active', isModel);
+    btn.innerText = isModel ? '📌 Sol: Fijo' : '☀️ Sol: Dinámico';
+  }
+
   applyCameraMode() {
     const isDirect = this.viewerConfig.cameraMode === 'direct';
     if (this.controls) {
@@ -749,7 +779,7 @@ class Qr3dViewer extends HTMLElement {
     this.renderer.setSize(width, height);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = window.THREE.PCFShadowMap;
+    this.renderer.shadowMap.type = window.THREE.PCFSoftShadowMap;
     this.renderer.shadowMap.autoUpdate = false;
     this.renderer.shadowMap.needsUpdate = true;
     this.renderer.toneMapping = window.THREE.ACESFilmicToneMapping;
@@ -801,11 +831,11 @@ class Qr3dViewer extends HTMLElement {
     this.sunLight = new window.THREE.DirectionalLight(0xfff1d6, this.viewerConfig.sunIntensity);
     this.sunLight.position.set(-30, 40, 15);
     this.sunLight.castShadow = true;
-    this.sunLight.shadow.mapSize.width = 768;
-    this.sunLight.shadow.mapSize.height = 768;
-    this.sunLight.shadow.bias = -0.0004;
+    this.sunLight.shadow.mapSize.width = 2048;
+    this.sunLight.shadow.mapSize.height = 2048;
+    this.sunLight.shadow.bias = -0.0002;
     if ('normalBias' in this.sunLight.shadow) {
-      this.sunLight.shadow.normalBias = 0.015;
+      this.sunLight.shadow.normalBias = 0.02;
     }
     this.scene.add(this.sunLight);
     this.scene.add(this.sunLight.target);
@@ -904,7 +934,7 @@ class Qr3dViewer extends HTMLElement {
           if (this.modelPivot && this.cameraAnim.toRotY !== null) {
             this.modelPivot.rotation.y =
               this.cameraAnim.fromRotY + (this.cameraAnim.toRotY - this.cameraAnim.fromRotY) * t;
-            this.renderer.shadowMap.needsUpdate = true;
+            this.syncSunTransform({ updateShadow: true });
           }
 
           if (this.aerialQrMesh && this.cameraAnim.fadeAerialTo !== null) {
@@ -927,13 +957,8 @@ class Qr3dViewer extends HTMLElement {
           ts >= this._pauseAutoRotateUntil
         ) {
           this.modelPivot.rotation.y += dtSec * 0.32;
-          if (
-            this._lastShadowRotY === null ||
-            Math.abs(this.modelPivot.rotation.y - this._lastShadowRotY) >= 0.03
-          ) {
-            this._lastShadowRotY = this.modelPivot.rotation.y;
-            this.renderer.shadowMap.needsUpdate = true;
-          }
+          this._lastShadowRotY = this.modelPivot.rotation.y;
+          this.syncSunTransform({ updateShadow: true });
         }
 
         this.controls.update();
@@ -1041,8 +1066,9 @@ class Qr3dViewer extends HTMLElement {
     const cfg = this.viewerConfig;
     const showTotem = cfg.showTotem !== false;
 
+    const useMainBounds = !showTotem && Boolean(this.mainBounds);
     let box;
-    if (!showTotem && this.mainBounds) {
+    if (useMainBounds) {
       box = this.mainBounds.box.clone();
     } else {
       box = new window.THREE.Box3().setFromObject(this.modelPivot);
@@ -1057,6 +1083,10 @@ class Qr3dViewer extends HTMLElement {
 
     this.framingCenter = target.clone();
     this.framingRadius = radius;
+    this.modelPivot.updateMatrixWorld(true);
+    this.localLightingCenter = useMainBounds
+      ? target.clone()
+      : this.modelPivot.worldToLocal(target.clone());
 
     const fovRad = window.THREE.MathUtils.degToRad(this.camera.fov);
     const aspect = Math.max(0.5, this.camera.aspect || 1);
@@ -1136,6 +1166,7 @@ class Qr3dViewer extends HTMLElement {
     if (this.aerialQrMesh) this.aerialQrMesh.visible = false;
     this.modelPivot.rotation.y = 0;
     this.modelPivot.updateMatrixWorld(true);
+    this.syncSunTransform({ updateShadow: true });
 
     const rt = new window.THREE.WebGLRenderTarget(res, res, {
       minFilter: window.THREE.LinearFilter,
@@ -1167,6 +1198,7 @@ class Qr3dViewer extends HTMLElement {
     if (this.aerialQrMesh) this.aerialQrMesh.visible = prevAerialVis;
     this.modelPivot.rotation.y = prevRotY;
     this.modelPivot.updateMatrixWorld(true);
+    this.syncSunTransform({ updateShadow: true });
 
     // Encontrar banda vertical válida para clampear bordes si la maqueta es rectangular (p.ej. 72x56)
     let minValidRow = res - 1;
@@ -1596,6 +1628,7 @@ class Qr3dViewer extends HTMLElement {
     const merged = { ...this.viewerConfig, ...nextConfig };
     if (merged.mode === 'auto' && nextConfig.mode === 'auto') {
       Object.assign(merged, VIEWER_PRESETS.auto, {
+        sunMode: nextConfig.sunMode !== undefined ? nextConfig.sunMode : merged.sunMode,
         autoRotate: typeof nextConfig.autoRotate === 'boolean' ? nextConfig.autoRotate : merged.autoRotate,
         cameraMode: nextConfig.cameraMode !== undefined ? nextConfig.cameraMode : merged.cameraMode,
         cameraPose: nextConfig.cameraPose !== undefined ? nextConfig.cameraPose : null
@@ -1618,6 +1651,7 @@ class Qr3dViewer extends HTMLElement {
 
     this.applyBackgroundStyle();
     this.applyLightingConfig();
+    this.updateSunModeButtonLabel();
     this.applyColorCalibration();
     this.applyEdgeMode();
     this.applyCameraMode();
@@ -1683,32 +1717,81 @@ class Qr3dViewer extends HTMLElement {
     const elRad = window.THREE.MathUtils.degToRad(Number(cfg.sunElevation ?? 40));
     const cosEl = Math.cos(elRad);
     const sunDist = Math.max(radius * 2.2, 4);
-    const offsetX = sunDist * Math.sin(azRad) * cosEl;
-    const offsetY = sunDist * Math.sin(elRad);
-    const offsetZ = -sunDist * Math.cos(azRad) * cosEl;
+    const offsetVec = new window.THREE.Vector3(
+      sunDist * Math.sin(azRad) * cosEl,
+      sunDist * Math.sin(elRad),
+      -sunDist * Math.cos(azRad) * cosEl
+    );
+    const fillOffsetVec = new window.THREE.Vector3(
+      -offsetVec.x * 0.75,
+      radius * 0.8,
+      -offsetVec.z * 0.75
+    );
+
+    this._lightingState = {
+      targetWorld: target.clone(),
+      targetLocal: (this.localLightingCenter || target).clone(),
+      offsetVec,
+      fillOffsetVec
+    };
 
     if (this.sunLight) {
       this.sunLight.intensity = Number(cfg.sunIntensity ?? 1.55);
-      this.sunLight.position.set(target.x + offsetX, target.y + offsetY, target.z + offsetZ);
-      this.sunLight.target.position.copy(target);
-      this.sunLight.target.updateMatrixWorld();
 
       const r = Math.max(radius * 1.15, 2);
+      const mapWidth = this.sunLight.shadow.mapSize.width || 2048;
+      const texelSize = (2 * r) / mapWidth;
+      this.sunLight.shadow.bias = -0.0002;
+      if ('normalBias' in this.sunLight.shadow) {
+        this.sunLight.shadow.normalBias = Math.max(0.02, texelSize * 1.75);
+      }
       this.sunLight.shadow.camera.left = -r;
       this.sunLight.shadow.camera.right = r;
       this.sunLight.shadow.camera.top = r;
       this.sunLight.shadow.camera.bottom = -r;
-      this.sunLight.shadow.camera.near = Math.max(0.1, r * 0.05);
-      this.sunLight.shadow.camera.far = r * 5.0;
+      this.sunLight.shadow.camera.near = Math.max(0.1, sunDist - r * 1.5);
+      this.sunLight.shadow.camera.far = sunDist + r * 1.6;
       this.sunLight.shadow.camera.updateProjectionMatrix();
-      if (this.renderer) {
-        this.renderer.shadowMap.needsUpdate = true;
-      }
     }
 
     if (this.fillLight) {
       this.fillLight.intensity = Math.max(0.06, ambient * 0.78);
-      this.fillLight.position.set(target.x - offsetX * 0.75, target.y + radius * 0.8, target.z - offsetZ * 0.75);
+    }
+
+    this.syncSunTransform({ updateShadow: true });
+    this.updateSunModeButtonLabel();
+  }
+
+  /**
+   * Posiciona el sol y luz de relleno en el escenario ('scene') o anclados a la rotación del modelo ('model').
+   */
+  syncSunTransform({ updateShadow = false } = {}) {
+    if (!this._lightingState || !window.THREE) return;
+    const isModelSun = this.viewerConfig.sunMode === 'model' && Boolean(this.modelPivot);
+    const rotY = isModelSun ? this.modelPivot.rotation.y : 0;
+    const baseTarget = isModelSun ? this._lightingState.targetLocal : this._lightingState.targetWorld;
+
+    const worldTarget = baseTarget.clone();
+    const worldSunOffset = this._lightingState.offsetVec.clone();
+    const worldFillOffset = this._lightingState.fillOffsetVec.clone();
+
+    if (isModelSun && Math.abs(rotY) > 1e-6) {
+      if (!this._yAxis) this._yAxis = new window.THREE.Vector3(0, 1, 0);
+      worldTarget.applyAxisAngle(this._yAxis, rotY);
+      worldSunOffset.applyAxisAngle(this._yAxis, rotY);
+      worldFillOffset.applyAxisAngle(this._yAxis, rotY);
+    }
+
+    if (this.sunLight) {
+      this.sunLight.position.copy(worldTarget).add(worldSunOffset);
+      this.sunLight.target.position.copy(worldTarget);
+      this.sunLight.target.updateMatrixWorld();
+    }
+    if (this.fillLight) {
+      this.fillLight.position.copy(worldTarget).add(worldFillOffset);
+    }
+    if (updateShadow && this.renderer) {
+      this.renderer.shadowMap.needsUpdate = true;
     }
   }
 

@@ -11,6 +11,7 @@ export const VIEWER_PRESETS = {
     sunAzimuth: -108,
     sunElevation: 40,
     sunIntensity: 1.55,
+    sunMode: 'scene',
     ambientIntensity: 0.18,
     colorBoost: 1.04,
     fixSrgb: 'auto',
@@ -29,6 +30,7 @@ export const VIEWER_PRESETS = {
     sunAzimuth: -108,
     sunElevation: 38,
     sunIntensity: 1.65,
+    sunMode: 'scene',
     ambientIntensity: 0.14,
     colorBoost: 1.12,
     fixSrgb: 'auto',
@@ -47,6 +49,7 @@ export const VIEWER_PRESETS = {
     sunAzimuth: -52,
     sunElevation: 48,
     sunIntensity: 1.75,
+    sunMode: 'scene',
     ambientIntensity: 0.12,
     colorBoost: 1.1,
     fixSrgb: 'auto',
@@ -65,6 +68,7 @@ export const VIEWER_PRESETS = {
     sunAzimuth: -45,
     sunElevation: 52,
     sunIntensity: 1.35,
+    sunMode: 'scene',
     ambientIntensity: 0.42,
     colorBoost: 1.0,
     fixSrgb: 'auto',
@@ -83,6 +87,7 @@ export const VIEWER_PRESETS = {
     sunAzimuth: -120,
     sunElevation: 55,
     sunIntensity: 1.55,
+    sunMode: 'scene',
     ambientIntensity: 0.34,
     colorBoost: 1.05,
     fixSrgb: 'auto',
@@ -101,6 +106,7 @@ const VALID_PRESETS = new Set(['auto', 'archaeological', 'museum_night', 'studio
 const VALID_FIX_SRGB = new Set(['auto', 'on', 'off']);
 const VALID_EDGE_MODES = new Set(['smart', 'all', 'off']);
 const VALID_CAMERA_MODES = new Set(['smooth', 'direct']);
+const VALID_SUN_MODES = new Set(['scene', 'model']);
 const VALID_BG_PRESETS = new Set(['auto', 'warm_dark', 'slate', 'night', 'light_studio', 'outdoor', 'custom']);
 
 function clampNum(value, min, max, fallback) {
@@ -158,6 +164,7 @@ export function sanitizeViewerConfig(rawInput) {
   if (mode === 'auto') {
     return {
       ...VIEWER_PRESETS.auto,
+      sunMode: VALID_SUN_MODES.has(parsed.sunMode) ? parsed.sunMode : VIEWER_PRESETS.auto.sunMode,
       autoRotate: typeof parsed.autoRotate === 'boolean' ? parsed.autoRotate : VIEWER_PRESETS.auto.autoRotate,
       cameraMode: VALID_CAMERA_MODES.has(parsed.cameraMode) ? parsed.cameraMode : VIEWER_PRESETS.auto.cameraMode,
       cameraPose: sanitizeCameraPose(parsed.cameraPose)
@@ -174,6 +181,7 @@ export function sanitizeViewerConfig(rawInput) {
     sunAzimuth: clampNum(parsed.sunAzimuth, -180, 180, base.sunAzimuth),
     sunElevation: clampNum(parsed.sunElevation, 10, 85, base.sunElevation),
     sunIntensity: clampNum(parsed.sunIntensity, 0.2, 3.0, base.sunIntensity),
+    sunMode: VALID_SUN_MODES.has(parsed.sunMode) ? parsed.sunMode : base.sunMode,
     ambientIntensity: clampNum(parsed.ambientIntensity, 0.0, 1.0, base.ambientIntensity),
     colorBoost: clampNum(parsed.colorBoost, 0.6, 1.6, base.colorBoost),
     fixSrgb: VALID_FIX_SRGB.has(parsed.fixSrgb) ? parsed.fixSrgb : base.fixSrgb,

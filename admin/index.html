@@ -1754,6 +1754,13 @@
               <div class="slider-head"><span>🌫️ Luz ambiental (sombras)</span><span class="slider-val" id="val-ambient">0.14</span></div>
               <input type="range" id="ctrl-ambient" min="0" max="0.85" step="0.02" value="0.14" />
             </div>
+            <div>
+              <div class="slider-head" style="margin-bottom: 4px;"><span>Comportamiento del sol al girar</span></div>
+              <select id="ctrl-sun-mode" class="studio-select" title="Elige si el sol y la sombra de la casa al suelo se mantienen fijos con el modelo o si todo se mueve al girar">
+                <option value="scene">🌐 Dinámico — Se mueve todo al girar (actual)</option>
+                <option value="model">📌 Fijo al modelo — De casa a suelo inmóvil</option>
+              </select>
+            </div>
 
             <div class="studio-section-label">Color y Nitidez</div>
             <div class="slider-row">
@@ -3488,6 +3495,7 @@
     const ctrlSunIntensity = document.getElementById('ctrl-sun-intensity');
     const ctrlExposure = document.getElementById('ctrl-exposure');
     const ctrlAmbient = document.getElementById('ctrl-ambient');
+    const ctrlSunMode = document.getElementById('ctrl-sun-mode');
     const ctrlColorBoost = document.getElementById('ctrl-color-boost');
     const ctrlFixSrgb = document.getElementById('ctrl-fix-srgb');
     const ctrlEdgeMode = document.getElementById('ctrl-edge-mode');
@@ -3523,6 +3531,7 @@
       document.getElementById('val-exposure').textContent = Number(cfg.exposure).toFixed(2);
       ctrlAmbient.value = cfg.ambientIntensity;
       document.getElementById('val-ambient').textContent = Number(cfg.ambientIntensity).toFixed(2);
+      ctrlSunMode.value = cfg.sunMode === 'model' ? 'model' : 'scene';
       ctrlColorBoost.value = cfg.colorBoost;
       document.getElementById('val-color-boost').textContent = Number(cfg.colorBoost).toFixed(2);
 
@@ -3564,6 +3573,7 @@
     tabAuto.addEventListener('click', () => {
       state.studioConfig = {
         ...VIEWER_PRESETS.auto,
+        sunMode: state.studioConfig.sunMode === 'model' ? 'model' : 'scene',
         autoRotate: state.studioConfig.autoRotate,
         cameraMode: state.studioConfig.cameraMode,
         cameraPose: null
@@ -3596,6 +3606,7 @@
           ...base,
           mode: 'manual',
           preset: presetKey,
+          sunMode: state.studioConfig.sunMode === 'model' ? 'model' : 'scene',
           autoRotate: state.studioConfig.autoRotate,
           cameraMode: state.studioConfig.cameraMode,
           showTotem: state.studioConfig.showTotem,
@@ -3612,6 +3623,7 @@
     ctrlSunIntensity.addEventListener('input', () => markManualCustom({ sunIntensity: Number(ctrlSunIntensity.value) }));
     ctrlExposure.addEventListener('input', () => markManualCustom({ exposure: Number(ctrlExposure.value) }));
     ctrlAmbient.addEventListener('input', () => markManualCustom({ ambientIntensity: Number(ctrlAmbient.value) }));
+    ctrlSunMode.addEventListener('change', () => markManualCustom({ sunMode: ctrlSunMode.value }));
     ctrlColorBoost.addEventListener('input', () => markManualCustom({ colorBoost: Number(ctrlColorBoost.value) }));
     ctrlFixSrgb.addEventListener('change', () => markManualCustom({ fixSrgb: ctrlFixSrgb.value }));
     ctrlEdgeMode.addEventListener('change', () => markManualCustom({ edgeMode: ctrlEdgeMode.value }));
@@ -3725,6 +3737,7 @@
             if (typeof e.detail.autoRotate === 'boolean') next.autoRotate = e.detail.autoRotate;
             if (e.detail.edgeMode !== undefined) next.edgeMode = e.detail.edgeMode;
             if (e.detail.cameraMode !== undefined) next.cameraMode = e.detail.cameraMode;
+            if (e.detail.sunMode !== undefined) next.sunMode = e.detail.sunMode;
             state.studioConfig = next;
             syncStudioUI();
           }

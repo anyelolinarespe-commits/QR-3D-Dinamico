@@ -330,8 +330,9 @@ async function runTests() {
   assert.strictEqual(defaultDetail.viewerConfig.mode, 'auto', 'El modo por defecto debe ser auto');
   assert.strictEqual(defaultDetail.viewerConfig.edgeMode, 'smart', 'El modo de aristas por defecto debe ser smart');
   assert.strictEqual(defaultDetail.viewerConfig.cameraMode, 'smooth', 'El modo de cámara por defecto debe ser smooth');
+  assert.strictEqual(defaultDetail.viewerConfig.sunMode, 'scene', 'El modo solar por defecto debe ser scene');
 
-  // Guardar cámara directa y autoRotate: false manteniendo modo auto debe preservar ambas preferencias
+  // Guardar cámara directa, sol fijo al modelo y autoRotate: false manteniendo modo auto debe preservar preferencias
   const resAutoCamPut = await app.inject({
     method: 'PUT',
     url: `/api/qr/${sipanQrId}`,
@@ -339,12 +340,13 @@ async function runTests() {
       'x-api-key': validKey,
       'content-type': 'application/json'
     },
-    payload: JSON.stringify({ viewer_config: { mode: 'auto', cameraMode: 'direct', autoRotate: false } })
+    payload: JSON.stringify({ viewer_config: { mode: 'auto', cameraMode: 'direct', sunMode: 'model', autoRotate: false } })
   });
   assert.strictEqual(resAutoCamPut.statusCode, 200);
   const autoCamPutJson = JSON.parse(resAutoCamPut.body);
   assert.strictEqual(autoCamPutJson.viewerConfig.mode, 'auto');
   assert.strictEqual(autoCamPutJson.viewerConfig.cameraMode, 'direct');
+  assert.strictEqual(autoCamPutJson.viewerConfig.sunMode, 'model');
   assert.strictEqual(autoCamPutJson.viewerConfig.autoRotate, false);
   console.log('✅ Presets y configuración automática verificados.');
 
@@ -357,6 +359,7 @@ async function runTests() {
     sunAzimuth: -95,
     sunElevation: 34,
     sunIntensity: 1.7,
+    sunMode: 'model',
     exposure: 0.9,
     ambientIntensity: 0.12,
     colorBoost: 1.25,
@@ -383,6 +386,7 @@ async function runTests() {
   const manualPutJson = JSON.parse(resManualPut.body);
   assert.strictEqual(manualPutJson.viewerConfig.mode, 'manual');
   assert.strictEqual(manualPutJson.viewerConfig.sunAzimuth, -95);
+  assert.strictEqual(manualPutJson.viewerConfig.sunMode, 'model');
   assert.strictEqual(manualPutJson.viewerConfig.fixSrgb, 'on');
   assert.strictEqual(manualPutJson.viewerConfig.showTotem, false);
   assert.strictEqual(manualPutJson.viewerConfig.cameraMode, 'direct');
@@ -390,6 +394,7 @@ async function runTests() {
   const detailAfterManual = JSON.parse((await app.inject({ method: 'GET', url: `/api/qr/${sipanQrId}` })).body);
   assert.strictEqual(detailAfterManual.viewerConfig.edgeMode, 'off');
   assert.strictEqual(detailAfterManual.viewerConfig.cameraMode, 'direct');
+  assert.strictEqual(detailAfterManual.viewerConfig.sunMode, 'model');
   assert.deepStrictEqual(detailAfterManual.viewerConfig.cameraPose, manualPayload.cameraPose);
 
   const matPostConfig = JSON.parse((await app.inject({ method: 'GET', url: `/api/qr/${sipanQrId}/matrix` })).body);
@@ -586,6 +591,7 @@ async function runTests() {
   assert.strictEqual(viewMetaJson.isActive, true);
   assert.strictEqual(viewMetaJson.viewerConfig.mode, 'manual', 'La vista pública debe conservar el modo visual guardado');
   assert.strictEqual(viewMetaJson.viewerConfig.sunAzimuth, -95, 'La vista pública debe conservar la iluminación solar guardada');
+  assert.strictEqual(viewMetaJson.viewerConfig.sunMode, 'model', 'La vista pública debe conservar el comportamiento solar guardado');
   assert.strictEqual(viewMetaJson.viewerConfig.colorBoost, 1.25, 'La vista pública debe conservar el realce de color guardado');
   assert.strictEqual(viewMetaJson.viewerConfig.fixSrgb, 'on', 'La vista pública debe conservar la calibración sRGB guardada');
   assert.strictEqual(viewMetaJson.viewerConfig.backgroundColor, '#211a14', 'La vista pública debe conservar el fondo guardado');
