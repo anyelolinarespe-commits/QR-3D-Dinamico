@@ -288,7 +288,66 @@ async function runTests() {
   assert.notStrictEqual(matBeforeJson.scanUrl, matAfterJson.scanUrl, 'La URL de escaneo en /matrix debe rotar tras PUT rotate_now');
   console.log('✅ Rotación de imagen PNG y matriz QR verificadas correctamente.');
 
-  console.log('\n🎉 ¡TODAS LAS PRUEBAS (11/11) PASARON SATISFACTORIAMENTE!\n');
+  // Test 12: Presets visuales y configuración automática por defecto
+  console.log('\nTest 12: Verificando presets visuales /api/viewer-presets y configuración automática...');
+  const resPresets = await app.inject({ method: 'GET', url: '/api/viewer-presets' });
+  assert.strictEqual(resPresets.statusCode, 200);
+  const presetsJson = JSON.parse(resPresets.body);
+  assert.ok(presetsJson.presets.auto && presetsJson.presets.archaeological, 'Debe incluir presets auto y archaeological');
+
+  const resDefaultDetail = await app.inject({ method: 'GET', url: `/api/qr/${sipanQrId}` });
+  assert.strictEqual(resDefaultDetail.statusCode, 200);
+  const defaultDetail = JSON.parse(resDefaultDetail.body);
+  assert.strictEqual(defaultDetail.viewerConfig.mode, 'auto', 'El modo por defecto debe ser auto');
+  assert.strictEqual(defaultDetail.viewerConfig.edgeMode, 'smart', 'El modo de aristas por defecto debe ser smart');
+  console.log('✅ Presets y configuración automática verificados.');
+
+  // Test 13: Actualización manual de viewer_config sin rotar el código QR
+  console.log('\nTest 13: Verificando guardado de configuración manual sin rotar QR...');
+  const matPreConfig = JSON.parse((await app.inject({ method: 'GET', url: `/api/qr/${sipanQrId}/matrix` })).body);
+  const manualPayload = {
+    mode: 'manual',
+    preset: 'custom',
+    sunAzimuth: -95,
+    sunElevation: 34,
+    sunIntensity: 1.7,
+    exposure: 0.9,
+    ambientIntensity: 0.12,
+    colorBoost: 1.25,
+    fixSrgb: 'on',
+    edgeMode: 'off',
+    backgroundPreset: 'custom',
+    backgroundColor: '#211a14',
+    showTotem: false,
+    autoRotate: false,
+    cameraPose: { position: [10, 8, 14], target: [0, 2, 0], pivotRotY: 0.4 }
+  };
+
+  const resManualPut = await app.inject({
+    method: 'PUT',
+    url: `/api/qr/${sipanQrId}`,
+    headers: {
+      'x-api-key': validKey,
+      'content-type': 'application/json'
+    },
+    payload: JSON.stringify({ viewer_config: manualPayload })
+  });
+  assert.strictEqual(resManualPut.statusCode, 200);
+  const manualPutJson = JSON.parse(resManualPut.body);
+  assert.strictEqual(manualPutJson.viewerConfig.mode, 'manual');
+  assert.strictEqual(manualPutJson.viewerConfig.sunAzimuth, -95);
+  assert.strictEqual(manualPutJson.viewerConfig.fixSrgb, 'on');
+  assert.strictEqual(manualPutJson.viewerConfig.showTotem, false);
+
+  const detailAfterManual = JSON.parse((await app.inject({ method: 'GET', url: `/api/qr/${sipanQrId}` })).body);
+  assert.strictEqual(detailAfterManual.viewerConfig.edgeMode, 'off');
+  assert.deepStrictEqual(detailAfterManual.viewerConfig.cameraPose, manualPayload.cameraPose);
+
+  const matPostConfig = JSON.parse((await app.inject({ method: 'GET', url: `/api/qr/${sipanQrId}/matrix` })).body);
+  assert.strictEqual(matPostConfig.scanUrl, matPreConfig.scanUrl, 'Guardar estilo visual no debe rotar el token del QR');
+  console.log('✅ Configuración manual persistida y validada sin rotar el QR.');
+
+  console.log('\n🎉 ¡TODAS LAS PRUEBAS (13/13) PASARON SATISFACTORIAMENTE!\n');
   process.exit(0);
 }
 

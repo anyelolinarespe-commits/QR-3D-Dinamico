@@ -8,6 +8,7 @@ import { requireApiKey, optionalApiKey } from '../middleware/auth.js';
 import { extractDominantColors } from '../services/color.service.js';
 import { generateQrPngBuffer, generateQrMatrix } from '../services/qr.service.js';
 import { process3dModel } from '../services/model3d.service.js';
+import { sanitizeViewerConfig, VIEWER_PRESETS } from '../services/viewerConfig.service.js';
 import { eventBus } from '../config/redis.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -164,9 +165,12 @@ export async function qrRoutes(fastify, options) {
       secondaryColorHex: colors.secondary
     });
 
+    const viewerConfig = sanitizeViewerConfig(fields.viewer_config);
+
     const metadata = {
       currentToken: initialToken,
       palette: colors.palette || [colors.dominant, '#FFFFFF'],
+      viewerConfig,
       createdAt: new Date().toISOString()
     };
 
@@ -214,16 +218,22 @@ export async function qrRoutes(fastify, options) {
         },
         modelUrl: `${config.publicBaseUrl}/api/qr/${qrId}/model`,
         imageUrl: `${config.publicBaseUrl}/api/qr/${qrId}/image`,
+        viewerConfig,
         embedCode: `<script src="${config.publicBaseUrl}/widget/3dqr-viewer.js" type="module"></script>\n<qr-3d-viewer qr-id="${qrId}" api-url="${config.publicBaseUrl}"></qr-3d-viewer>`
       }
     });
+  });
+
+  // 1b. Presets visuales disponibles para el visor 3D (Automático y Manual)
+  fastify.get('/api/viewer-presets', async (request, reply) => {
+    return reply.send({ presets: VIEWER_PRESETS });
   });
 
   // 2. Listar QRs del inquilino
   fastify.get('/api/qr', { preHandler: [requireApiKey] }, async (request, reply) => {
     const result = await db.query(
       `SELECT id, title, target_url, rotation_strategy, scan_count, max_scans,
-              is_active, color_primary, color_secondary, created_at, updated_at
+              is_active, color_primary, color_secondary, metadata, created_at, updated_at
        FROM qr_items
        WHERE tenant_id = $1
        ORDER BY created_at DESC`,
@@ -231,12 +241,17 @@ export async function qrRoutes(fastify, options) {
     );
 
     return reply.send({
-      items: result.rows.map(item => ({
-        ...item,
-        modelUrl: `${config.publicBaseUrl}/api/qr/${item.id}/model`,
-        imageUrl: `${config.publicBaseUrl}/api/qr/${item.id}/image`,
-        scanUrl: `${config.publicBaseUrl}/scan/${item.id}`
-      }))
+      items: result.rows.map(item => {
+        const meta = typeof item.metadata === 'string' ? JSON.parse(item.metadata) : (item.metadata || {});
+        const { metadata: _rawMeta, ...rest } = item;
+        return {
+          ...rest,
+          viewerConfig: sanitizeViewerConfig(meta.viewerConfig),
+          modelUrl: `${config.publicBaseUrl}/api/qr/${item.id}/model`,
+          imageUrl: `${config.publicBaseUrl}/api/qr/${item.id}/image`,
+          scanUrl: `${config.publicBaseUrl}/scan/${item.id}`
+        };
+      })
     });
   });
 
@@ -255,8 +270,10 @@ export async function qrRoutes(fastify, options) {
     }
 
     const item = result.rows[0];
+    const meta = typeof item.metadata === 'string' ? JSON.parse(item.metadata) : (item.metadata || {});
     return reply.send({
       ...item,
+      viewerConfig: sanitizeViewerConfig(meta.viewerConfig),
       modelUrl: `${config.publicBaseUrl}/api/qr/${item.id}/model`,
       imageUrl: `${config.publicBaseUrl}/api/qr/${item.id}/image`,
       scanUrl: `${config.publicBaseUrl}/scan/${item.id}`
@@ -350,10 +367,10 @@ export async function qrRoutes(fastify, options) {
     });
   });
 
-  // 7. Modificar QR / Rotar manualmente
+  // 7. Modificar QR / Rotar manualmente / Guardar configuración visual 3D
   fastify.put('/api/qr/:qrId', { preHandler: [requireApiKey] }, async (request, reply) => {
     const { qrId } = request.params;
-    const { target_url, title, is_active, rotate_now } = request.body || {};
+    const { target_url, title, is_active, rotate_now, viewer_config } = request.body || {};
 
     const existing = await db.query('SELECT * FROM qr_items WHERE id = $1 AND tenant_id = $2', [
       qrId,
@@ -368,6 +385,15 @@ export async function qrRoutes(fastify, options) {
     const newTargetUrl = target_url || item.target_url;
     let newQrPng = item.current_qr_png;
     const metadata = typeof item.metadata === 'string' ? JSON.parse(item.metadata) : (item.metadata || {});
+
+    if (viewer_config !== undefined) {
+      metadata.viewerConfig = sanitizeViewerConfig(viewer_config);
+      await eventBus.publish(`qr_events:${qrId}`, {
+        type: 'viewer_config_updated',
+        qrId,
+        viewerConfig: metadata.viewerConfig
+      });
+    }
 
     if (rotate_now || target_url) {
       const nextToken = crypto.randomBytes(4).toString('hex');
@@ -407,7 +433,11 @@ export async function qrRoutes(fastify, options) {
       ]
     );
 
-    return reply.send({ success: true, message: 'QR actualizado con éxito' });
+    return reply.send({
+      success: true,
+      message: 'QR actualizado con éxito',
+      viewerConfig: sanitizeViewerConfig(metadata.viewerConfig)
+    });
   });
 
   // 8. Logs de escaneo

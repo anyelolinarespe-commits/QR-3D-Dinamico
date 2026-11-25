@@ -3,8 +3,128 @@
  * Renderiza modelos 3D interactivos con Three.js y actualiza en tiempo real
  * códigos QR desechables sin recargar la página ni el modelo 3D.
  * Incluye modo Vista Aérea 90° que muestrea los colores cenitales del modelo
- * y los proyecta en los recuadros del código QR manteniendo la legibilidad.
+ * y los proyecta en los recuadros del código QR manteniendo la legibilidad,
+ * además de perfiles Automático y Manual para iluminación, aristas, color y encuadre.
  */
+
+export const VIEWER_PRESETS = {
+  auto: {
+    mode: 'auto',
+    preset: 'auto',
+    exposure: 0.96,
+    sunAzimuth: -108,
+    sunElevation: 40,
+    sunIntensity: 1.55,
+    ambientIntensity: 0.18,
+    colorBoost: 1.04,
+    fixSrgb: 'auto',
+    edgeMode: 'smart',
+    backgroundPreset: 'warm_dark',
+    backgroundColor: '#1a1612',
+    showTotem: true,
+    autoRotate: true,
+    cameraPose: null
+  },
+  archaeological: {
+    mode: 'manual',
+    preset: 'archaeological',
+    exposure: 0.92,
+    sunAzimuth: -108,
+    sunElevation: 38,
+    sunIntensity: 1.65,
+    ambientIntensity: 0.14,
+    colorBoost: 1.12,
+    fixSrgb: 'auto',
+    edgeMode: 'smart',
+    backgroundPreset: 'warm_dark',
+    backgroundColor: '#1a1612',
+    showTotem: true,
+    autoRotate: true,
+    cameraPose: null
+  },
+  museum_night: {
+    mode: 'manual',
+    preset: 'museum_night',
+    exposure: 1.0,
+    sunAzimuth: -52,
+    sunElevation: 48,
+    sunIntensity: 1.75,
+    ambientIntensity: 0.12,
+    colorBoost: 1.1,
+    fixSrgb: 'auto',
+    edgeMode: 'smart',
+    backgroundPreset: 'night',
+    backgroundColor: '#090b10',
+    showTotem: true,
+    autoRotate: true,
+    cameraPose: null
+  },
+  studio: {
+    mode: 'manual',
+    preset: 'studio',
+    exposure: 1.02,
+    sunAzimuth: -45,
+    sunElevation: 52,
+    sunIntensity: 1.35,
+    ambientIntensity: 0.42,
+    colorBoost: 1.0,
+    fixSrgb: 'auto',
+    edgeMode: 'smart',
+    backgroundPreset: 'light_studio',
+    backgroundColor: '#e2e8f0',
+    showTotem: true,
+    autoRotate: true,
+    cameraPose: null
+  },
+  outdoor: {
+    mode: 'manual',
+    preset: 'outdoor',
+    exposure: 0.98,
+    sunAzimuth: -120,
+    sunElevation: 55,
+    sunIntensity: 1.55,
+    ambientIntensity: 0.34,
+    colorBoost: 1.05,
+    fixSrgb: 'auto',
+    edgeMode: 'off',
+    backgroundPreset: 'outdoor',
+    backgroundColor: '#cfe4f2',
+    showTotem: true,
+    autoRotate: true,
+    cameraPose: null
+  }
+};
+
+export const BACKGROUND_STYLES = {
+  auto: {
+    css: 'radial-gradient(circle at 50% 38%, #26201b 0%, #12100e 100%)',
+    light: false
+  },
+  warm_dark: {
+    css: 'radial-gradient(circle at 50% 38%, #26201b 0%, #12100e 100%)',
+    light: false
+  },
+  slate: {
+    css: 'radial-gradient(circle at 50% 30%, #1e293b 0%, #0f172a 100%)',
+    light: false
+  },
+  night: {
+    css: 'radial-gradient(circle at 50% 35%, #161822 0%, #07080d 100%)',
+    light: false
+  },
+  light_studio: {
+    css: 'radial-gradient(circle at 50% 35%, #f8fafc 0%, #cbd5e1 100%)',
+    light: true
+  },
+  outdoor: {
+    css: 'radial-gradient(circle at 50% 25%, #bae6fd 0%, #e0f2fe 58%, #cbd5e1 100%)',
+    light: true
+  }
+};
+
+function srgbToLinearChannel(c) {
+  return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+}
 
 class Qr3dViewer extends HTMLElement {
   constructor() {
@@ -22,12 +142,25 @@ class Qr3dViewer extends HTMLElement {
     this.modelPivot = null;
     this.qrMaterials = [];
     this.edgeLines = [];
+    this.smartEdgeLines = [];
+    this.allEdgeLines = [];
+    this.edgeTargetMeshes = [];
     this.sunLight = null;
     this.fillLight = null;
+    this.hemiLight = null;
+    this.ambientLight = null;
     this.resizeObserver = null;
+    this.hasExplicitShowEdgesAttr = this.hasAttribute('show-edges');
+    this.hasExplicitAutoRotateAttr = this.hasAttribute('auto-rotate');
     this.showEdges = this.getAttribute('show-edges') !== 'false';
     this.autoRotate = this.getAttribute('auto-rotate') !== 'false';
     this.aerialRequested = this.getAttribute('aerial-scan') === 'true';
+
+    this.viewerConfig = { ...VIEWER_PRESETS.auto };
+    this._lastActiveEdgeMode = 'smart';
+    this.modelStats = { generator: '', isLegacyThreeExporter: false };
+    this.framingCenter = null;
+    this.framingRadius = 2;
 
     // Estado de Vista Aérea 90° y QR cromático
     this.isAerialMode = false;
@@ -131,9 +264,15 @@ class Qr3dViewer extends HTMLElement {
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
           border-radius: 16px;
           overflow: hidden;
-          background: radial-gradient(circle at 50% 30%, #1e293b 0%, #0f172a 100%);
+          background: ${BACKGROUND_STYLES.warm_dark.css};
           box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
           user-select: none;
+          transition: background 0.35s ease;
+        }
+
+        :host(.light-bg) .hint-3d {
+          color: rgba(15, 23, 42, 0.78);
+          background: rgba(255, 255, 255, 0.72);
         }
 
         #viewport {
@@ -338,7 +477,7 @@ class Qr3dViewer extends HTMLElement {
       <div class="controls-toolbar">
         <button id="btn-aerial" class="btn-tool">🛸 Escanear 90°</button>
         <button id="btn-rotate" class="btn-tool">🔄 Auto-Giro: ON</button>
-        <button id="btn-edges" class="btn-tool">✏️ Aristas: ON</button>
+        <button id="btn-edges" class="btn-tool active">✏️ Aristas: Auto</button>
         <button id="btn-reset" class="btn-tool">🎯 Centrar</button>
       </div>
 
@@ -390,17 +529,24 @@ class Qr3dViewer extends HTMLElement {
     });
 
     this.shadowRoot.getElementById('btn-edges').addEventListener('click', () => {
-      this.showEdges = !this.showEdges;
-      this.shadowRoot.getElementById('btn-edges').innerText = this.showEdges ? '✏️ Aristas: ON' : '✏️ Aristas: OFF';
-      for (const line of this.edgeLines) {
-        line.visible = this.showEdges;
+      const currentMode = this.viewerConfig.edgeMode || 'smart';
+      if (currentMode === 'off') {
+        this.viewerConfig.edgeMode = this._lastActiveEdgeMode || 'smart';
+      } else {
+        this._lastActiveEdgeMode = currentMode;
+        this.viewerConfig.edgeMode = 'off';
       }
+      this.applyEdgeMode();
+      this.dispatchEvent(new CustomEvent('viewer-config-change', { detail: this.getViewerConfig() }));
     });
 
     this.shadowRoot.getElementById('btn-reset').addEventListener('click', () => {
       if (this.isAerialMode) {
         this.exitAerialScanMode();
       } else if (this.controls) {
+        if (this.defaultView && this.modelPivot && this.defaultView.pivotRotY !== undefined) {
+          this.modelPivot.rotation.y = this.defaultView.pivotRotY;
+        }
         this.controls.reset();
       }
     });
@@ -410,6 +556,22 @@ class Qr3dViewer extends HTMLElement {
     const btn = this.shadowRoot.getElementById('btn-rotate');
     if (btn) {
       btn.innerText = this.autoRotate ? '🔄 Auto-Giro: ON' : '⏸️ Auto-Giro: OFF';
+    }
+  }
+
+  updateEdgesButtonLabel() {
+    const btn = this.shadowRoot.getElementById('btn-edges');
+    if (!btn) return;
+    const mode = this.viewerConfig.edgeMode || 'smart';
+    if (mode === 'off') {
+      btn.classList.remove('active');
+      btn.innerText = '✏️ Aristas: OFF';
+    } else if (mode === 'all') {
+      btn.classList.add('active');
+      btn.innerText = '✏️ Aristas: Todas';
+    } else {
+      btn.classList.add('active');
+      btn.innerText = '✏️ Aristas: Auto';
     }
   }
 
@@ -428,7 +590,7 @@ class Qr3dViewer extends HTMLElement {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = window.THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = window.THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.08;
+    this.renderer.toneMappingExposure = this.viewerConfig.exposure;
     this.renderer.outputEncoding = window.THREE.sRGBEncoding;
 
     this.controls = new window.THREE.OrbitControls(this.camera, this.renderer.domElement);
@@ -438,28 +600,31 @@ class Qr3dViewer extends HTMLElement {
     this.controls.minDistance = 0.5;
     this.controls.target.set(0, 1.2, 0);
 
-    const hemiLight = new window.THREE.HemisphereLight(0xdce8f8, 0x3a2a24, 0.52);
-    hemiLight.position.set(0, 50, 0);
-    this.scene.add(hemiLight);
+    this.hemiLight = new window.THREE.HemisphereLight(0xfff5e4, 0x2d2118, 0.24);
+    this.hemiLight.position.set(0, 50, 0);
+    this.scene.add(this.hemiLight);
 
-    const ambientLight = new window.THREE.AmbientLight(0xffffff, 0.20);
-    this.scene.add(ambientLight);
+    this.ambientLight = new window.THREE.AmbientLight(0xffffff, 0.08);
+    this.scene.add(this.ambientLight);
 
-    this.sunLight = new window.THREE.DirectionalLight(0xfff3d8, 1.85);
-    this.sunLight.position.set(-30, 48, 22);
+    this.sunLight = new window.THREE.DirectionalLight(0xfff1d6, this.viewerConfig.sunIntensity);
+    this.sunLight.position.set(-30, 40, 15);
     this.sunLight.castShadow = true;
     this.sunLight.shadow.mapSize.width = 2048;
     this.sunLight.shadow.mapSize.height = 2048;
-    this.sunLight.shadow.bias = -0.0005;
+    this.sunLight.shadow.bias = -0.0004;
     if ('normalBias' in this.sunLight.shadow) {
-      this.sunLight.shadow.normalBias = 0.03;
+      this.sunLight.shadow.normalBias = 0.015;
     }
     this.scene.add(this.sunLight);
     this.scene.add(this.sunLight.target);
 
-    this.fillLight = new window.THREE.DirectionalLight(0x90b4e8, 0.35);
-    this.fillLight.position.set(35, 18, -25);
+    this.fillLight = new window.THREE.DirectionalLight(0xbcd0ea, 0.14);
+    this.fillLight.position.set(30, 18, -15);
     this.scene.add(this.fillLight);
+
+    this.applyBackgroundStyle();
+    this.applyLightingConfig();
 
     // Detectar clic corto sobre el modelo 3D para activar/salir de Vista Aérea 90°
     canvas.addEventListener('pointerdown', (e) => {
@@ -607,10 +772,30 @@ class Qr3dViewer extends HTMLElement {
 
     this.modelPivot.updateMatrixWorld(true);
     this.mainBounds = this.computeMainModelBounds();
+    this.updateCameraFraming({ applyCamera: !this.viewerConfig.cameraPose });
+  }
 
-    const centeredBox = new window.THREE.Box3().setFromObject(this.modelPivot);
-    const sphere = centeredBox.getBoundingSphere(new window.THREE.Sphere());
+  updateCameraFraming({ applyCamera = true } = {}) {
+    if (!this.modelPivot || !this.camera || !this.controls) return;
+    const cfg = this.viewerConfig;
+    const showTotem = cfg.showTotem !== false;
+
+    let box;
+    if (!showTotem && this.mainBounds) {
+      box = this.mainBounds.box.clone();
+    } else {
+      box = new window.THREE.Box3().setFromObject(this.modelPivot);
+    }
+    if (box.isEmpty()) {
+      box = new window.THREE.Box3().setFromObject(this.modelPivot);
+    }
+
+    const sphere = box.getBoundingSphere(new window.THREE.Sphere());
     const radius = Math.max(sphere.radius, 0.5);
+    const target = sphere.center.clone();
+
+    this.framingCenter = target.clone();
+    this.framingRadius = radius;
 
     const fovRad = window.THREE.MathUtils.degToRad(this.camera.fov);
     const aspect = Math.max(0.5, this.camera.aspect || 1);
@@ -621,41 +806,41 @@ class Qr3dViewer extends HTMLElement {
     this.camera.far = Math.max(250, dist + radius * 12);
     this.camera.updateProjectionMatrix();
 
-    const target = sphere.center.clone();
-    const cameraPos = new window.THREE.Vector3(
-      target.x + dist * 0.48,
-      target.y + dist * 0.36,
-      target.z + dist * 0.80
-    );
-
-    this.defaultView = {
-      target: target.clone(),
-      cameraPos: cameraPos.clone()
-    };
-
-    this.controls.target.copy(target);
-    this.camera.position.copy(cameraPos);
     this.controls.minDistance = Math.max(0.5, radius * 0.25);
     this.controls.maxDistance = Math.max(12, radius * 5.0);
-    this.controls.update();
-    this.controls.saveState();
 
-    if (this.sunLight) {
-      const r = Math.max(radius * 1.15, 2);
-      this.sunLight.position.set(target.x - r * 1.15, target.y + r * 1.55, target.z + r * 0.75);
-      this.sunLight.target.position.copy(target);
-      this.sunLight.target.updateMatrixWorld();
-      this.sunLight.shadow.camera.left = -r;
-      this.sunLight.shadow.camera.right = r;
-      this.sunLight.shadow.camera.top = r;
-      this.sunLight.shadow.camera.bottom = -r;
-      this.sunLight.shadow.camera.near = Math.max(0.1, r * 0.05);
-      this.sunLight.shadow.camera.far = r * 5.0;
-      this.sunLight.shadow.camera.updateProjectionMatrix();
+    if (applyCamera) {
+      if (cfg.cameraPose && Array.isArray(cfg.cameraPose.position) && Array.isArray(cfg.cameraPose.target)) {
+        const posePos = new window.THREE.Vector3(...cfg.cameraPose.position);
+        const poseTarget = new window.THREE.Vector3(...cfg.cameraPose.target);
+        const pivotRotY = Number.isFinite(cfg.cameraPose.pivotRotY) ? cfg.cameraPose.pivotRotY : 0;
+        this.modelPivot.rotation.y = pivotRotY;
+        this.defaultView = {
+          target: poseTarget.clone(),
+          cameraPos: posePos.clone(),
+          pivotRotY
+        };
+        this.controls.target.copy(poseTarget);
+        this.camera.position.copy(posePos);
+      } else {
+        const cameraPos = new window.THREE.Vector3(
+          target.x + dist * 0.48,
+          target.y + dist * 0.36,
+          target.z + dist * 0.80
+        );
+        this.defaultView = {
+          target: target.clone(),
+          cameraPos: cameraPos.clone(),
+          pivotRotY: 0
+        };
+        this.controls.target.copy(target);
+        this.camera.position.copy(cameraPos);
+      }
+      this.controls.update();
+      this.controls.saveState();
     }
-    if (this.fillLight) {
-      this.fillLight.position.set(target.x + radius * 1.3, target.y + radius * 0.7, target.z - radius * 1.1);
-    }
+
+    this.applyLightingConfig();
   }
 
   /**
@@ -1079,6 +1264,311 @@ class Qr3dViewer extends HTMLElement {
     }
   }
 
+  async fetchViewerConfig() {
+    if (!this.qrId) return null;
+    try {
+      const res = await fetch(`${this.apiUrl}/api/qr/${this.qrId}?t=${Date.now()}`);
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (this._hasLocalStudioEdits) return this.viewerConfig;
+      const saved = data.viewerConfig || (data.metadata && data.metadata.viewerConfig);
+      if (saved && typeof saved === 'object') {
+        this.setViewerConfig(saved, { applyCamera: true });
+      }
+      return this.viewerConfig;
+    } catch {
+      return null;
+    }
+  }
+
+  getViewerConfig() {
+    return JSON.parse(JSON.stringify(this.viewerConfig));
+  }
+
+  getCameraPose() {
+    if (!this.camera || !this.controls) return null;
+    const round3 = (n) => Math.round(n * 1000) / 1000;
+    const twoPi = Math.PI * 2;
+    let rotY = this.modelPivot ? ((this.modelPivot.rotation.y % twoPi) + twoPi) % twoPi : 0;
+    if (rotY > Math.PI) rotY -= twoPi;
+    return {
+      position: [round3(this.camera.position.x), round3(this.camera.position.y), round3(this.camera.position.z)],
+      target: [round3(this.controls.target.x), round3(this.controls.target.y), round3(this.controls.target.z)],
+      pivotRotY: Math.round(rotY * 10000) / 10000
+    };
+  }
+
+  resetCameraPose() {
+    this.viewerConfig.cameraPose = null;
+    this.updateCameraFraming({ applyCamera: true });
+  }
+
+  setViewerConfig(nextConfig = {}, { applyCamera = false, fromStudio = false } = {}) {
+    if (fromStudio) this._hasLocalStudioEdits = true;
+    const prevShowTotem = this.viewerConfig.showTotem;
+    const prevPose = this.viewerConfig.cameraPose;
+    const merged = { ...this.viewerConfig, ...nextConfig };
+    if (merged.mode === 'auto' && nextConfig.mode === 'auto') {
+      Object.assign(merged, VIEWER_PRESETS.auto, {
+        cameraPose: nextConfig.cameraPose !== undefined ? nextConfig.cameraPose : null
+      });
+    }
+    this.viewerConfig = merged;
+
+    if (this.hasExplicitShowEdgesAttr && nextConfig.edgeMode === undefined && merged.mode === 'auto') {
+      this.viewerConfig.edgeMode = this.showEdges ? 'smart' : 'off';
+    }
+    if (merged.mode === 'manual' || nextConfig.autoRotate !== undefined) {
+      this.autoRotate = this.viewerConfig.autoRotate !== false;
+      this.updateRotateButtonLabel();
+    } else if (!this.hasExplicitAutoRotateAttr) {
+      this.autoRotate = this.viewerConfig.autoRotate !== false;
+      this.updateRotateButtonLabel();
+    }
+
+    this.applyBackgroundStyle();
+    this.applyLightingConfig();
+    this.applyColorCalibration();
+    this.applyEdgeMode();
+    this.applyTotemVisibility();
+
+    const totemChanged = prevShowTotem !== this.viewerConfig.showTotem;
+    const poseChanged = JSON.stringify(prevPose) !== JSON.stringify(this.viewerConfig.cameraPose);
+    if (this.currentModel && (applyCamera || poseChanged || (totemChanged && !this.viewerConfig.cameraPose))) {
+      this.updateCameraFraming({ applyCamera: true });
+    }
+    this.aerialSamples = null;
+  }
+
+  applyBackgroundStyle() {
+    const host = this.shadowRoot && this.shadowRoot.host;
+    if (!host) return;
+    const cfg = this.viewerConfig;
+    const preset = cfg.backgroundPreset || 'warm_dark';
+    let bgCss = BACKGROUND_STYLES.warm_dark.css;
+    let isLight = false;
+
+    if (preset === 'custom' && /^#[0-9a-fA-F]{6}$/.test(cfg.backgroundColor || '')) {
+      const hex = cfg.backgroundColor;
+      bgCss = `radial-gradient(circle at 50% 35%, ${hex}cc 0%, ${hex} 100%)`;
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      isLight = (0.299 * r + 0.587 * g + 0.114 * b) > 155;
+    } else if (BACKGROUND_STYLES[preset]) {
+      bgCss = BACKGROUND_STYLES[preset].css;
+      isLight = BACKGROUND_STYLES[preset].light;
+    }
+
+    host.style.background = bgCss;
+    host.classList.toggle('light-bg', isLight);
+  }
+
+  applyLightingConfig() {
+    if (!this.renderer || !window.THREE) return;
+    const cfg = this.viewerConfig;
+    const target = this.framingCenter || new window.THREE.Vector3(0, 1.2, 0);
+    const radius = this.framingRadius || 2;
+
+    this.renderer.toneMappingExposure = Number(cfg.exposure ?? 0.96);
+
+    const ambient = Number(cfg.ambientIntensity ?? 0.18);
+    if (this.hemiLight) {
+      this.hemiLight.intensity = ambient * 1.35;
+    }
+    if (this.ambientLight) {
+      this.ambientLight.intensity = ambient * 0.45;
+    }
+
+    const azRad = window.THREE.MathUtils.degToRad(Number(cfg.sunAzimuth ?? -108));
+    const elRad = window.THREE.MathUtils.degToRad(Number(cfg.sunElevation ?? 40));
+    const cosEl = Math.cos(elRad);
+    const sunDist = Math.max(radius * 2.2, 4);
+    const offsetX = sunDist * Math.sin(azRad) * cosEl;
+    const offsetY = sunDist * Math.sin(elRad);
+    const offsetZ = -sunDist * Math.cos(azRad) * cosEl;
+
+    if (this.sunLight) {
+      this.sunLight.intensity = Number(cfg.sunIntensity ?? 1.55);
+      this.sunLight.position.set(target.x + offsetX, target.y + offsetY, target.z + offsetZ);
+      this.sunLight.target.position.copy(target);
+      this.sunLight.target.updateMatrixWorld();
+
+      const r = Math.max(radius * 1.15, 2);
+      this.sunLight.shadow.camera.left = -r;
+      this.sunLight.shadow.camera.right = r;
+      this.sunLight.shadow.camera.top = r;
+      this.sunLight.shadow.camera.bottom = -r;
+      this.sunLight.shadow.camera.near = Math.max(0.1, r * 0.05);
+      this.sunLight.shadow.camera.far = r * 5.0;
+      this.sunLight.shadow.camera.updateProjectionMatrix();
+    }
+
+    if (this.fillLight) {
+      this.fillLight.intensity = Math.max(0.06, ambient * 0.78);
+      this.fillLight.position.set(target.x - offsetX * 0.75, target.y + radius * 0.8, target.z - offsetZ * 0.75);
+    }
+  }
+
+  applyColorCalibration() {
+    if (!this.currentModel || !window.THREE) return;
+    const cfg = this.viewerConfig;
+    const fixSrgbSetting = cfg.fixSrgb || 'auto';
+    const shouldFixSrgb =
+      fixSrgbSetting === 'on' ||
+      (fixSrgbSetting === 'auto' && this.modelStats.isLegacyThreeExporter);
+    const boost = Number(cfg.colorBoost ?? 1.04);
+    const totemNode = this.currentModel.getObjectByName('QR_Totem_Integrated');
+    const tmpColor = new window.THREE.Color();
+    const hsl = { h: 0, s: 0, l: 0 };
+
+    const calibrateRgb = (r, g, b) => {
+      let lr = shouldFixSrgb ? srgbToLinearChannel(r) : r;
+      let lg = shouldFixSrgb ? srgbToLinearChannel(g) : g;
+      let lb = shouldFixSrgb ? srgbToLinearChannel(b) : b;
+      tmpColor.setRGB(lr, lg, lb);
+      if (Math.abs(boost - 1.0) > 0.01) {
+        tmpColor.getHSL(hsl);
+        const satFactor = boost;
+        const newS = Math.min(1, Math.max(0, hsl.s * satFactor));
+        const newL = boost > 1
+          ? Math.pow(Math.max(0, Math.min(1, hsl.l)), 1 + (boost - 1) * 0.28)
+          : Math.min(1, hsl.l + (1 - boost) * 0.12);
+        tmpColor.setHSL(hsl.h, newS, newL);
+      }
+      return tmpColor;
+    };
+
+    this.currentModel.traverse((child) => {
+      if (!child.isMesh || !child.material) return;
+      if (totemNode && this.isDescendantOf(child, totemNode)) return;
+      if (child === this.aerialQrMesh) return;
+
+      const mats = Array.isArray(child.material) ? child.material : [child.material];
+      const isQr = mats.some((m) => this.qrMaterials.includes(m));
+      if (isQr) return;
+
+      for (const mat of mats) {
+        if (!mat.userData._origColor && mat.color) {
+          mat.userData._origColor = mat.color.clone();
+        }
+        if (mat.userData._origColor && mat.color) {
+          if (!mat.map) {
+            const orig = mat.userData._origColor;
+            const calibrated = calibrateRgb(orig.r, orig.g, orig.b);
+            mat.color.copy(calibrated);
+          } else if (boost > 1.0) {
+            const atten = Math.max(0.76, 1 - (boost - 1) * 0.22);
+            mat.color.setRGB(
+              mat.userData._origColor.r * atten,
+              mat.userData._origColor.g * atten,
+              mat.userData._origColor.b * atten
+            );
+          } else {
+            mat.color.copy(mat.userData._origColor);
+          }
+          mat.needsUpdate = true;
+        }
+      }
+
+      const geom = child.geometry;
+      if (geom && geom.userData && geom.userData._origVertexColors) {
+        if (!shouldFixSrgb && Math.abs(boost - 1.0) <= 0.01) {
+          if (geom.userData._origColorAttr) {
+            geom.setAttribute('color', geom.userData._origColorAttr);
+          }
+        } else {
+          const origArr = geom.userData._origVertexColors;
+          const itemSize = geom.userData._colorItemSize || 3;
+          const outArr = new Float32Array(origArr.length);
+          for (let i = 0; i < origArr.length; i += itemSize) {
+            const c = calibrateRgb(origArr[i], origArr[i + 1], origArr[i + 2]);
+            outArr[i] = c.r;
+            outArr[i + 1] = c.g;
+            outArr[i + 2] = c.b;
+            if (itemSize === 4) outArr[i + 3] = origArr[i + 3];
+          }
+          geom.setAttribute('color', new window.THREE.BufferAttribute(outArr, itemSize));
+        }
+      }
+    });
+  }
+
+  shouldIncludeSmartEdge(child) {
+    const geom = child.geometry;
+    const posAttr = geom && geom.attributes && geom.attributes.position;
+    if (!posAttr || posAttr.count >= 30000) return false;
+
+    const mats = Array.isArray(child.material) ? child.material : [child.material];
+    const label = `${child.name || ''} ${mats.map((m) => (m && m.name) || '').join(' ')}`.toLowerCase();
+    const looksOrganicByName = /terrain|terreno|mountain|montana|cerro|hill|foliage|canopy|copa|tree|arbol|leaf|leaves|hojas|rock|piedra|relief/.test(label);
+    if (looksOrganicByName && posAttr.count > 200) {
+      return false;
+    }
+
+    const edges42 = new window.THREE.EdgesGeometry(geom, 42);
+    const c42 = edges42.attributes.position ? edges42.attributes.position.count / 2 : 0;
+    if (c42 === 0) {
+      edges42.dispose();
+      return false;
+    }
+
+    if (posAttr.count > 600) {
+      const edges15 = new window.THREE.EdgesGeometry(geom, 15);
+      const c15 = edges15.attributes.position ? edges15.attributes.position.count / 2 : 0;
+      edges15.dispose();
+      if ((c15 - c42) > 200 && (c42 / Math.max(1, c15)) < 0.55) {
+        edges42.dispose();
+        return false;
+      }
+    }
+
+    return edges42;
+  }
+
+  applyEdgeMode() {
+    const mode = this.viewerConfig.edgeMode || 'smart';
+    if (mode !== 'off') {
+      this._lastActiveEdgeMode = mode;
+    }
+
+    if (mode === 'all' && this.allEdgeLines.length === 0 && this.edgeTargetMeshes.length > 0) {
+      const allEdgeMaterial = new window.THREE.LineBasicMaterial({
+        color: 0x0f1218,
+        transparent: true,
+        opacity: 0.55
+      });
+      for (const mesh of this.edgeTargetMeshes) {
+        const posAttr = mesh.geometry && mesh.geometry.attributes && mesh.geometry.attributes.position;
+        if (posAttr && posAttr.count < 30000) {
+          const edgesGeo = new window.THREE.EdgesGeometry(mesh.geometry, 26);
+          const lines = new window.THREE.LineSegments(edgesGeo, allEdgeMaterial);
+          mesh.add(lines);
+          this.allEdgeLines.push(lines);
+        }
+      }
+    }
+
+    for (const line of this.smartEdgeLines) {
+      line.visible = mode === 'smart';
+    }
+    for (const line of this.allEdgeLines) {
+      line.visible = mode === 'all';
+    }
+
+    this.edgeLines = mode === 'all' ? this.allEdgeLines : this.smartEdgeLines;
+    this.showEdges = mode !== 'off';
+    this.updateEdgesButtonLabel();
+  }
+
+  applyTotemVisibility() {
+    if (!this.currentModel) return;
+    const totemNode = this.currentModel.getObjectByName('QR_Totem_Integrated');
+    if (totemNode) {
+      totemNode.visible = this.viewerConfig.showTotem !== false;
+    }
+  }
+
   loadModel() {
     if (!this.qrId) return;
 
@@ -1086,8 +1576,9 @@ class Qr3dViewer extends HTMLElement {
     const initialQrUrl = `${this.apiUrl}/api/qr/${this.qrId}/image?t=${Date.now()}`;
     qrImg.src = initialQrUrl;
 
-    // Pre-cargar matriz binaria del QR para modo aéreo instantáneo
+    // Pre-cargar matriz binaria del QR y configuración visual del modelo
     this.fetchQrMatrix();
+    this.fetchViewerConfig();
 
     const loaderEl = this.shadowRoot.getElementById('loader');
     const modelUrl = `${this.apiUrl}/api/qr/${this.qrId}/model`;
@@ -1103,20 +1594,33 @@ class Qr3dViewer extends HTMLElement {
         this.currentModel = gltf.scene;
         this.qrMaterials = [];
         this.edgeLines = [];
+        this.smartEdgeLines = [];
+        this.allEdgeLines = [];
+        this.edgeTargetMeshes = [];
         this.aerialSamples = null;
         this.aerialQrMesh = null;
 
-        const edgeMaterial = new window.THREE.LineBasicMaterial({
+        const rawGenerator =
+          (gltf.parser && gltf.parser.json && gltf.parser.json.asset && gltf.parser.json.asset.generator) || '';
+        this.modelStats = {
+          generator: rawGenerator,
+          isLegacyThreeExporter: rawGenerator === 'THREE.GLTFExporter'
+        };
+
+        const smartEdgeMaterial = new window.THREE.LineBasicMaterial({
           color: 0x0f1218,
           transparent: true,
-          opacity: 0.58
+          opacity: 0.42
         });
+
+        const totemNode = this.currentModel.getObjectByName('QR_Totem_Integrated');
 
         this.currentModel.traverse((child) => {
           if (!child.isMesh || !child.material) return;
           child.castShadow = true;
           child.receiveShadow = true;
 
+          const inTotem = totemNode ? this.isDescendantOf(child, totemNode) : false;
           const mats = Array.isArray(child.material) ? child.material : [child.material];
           let isQrMesh = false;
           for (const mat of mats) {
@@ -1124,6 +1628,9 @@ class Qr3dViewer extends HTMLElement {
               mat.polygonOffset = true;
               mat.polygonOffsetFactor = 1;
               mat.polygonOffsetUnits = 1;
+            }
+            if (!inTotem && !mat.userData._origColor && mat.color) {
+              mat.userData._origColor = mat.color.clone();
             }
             const matName = (mat.name || '').toLowerCase();
             const texName = (mat.map && mat.map.name ? mat.map.name : '').toLowerCase();
@@ -1140,14 +1647,29 @@ class Qr3dViewer extends HTMLElement {
             }
           }
 
+          if (!isQrMesh && !inTotem && child.geometry && child.geometry.attributes && child.geometry.attributes.color) {
+            const colorAttr = child.geometry.attributes.color;
+            const itemSize = colorAttr.itemSize || 3;
+            const snap = new Float32Array(colorAttr.count * itemSize);
+            for (let i = 0; i < colorAttr.count; i++) {
+              snap[i * itemSize] = colorAttr.getX(i);
+              snap[i * itemSize + 1] = colorAttr.getY(i);
+              snap[i * itemSize + 2] = colorAttr.getZ(i);
+              if (itemSize === 4) snap[i * itemSize + 3] = colorAttr.getW(i);
+            }
+            child.geometry.userData._origVertexColors = snap;
+            child.geometry.userData._origColorAttr = colorAttr;
+            child.geometry.userData._colorItemSize = itemSize;
+          }
+
           if (!isQrMesh && child.geometry) {
-            const posAttr = child.geometry.attributes && child.geometry.attributes.position;
-            if (posAttr && posAttr.count < 30000) {
-              const edgesGeo = new window.THREE.EdgesGeometry(child.geometry, 26);
-              const lines = new window.THREE.LineSegments(edgesGeo, edgeMaterial);
-              lines.visible = this.showEdges;
+            this.edgeTargetMeshes.push(child);
+            const smartGeo = this.shouldIncludeSmartEdge(child);
+            if (smartGeo) {
+              const lines = new window.THREE.LineSegments(smartGeo, smartEdgeMaterial);
+              lines.visible = false;
               child.add(lines);
-              this.edgeLines.push(lines);
+              this.smartEdgeLines.push(lines);
             }
           }
         });
@@ -1156,9 +1678,12 @@ class Qr3dViewer extends HTMLElement {
         this.modelPivot.add(this.currentModel);
         this.scene.add(this.modelPivot);
         this.frameModelToCamera(this.currentModel);
+        this.setViewerConfig(this.viewerConfig, { applyCamera: true });
 
         loaderEl.style.opacity = '0';
         setTimeout(() => (loaderEl.style.display = 'none'), 300);
+
+        this.dispatchEvent(new CustomEvent('viewer-ready', { detail: { viewerConfig: this.getViewerConfig() } }));
 
         if (this.aerialRequested) {
           this.enterAerialScanMode();
@@ -1192,6 +1717,8 @@ class Qr3dViewer extends HTMLElement {
             this.updateModelQrTexture(data.newQrImageUrl);
           }
           this.showScanToast();
+        } else if (data.type === 'viewer_config_updated' && data.viewerConfig) {
+          this.setViewerConfig(data.viewerConfig, { applyCamera: true });
         }
       } catch (err) {
         // Ignorar heartbeats u otros mensajes planos

@@ -292,8 +292,8 @@
       border: 1px solid var(--card-border);
       border-radius: var(--radius);
       width: 100%;
-      max-width: 800px;
-      max-height: 90vh;
+      max-width: 1160px;
+      max-height: 92vh;
       overflow-y: auto;
       padding: 24px;
       display: flex;
@@ -307,6 +307,193 @@
     }
     .close-btn { background: none; border: none; color: #94a3b8; font-size: 24px; cursor: pointer; }
     .close-btn:hover { color: #fff; }
+
+    /* Controles Visuales No-Code (Automático / Manual) */
+    .mode-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .mode-pill {
+      background: #0f172a;
+      border: 1px solid #334155;
+      color: #cbd5e1;
+      padding: 6px 11px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .mode-pill:hover { border-color: #60a5fa; color: #fff; }
+    .mode-pill.active {
+      background: linear-gradient(135deg, #2563eb, #3b82f6);
+      border-color: #60a5fa;
+      color: #fff;
+    }
+
+    .modal-studio-grid {
+      display: grid;
+      grid-template-columns: 1.4fr 360px;
+      gap: 18px;
+      align-items: start;
+    }
+    @media (max-width: 980px) {
+      .modal-studio-grid { grid-template-columns: 1fr; }
+    }
+    .studio-left {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .studio-panel {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+    .studio-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      background: #1e293b;
+      padding: 4px;
+      border-radius: 9px;
+    }
+    .studio-tab {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      padding: 8px 10px;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .studio-tab.active {
+      background: #2563eb;
+      color: #fff;
+    }
+    .studio-auto-box {
+      background: rgba(59, 130, 246, 0.08);
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 12.5px;
+      color: #cbd5e1;
+      line-height: 1.55;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .studio-auto-box ul { padding-left: 18px; color: #93c5fd; }
+    .preset-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .preset-chip {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #e2e8f0;
+      padding: 7px 8px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: left;
+    }
+    .preset-chip:hover { border-color: #f59e0b; }
+    .preset-chip.active {
+      background: rgba(217, 119, 6, 0.22);
+      border-color: #f59e0b;
+      color: #fde68a;
+    }
+    .slider-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .slider-head {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #cbd5e1;
+      font-weight: 600;
+    }
+    .slider-val {
+      color: #60a5fa;
+      font-family: monospace;
+    }
+    .slider-row input[type="range"] {
+      width: 100%;
+      accent-color: #3b82f6;
+      cursor: pointer;
+    }
+    .studio-select {
+      width: 100%;
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #f8fafc;
+      padding: 7px 10px;
+      border-radius: 7px;
+      font-size: 12px;
+    }
+    .bg-swatches {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .bg-swatch {
+      width: 26px;
+      height: 26px;
+      border-radius: 7px;
+      border: 2px solid #334155;
+      cursor: pointer;
+      padding: 0;
+    }
+    .bg-swatch.active {
+      border-color: #fbbf24;
+      transform: scale(1.1);
+    }
+    .switch-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #e2e8f0;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 4px 0;
+    }
+    .switch-row input {
+      width: 16px;
+      height: 16px;
+      accent-color: #3b82f6;
+      cursor: pointer;
+    }
+    .studio-section-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #94a3b8;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+    .studio-save-status {
+      font-size: 12px;
+      text-align: center;
+      min-height: 18px;
+      color: #34d399;
+      font-weight: 600;
+    }
   </style>
 </head>
 <body>
@@ -407,6 +594,24 @@
               <div id="model-label">📦 <strong>Haz clic aquí</strong> o arrastra un modelo (.glb, .gltf, .obj, .fbx, .stl)</div>
               <button type="button" id="btn-clear-model" class="btn btn-secondary btn-sm" style="display:none; margin:8px auto 0 auto; width:auto;">✖ Quitar modelo</button>
             </label>
+          </div>
+
+          <!-- Estilo Visual 3D Inicial (Sin Código) -->
+          <div class="form-group">
+            <label>
+              <span>🎨 Configuración Visual del Visor</span>
+              <span style="font-size: 11px; color: #94a3b8;">Sin código · Editable después</span>
+            </label>
+            <div class="mode-pills" id="create-mode-pills">
+              <button type="button" class="mode-pill active" data-create-preset="auto">✨ Automático</button>
+              <button type="button" class="mode-pill" data-create-preset="archaeological">🏺 Arqueológico</button>
+              <button type="button" class="mode-pill" data-create-preset="museum_night">🏛️ Museo Oscuro</button>
+              <button type="button" class="mode-pill" data-create-preset="studio">📸 Estudio Claro</button>
+              <button type="button" class="mode-pill" data-create-preset="manual_after">🎛️ Ajustar Manual</button>
+            </div>
+            <div id="create-mode-desc" style="font-size: 12px; color: #94a3b8; margin-top: 6px;">
+              Calibra automáticamente luz lateral cálida, colores reales y aristas limpias para tu modelo.
+            </div>
           </div>
 
           <button type="submit" class="btn" id="btn-submit">
@@ -537,36 +742,172 @@
     </div>
   </div>
 
-  <!-- Modal de Previsualización 3D en Vivo -->
+  <!-- Modal de Previsualización 3D y Estudio Visual Sin Código -->
   <div class="modal-overlay" id="preview-modal">
     <div class="modal-content">
       <div class="modal-header">
         <h2 id="modal-title" style="font-size: 18px; font-weight: 700;">Visor 3D Interactivo</h2>
         <button class="close-btn" id="modal-close">&times;</button>
       </div>
-      <div id="modal-viewer-container" style="width: 100%; height: 420px; border-radius: 12px; overflow: hidden;">
-        <!-- Se inserta dinámicamente <qr-3d-viewer> -->
-      </div>
-      <div style="background: #0f172a; padding: 12px; border-radius: 8px; font-size: 13px;">
-        <div style="font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Código para Embeber en Sitios Externos:</div>
-        <textarea id="embed-code-area" class="form-control" rows="3" readonly style="font-family: monospace; font-size: 12px;"></textarea>
-      </div>
-      <div style="display: flex; justify-content: flex-end; gap: 8px;">
-        <button class="btn btn-secondary btn-sm" id="btn-test-scan">📱 Simular Escaneo Móvil (Test)</button>
-        <button class="btn btn-secondary btn-sm" id="btn-copy-embed">📋 Copiar Código</button>
+
+      <div class="modal-studio-grid">
+        <!-- Visor y Código Embebible -->
+        <div class="studio-left">
+          <div id="modal-viewer-container" style="width: 100%; height: 470px; border-radius: 12px; overflow: hidden;">
+            <!-- Se inserta dinámicamente <qr-3d-viewer> -->
+          </div>
+          <div style="background: #0f172a; padding: 12px; border-radius: 8px; font-size: 13px;">
+            <div style="font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Código para Embeber en Sitios Externos (aplica tu estilo automáticamente):</div>
+            <textarea id="embed-code-area" class="form-control" rows="2" readonly style="font-family: monospace; font-size: 12px;"></textarea>
+          </div>
+          <div style="display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap;">
+            <button class="btn btn-secondary btn-sm" id="btn-test-scan">📱 Simular Escaneo Móvil (Test)</button>
+            <button class="btn btn-secondary btn-sm" id="btn-copy-embed">📋 Copiar Código</button>
+          </div>
+        </div>
+
+        <!-- Panel Automático / Manual (Sin Código) -->
+        <div class="studio-panel" id="studio-panel">
+          <div class="studio-tabs">
+            <button type="button" class="studio-tab active" id="tab-mode-auto">✨ Automático</button>
+            <button type="button" class="studio-tab" id="tab-mode-manual">🎛️ Manual</button>
+          </div>
+
+          <div id="studio-auto-pane">
+            <div class="studio-auto-box">
+              <strong>Calibración Inteligente Activa</strong>
+              <span>El visor ajusta tu modelo sin mover código:</span>
+              <ul>
+                <li>Sol lateral cálido (-108°) para resaltar relieves y sombras naturales.</li>
+                <li>Corrección automática de colores lavados en modelos legacy.</li>
+                <li>Aristas inteligentes: marca la arquitectura y evita rayar terrenos orgánicos.</li>
+              </ul>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-switch-to-manual" style="margin-top: 4px;">
+                🎛️ Ajustar luz, color y ángulo manualmente
+              </button>
+            </div>
+          </div>
+
+          <div id="studio-manual-pane" style="display: none; flex-direction: column; gap: 11px;">
+            <div class="studio-section-label">Estilos Rápidos (1 clic)</div>
+            <div class="preset-grid">
+              <button type="button" class="preset-chip" data-preset="archaeological">🏺 Arqueológico</button>
+              <button type="button" class="preset-chip" data-preset="museum_night">🏛️ Museo Oscuro</button>
+              <button type="button" class="preset-chip" data-preset="studio">📸 Estudio Claro</button>
+              <button type="button" class="preset-chip" data-preset="outdoor">☀️ Exterior Día</button>
+            </div>
+
+            <div class="studio-section-label">Iluminación y Sol</div>
+            <div class="slider-row">
+              <div class="slider-head"><span>☀️ Azimut solar</span><span class="slider-val" id="val-azimuth">-108°</span></div>
+              <input type="range" id="ctrl-azimuth" min="-180" max="180" step="1" value="-108" />
+            </div>
+            <div class="slider-row">
+              <div class="slider-head"><span>📐 Altura del sol</span><span class="slider-val" id="val-elevation">38°</span></div>
+              <input type="range" id="ctrl-elevation" min="10" max="85" step="1" value="38" />
+            </div>
+            <div class="slider-row">
+              <div class="slider-head"><span>💡 Fuerza del sol</span><span class="slider-val" id="val-sun-intensity">1.65</span></div>
+              <input type="range" id="ctrl-sun-intensity" min="0.2" max="2.8" step="0.05" value="1.65" />
+            </div>
+            <div class="slider-row">
+              <div class="slider-head"><span>🔆 Exposición / Brillo</span><span class="slider-val" id="val-exposure">0.92</span></div>
+              <input type="range" id="ctrl-exposure" min="0.45" max="1.7" step="0.02" value="0.92" />
+            </div>
+            <div class="slider-row">
+              <div class="slider-head"><span>🌫️ Luz ambiental (sombras)</span><span class="slider-val" id="val-ambient">0.14</span></div>
+              <input type="range" id="ctrl-ambient" min="0" max="0.85" step="0.02" value="0.14" />
+            </div>
+
+            <div class="studio-section-label">Color y Nitidez</div>
+            <div class="slider-row">
+              <div class="slider-head"><span>🎨 Intensidad de color</span><span class="slider-val" id="val-color-boost">1.12</span></div>
+              <input type="range" id="ctrl-color-boost" min="0.65" max="1.55" step="0.02" value="1.12" />
+            </div>
+            <div>
+              <div class="slider-head" style="margin-bottom: 4px;"><span>Corregir tonos lavados (sRGB)</span></div>
+              <select id="ctrl-fix-srgb" class="studio-select">
+                <option value="auto">Automático (detectar modelo)</option>
+                <option value="on">Sí — Realzar colores pálidos</option>
+                <option value="off">No — Colores originales</option>
+              </select>
+            </div>
+            <div>
+              <div class="slider-head" style="margin-bottom: 4px;"><span>Aristas / Bordes 3D</span></div>
+              <select id="ctrl-edge-mode" class="studio-select">
+                <option value="smart">Inteligente (solo arquitectura)</option>
+                <option value="all">Todas (modo técnico)</option>
+                <option value="off">Desactivadas (superficie limpia)</option>
+              </select>
+            </div>
+
+            <div class="studio-section-label">Fondo del Escenario</div>
+            <div class="bg-swatches">
+              <button type="button" class="bg-swatch" data-bg="warm_dark" title="Carbón Cálido" style="background: linear-gradient(135deg, #26201b, #12100e);"></button>
+              <button type="button" class="bg-swatch" data-bg="slate" title="Azul Pizarra" style="background: linear-gradient(135deg, #1e293b, #0f172a);"></button>
+              <button type="button" class="bg-swatch" data-bg="night" title="Museo Noche" style="background: linear-gradient(135deg, #161822, #07080d);"></button>
+              <button type="button" class="bg-swatch" data-bg="light_studio" title="Estudio Claro" style="background: linear-gradient(135deg, #f8fafc, #cbd5e1);"></button>
+              <button type="button" class="bg-swatch" data-bg="outdoor" title="Cielo Día" style="background: linear-gradient(135deg, #bae6fd, #e0f2fe);"></button>
+              <input type="color" id="ctrl-bg-color" value="#1a1612" title="Color de fondo personalizado" style="width: 30px; height: 26px; border: 1px solid #334155; border-radius: 6px; background: transparent; cursor: pointer;" />
+            </div>
+
+            <div class="studio-section-label">Escena y Encuadre</div>
+            <label class="switch-row">
+              <span>🔄 Auto-giro al abrir</span>
+              <input type="checkbox" id="ctrl-auto-rotate" checked />
+            </label>
+            <label class="switch-row">
+              <span>🪧 Mostrar Tótem QR 3D</span>
+              <input type="checkbox" id="ctrl-show-totem" checked />
+            </label>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-save-pose" title="Fija la vista actual como ángulo inicial">📷 Fijar vista</button>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-reset-pose">↺ Vista auto</button>
+            </div>
+            <div id="pose-indicator" style="font-size: 11px; color: #94a3b8;">Encuadre: automático</div>
+          </div>
+
+          <button type="button" class="btn" id="btn-save-viewer-config">💾 Guardar Estilo Visual</button>
+          <div class="studio-save-status" id="studio-save-status"></div>
+        </div>
       </div>
     </div>
   </div>
 
   <!-- Script de Interacción del Panel -->
-  <script>
+  <script type="module">
+    import { VIEWER_PRESETS } from '/widget/3dqr-viewer.js';
+
+    const CREATE_MODE_DESCRIPTIONS = {
+      auto: 'Calibra automáticamente luz lateral cálida, colores reales y aristas limpias para tu modelo.',
+      archaeological: 'Estilo boceto: sol lateral a -108°, sombras marcadas en relieves y fondo carbón cálido.',
+      museum_night: 'Fondo museo oscuro con foco dorado dramático para piezas y arquitectura.',
+      studio: 'Fondo claro luminoso y luz suave uniforme para productos y logotipos.',
+      manual_after: 'Crea el QR y abre inmediatamente los controles manuales para ajustarlo a tu gusto.'
+    };
+
     const state = {
       apiKey: localStorage.getItem('qr3d_api_key') || 'tk_live_demo_123456789',
       currentItems: [],
-      selectedQr: null
+      selectedQr: null,
+      createVisualChoice: 'auto',
+      studioConfig: { ...VIEWER_PRESETS.auto }
     };
 
     document.getElementById('api-key-input').value = state.apiKey;
+
+    // Selector visual inicial en el formulario de creación
+    const createModePills = document.querySelectorAll('#create-mode-pills .mode-pill');
+    const createModeDesc = document.getElementById('create-mode-desc');
+    createModePills.forEach((pill) => {
+      pill.addEventListener('click', () => {
+        createModePills.forEach((p) => p.classList.remove('active'));
+        pill.classList.add('active');
+        state.createVisualChoice = pill.dataset.createPreset || 'auto';
+        createModeDesc.textContent = CREATE_MODE_DESCRIPTIONS[state.createVisualChoice] || CREATE_MODE_DESCRIPTIONS.auto;
+      });
+    });
 
     // Guardar API Key
     document.getElementById('btn-save-key').addEventListener('click', () => {
@@ -738,6 +1079,12 @@
         formData.append('model_preset', modelPresetSelect.value);
       }
 
+      const openManualAfter = state.createVisualChoice === 'manual_after';
+      const initialPreset = openManualAfter
+        ? VIEWER_PRESETS.auto
+        : (VIEWER_PRESETS[state.createVisualChoice] || VIEWER_PRESETS.auto);
+      formData.append('viewer_config', JSON.stringify(initialPreset));
+
       try {
         const res = await fetch('/api/qr', {
           method: 'POST',
@@ -757,8 +1104,11 @@
           modelLabel.innerHTML = '📦 <strong>Haz clic aquí</strong> o arrastra un modelo (.glb, .gltf, .obj, .fbx, .stl)';
           btnClearImage.style.display = 'none';
           btnClearModel.style.display = 'none';
+          state.createVisualChoice = 'auto';
+          createModePills.forEach((p) => p.classList.toggle('active', p.dataset.createPreset === 'auto'));
+          createModeDesc.textContent = CREATE_MODE_DESCRIPTIONS.auto;
           loadQrs();
-          openPreview(data.qr.id);
+          openPreview(data.qr.id, { openManual: openManualAfter });
         } else {
           alert('Error: ' + (data.message || data.error));
         }
@@ -796,10 +1146,16 @@
           return;
         }
 
-        tbody.innerHTML = state.currentItems.map(item => `
+        tbody.innerHTML = state.currentItems.map(item => {
+          const isManual = item.viewerConfig && item.viewerConfig.mode === 'manual';
+          const visualLabel = isManual ? '🎛️ Manual' : '✨ Auto';
+          return `
           <tr>
             <td><code style="color:#38bdf8;">${item.id}</code></td>
-            <td><strong>${item.title || 'Sin título'}</strong></td>
+            <td>
+              <strong>${item.title || 'Sin título'}</strong>
+              <span class="badge ${isManual ? 'badge-info' : 'badge-success'}" style="margin-left:6px;">${visualLabel}</span>
+            </td>
             <td><a href="${item.target_url}" target="_blank" style="color:#60a5fa; text-decoration:none;">${item.target_url.slice(0, 30)}...</a></td>
             <td><span class="badge ${item.rotation_strategy === 'one_time' ? 'badge-success' : 'badge-info'}">${item.rotation_strategy}</span></td>
             <td><strong>${item.scan_count}</strong></td>
@@ -808,12 +1164,13 @@
               <span style="font-family:monospace;font-size:11px;">${item.color_primary}</span>
             </td>
             <td>
-              <button class="btn btn-secondary btn-sm" onclick="openPreview('${item.id}')">👁️ Ver 3D</button>
+              <button class="btn btn-secondary btn-sm" onclick="openPreview('${item.id}')">👁️ Ver / Ajustar 3D</button>
               <button class="btn btn-secondary btn-sm" onclick="rotateQr('${item.id}')">🔄 Rotar</button>
               <button class="btn btn-secondary btn-sm" style="color:#f87171;" onclick="deleteQr('${item.id}')">🗑️</button>
             </td>
           </tr>
-        `).join('');
+        `;
+        }).join('');
       } catch (err) {
         tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#f87171;">Error: ${err.message}</td></tr>`;
       }
@@ -855,21 +1212,258 @@
       }
     };
 
+    // Studio Visual No-Code (Automático / Manual)
+    const tabAuto = document.getElementById('tab-mode-auto');
+    const tabManual = document.getElementById('tab-mode-manual');
+    const paneAuto = document.getElementById('studio-auto-pane');
+    const paneManual = document.getElementById('studio-manual-pane');
+    const saveStatusEl = document.getElementById('studio-save-status');
+
+    const ctrlAzimuth = document.getElementById('ctrl-azimuth');
+    const ctrlElevation = document.getElementById('ctrl-elevation');
+    const ctrlSunIntensity = document.getElementById('ctrl-sun-intensity');
+    const ctrlExposure = document.getElementById('ctrl-exposure');
+    const ctrlAmbient = document.getElementById('ctrl-ambient');
+    const ctrlColorBoost = document.getElementById('ctrl-color-boost');
+    const ctrlFixSrgb = document.getElementById('ctrl-fix-srgb');
+    const ctrlEdgeMode = document.getElementById('ctrl-edge-mode');
+    const ctrlBgColor = document.getElementById('ctrl-bg-color');
+    const ctrlAutoRotate = document.getElementById('ctrl-auto-rotate');
+    const ctrlShowTotem = document.getElementById('ctrl-show-totem');
+    const poseIndicator = document.getElementById('pose-indicator');
+
+    function getActiveViewerEl() {
+      return document.querySelector('#modal-viewer-container qr-3d-viewer');
+    }
+
+    function syncStudioUI() {
+      const cfg = state.studioConfig;
+      const isManual = cfg.mode === 'manual';
+      tabAuto.classList.toggle('active', !isManual);
+      tabManual.classList.toggle('active', isManual);
+      paneAuto.style.display = isManual ? 'none' : 'block';
+      paneManual.style.display = isManual ? 'flex' : 'none';
+
+      document.querySelectorAll('.preset-chip').forEach((chip) => {
+        chip.classList.toggle('active', isManual && cfg.preset === chip.dataset.preset);
+      });
+
+      ctrlAzimuth.value = cfg.sunAzimuth;
+      document.getElementById('val-azimuth').textContent = `${Math.round(cfg.sunAzimuth)}°`;
+      ctrlElevation.value = cfg.sunElevation;
+      document.getElementById('val-elevation').textContent = `${Math.round(cfg.sunElevation)}°`;
+      ctrlSunIntensity.value = cfg.sunIntensity;
+      document.getElementById('val-sun-intensity').textContent = Number(cfg.sunIntensity).toFixed(2);
+      ctrlExposure.value = cfg.exposure;
+      document.getElementById('val-exposure').textContent = Number(cfg.exposure).toFixed(2);
+      ctrlAmbient.value = cfg.ambientIntensity;
+      document.getElementById('val-ambient').textContent = Number(cfg.ambientIntensity).toFixed(2);
+      ctrlColorBoost.value = cfg.colorBoost;
+      document.getElementById('val-color-boost').textContent = Number(cfg.colorBoost).toFixed(2);
+
+      ctrlFixSrgb.value = cfg.fixSrgb || 'auto';
+      ctrlEdgeMode.value = cfg.edgeMode || 'smart';
+      ctrlBgColor.value = cfg.backgroundColor || '#1a1612';
+      ctrlAutoRotate.checked = cfg.autoRotate !== false;
+      ctrlShowTotem.checked = cfg.showTotem !== false;
+
+      document.querySelectorAll('.bg-swatch').forEach((sw) => {
+        sw.classList.toggle('active', sw.dataset.bg === cfg.backgroundPreset);
+      });
+
+      poseIndicator.textContent = cfg.cameraPose
+        ? 'Encuadre: vista personalizada fijada'
+        : 'Encuadre: automático';
+    }
+
+    function pushStudioToViewer({ applyCamera = false } = {}) {
+      const viewer = getActiveViewerEl();
+      if (viewer && typeof viewer.setViewerConfig === 'function') {
+        viewer.setViewerConfig(state.studioConfig, { applyCamera, fromStudio: true });
+      }
+    }
+
+    function markManualCustom(partial) {
+      state.studioConfig = {
+        ...state.studioConfig,
+        ...partial,
+        mode: 'manual',
+        preset: partial.preset || 'custom'
+      };
+      saveStatusEl.textContent = '';
+      syncStudioUI();
+      pushStudioToViewer();
+    }
+
+    tabAuto.addEventListener('click', () => {
+      state.studioConfig = { ...VIEWER_PRESETS.auto, cameraPose: null };
+      saveStatusEl.textContent = '';
+      syncStudioUI();
+      pushStudioToViewer({ applyCamera: true });
+    });
+
+    function switchToManualMode() {
+      state.studioConfig = {
+        ...state.studioConfig,
+        mode: 'manual',
+        preset: state.studioConfig.preset === 'auto' ? 'archaeological' : state.studioConfig.preset
+      };
+      saveStatusEl.textContent = '';
+      syncStudioUI();
+      pushStudioToViewer();
+    }
+
+    tabManual.addEventListener('click', switchToManualMode);
+    document.getElementById('btn-switch-to-manual').addEventListener('click', switchToManualMode);
+
+    document.querySelectorAll('.preset-chip').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        const presetKey = chip.dataset.preset;
+        const base = VIEWER_PRESETS[presetKey];
+        if (!base) return;
+        state.studioConfig = {
+          ...base,
+          mode: 'manual',
+          preset: presetKey,
+          cameraPose: state.studioConfig.cameraPose
+        };
+        saveStatusEl.textContent = '';
+        syncStudioUI();
+        pushStudioToViewer();
+      });
+    });
+
+    ctrlAzimuth.addEventListener('input', () => markManualCustom({ sunAzimuth: Number(ctrlAzimuth.value) }));
+    ctrlElevation.addEventListener('input', () => markManualCustom({ sunElevation: Number(ctrlElevation.value) }));
+    ctrlSunIntensity.addEventListener('input', () => markManualCustom({ sunIntensity: Number(ctrlSunIntensity.value) }));
+    ctrlExposure.addEventListener('input', () => markManualCustom({ exposure: Number(ctrlExposure.value) }));
+    ctrlAmbient.addEventListener('input', () => markManualCustom({ ambientIntensity: Number(ctrlAmbient.value) }));
+    ctrlColorBoost.addEventListener('input', () => markManualCustom({ colorBoost: Number(ctrlColorBoost.value) }));
+    ctrlFixSrgb.addEventListener('change', () => markManualCustom({ fixSrgb: ctrlFixSrgb.value }));
+    ctrlEdgeMode.addEventListener('change', () => markManualCustom({ edgeMode: ctrlEdgeMode.value }));
+    ctrlAutoRotate.addEventListener('change', () => markManualCustom({ autoRotate: ctrlAutoRotate.checked }));
+    ctrlShowTotem.addEventListener('change', () => markManualCustom({ showTotem: ctrlShowTotem.checked }));
+
+    document.querySelectorAll('.bg-swatch').forEach((sw) => {
+      sw.addEventListener('click', () => {
+        markManualCustom({ backgroundPreset: sw.dataset.bg });
+      });
+    });
+    ctrlBgColor.addEventListener('input', () => {
+      markManualCustom({ backgroundPreset: 'custom', backgroundColor: ctrlBgColor.value });
+    });
+
+    document.getElementById('btn-save-pose').addEventListener('click', () => {
+      const viewer = getActiveViewerEl();
+      if (!viewer || typeof viewer.getCameraPose !== 'function') return;
+      const pose = viewer.getCameraPose();
+      if (pose) {
+        markManualCustom({ cameraPose: pose });
+      }
+    });
+
+    document.getElementById('btn-reset-pose').addEventListener('click', () => {
+      state.studioConfig = { ...state.studioConfig, cameraPose: null };
+      const viewer = getActiveViewerEl();
+      if (viewer && typeof viewer.resetCameraPose === 'function') {
+        viewer.resetCameraPose();
+      }
+      syncStudioUI();
+    });
+
+    document.getElementById('btn-save-viewer-config').addEventListener('click', async () => {
+      if (!state.selectedQr) return;
+      const btnSave = document.getElementById('btn-save-viewer-config');
+      btnSave.disabled = true;
+      saveStatusEl.style.color = '#93c5fd';
+      saveStatusEl.textContent = 'Guardando configuración...';
+      try {
+        const res = await fetch(`/api/qr/${state.selectedQr}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': state.apiKey
+          },
+          body: JSON.stringify({ viewer_config: state.studioConfig })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'No se pudo guardar');
+        if (data.viewerConfig) {
+          state.studioConfig = data.viewerConfig;
+          syncStudioUI();
+        }
+        saveStatusEl.style.color = '#34d399';
+        saveStatusEl.textContent = '✅ Estilo guardado para el visor y embeds';
+        loadQrs();
+      } catch (err) {
+        saveStatusEl.style.color = '#f87171';
+        saveStatusEl.textContent = `⚠️ ${err.message}`;
+      } finally {
+        btnSave.disabled = false;
+      }
+    });
+
     // Previsualizador Modal
-    window.openPreview = function(qrId) {
+    window.openPreview = async function(qrId, { openManual = false } = {}) {
       state.selectedQr = qrId;
+      saveStatusEl.textContent = '';
       const modal = document.getElementById('preview-modal');
       const container = document.getElementById('modal-viewer-container');
       const embedArea = document.getElementById('embed-code-area');
+
+      const existingItem = state.currentItems.find((i) => i.id === qrId);
+      document.getElementById('modal-title').textContent = existingItem
+        ? `Visor 3D — ${existingItem.title || qrId}`
+        : 'Visor 3D Interactivo';
+
+      state.studioConfig = existingItem && existingItem.viewerConfig
+        ? { ...VIEWER_PRESETS.auto, ...existingItem.viewerConfig }
+        : { ...VIEWER_PRESETS.auto };
+
+      if (openManual) {
+        state.studioConfig.mode = 'manual';
+      }
+      syncStudioUI();
 
       const origin = window.location.origin;
       embedArea.value = `<script src="${origin}/widget/3dqr-viewer.js" type="module"><\/script>\n<qr-3d-viewer qr-id="${qrId}" api-url="${origin}"></qr-3d-viewer>`;
 
       container.innerHTML = `
-        <qr-3d-viewer qr-id="${qrId}" api-url="${origin}" width="100%" height="420px"></qr-3d-viewer>
+        <qr-3d-viewer qr-id="${qrId}" api-url="${origin}" width="100%" height="470px"></qr-3d-viewer>
       `;
 
+      const viewerEl = getActiveViewerEl();
+      if (viewerEl) {
+        viewerEl.addEventListener('viewer-ready', () => {
+          if (openManual) {
+            pushStudioToViewer();
+          }
+        });
+        viewerEl.addEventListener('viewer-config-change', (e) => {
+          if (e.detail) {
+            state.studioConfig = { ...state.studioConfig, ...e.detail };
+            syncStudioUI();
+          }
+        });
+      }
+
       modal.classList.add('active');
+
+      // Refrescar metadata exacta del servidor por si hubo cambios
+      try {
+        const res = await fetch(`/api/qr/${qrId}`, { headers: { 'x-api-key': state.apiKey } });
+        if (res.ok) {
+          const detail = await res.json();
+          const serverCfg = detail.viewerConfig || (detail.metadata && detail.metadata.viewerConfig);
+          if (serverCfg && !(viewerEl && viewerEl._hasLocalStudioEdits)) {
+            state.studioConfig = { ...VIEWER_PRESETS.auto, ...serverCfg };
+            if (openManual) state.studioConfig.mode = 'manual';
+            syncStudioUI();
+          }
+        }
+      } catch {
+        // Usar configuración ya cargada
+      }
     };
 
     document.getElementById('modal-close').addEventListener('click', () => {
