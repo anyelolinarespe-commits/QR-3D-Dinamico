@@ -8,7 +8,13 @@ import { requireAuth, optionalAuth } from '../middleware/auth.js';
 import { extractDominantColors } from '../services/color.service.js';
 import { generateQrPngBuffer, generateQrMatrix } from '../services/qr.service.js';
 import { process3dModel } from '../services/model3d.service.js';
-import { sanitizeViewerConfig, VIEWER_PRESETS } from '../services/viewerConfig.service.js';
+import {
+  resolveEffectiveViewerConfig,
+  sanitizeOptionalHexColor,
+  sanitizeTenantDefaultConfig,
+  sanitizeViewerConfig,
+  VIEWER_PRESETS
+} from '../services/viewerConfig.service.js';
 import { saveUploadedFile, getSavedFileById } from '../services/fileStorage.service.js';
 import { eventBus } from '../config/redis.js';
 import {
@@ -161,6 +167,13 @@ async function resolveQrMediaInputs(fields, { modelFile, imageFile }, fileScope)
 }
 
 export async function qrRoutes(fastify, options) {
+  async function fetchTenantDefaultConfig(tenantId) {
+    if (!tenantId) return {};
+    const res = await db.query('SELECT default_viewer_config FROM tenants WHERE id = $1 LIMIT 1', [tenantId]);
+    if (res.rows.length === 0) return {};
+    return sanitizeTenantDefaultConfig(res.rows[0].default_viewer_config);
+  }
+
   function getAccessScope(request) {
     const role = request.authUser?.role || (request.tenant?.is_master ? 'superadmin' : 'admin');
     return {
@@ -346,15 +359,33 @@ export async function qrRoutes(fastify, options) {
       return reply.status(err.statusCode || 400).send({ error: err.message });
     }
     const initialToken = crypto.randomBytes(4).toString('hex');
+    const tenantDefaults = await fetchTenantDefaultConfig(targetTenantId);
 
-    // Extraer colores
-    let colors = { primary: '#1e293b', secondary: '#ffffff', dominant: '#1e293b' };
+    // Extraer colores o aplicar colores explícitos / por defecto del tenant
+    let colors = {
+      primary: tenantDefaults.qrColorPrimary || '#1e293b',
+      secondary: tenantDefaults.qrColorSecondary || '#ffffff',
+      dominant: tenantDefaults.qrColorPrimary || '#1e293b'
+    };
     if (imageBuffer && imageBuffer.length > 0) {
       try {
         colors = await extractDominantColors(imageBuffer);
       } catch (err) {
         console.warn('Fallo al extraer colores, usando paleta por defecto:', err.message);
       }
+    }
+
+    const explicitPrimary = sanitizeOptionalHexColor(fields.color_primary, null);
+    const explicitSecondary = sanitizeOptionalHexColor(fields.color_secondary, null);
+    if (explicitPrimary) {
+      colors.primary = explicitPrimary;
+      colors.dominant = explicitPrimary;
+    }
+    if (explicitSecondary) {
+      colors.secondary = explicitSecondary;
+    }
+    if (!colors.palette || explicitPrimary) {
+      colors.palette = [colors.dominant, colors.secondary];
     }
 
     // Generar QR PNG
@@ -374,7 +405,20 @@ export async function qrRoutes(fastify, options) {
       secondaryColorHex: colors.secondary
     });
 
-    const viewerConfig = sanitizeViewerConfig(fields.viewer_config);
+    let rawViewerCfg = null;
+    if (fields.viewer_config !== undefined && fields.viewer_config !== '') {
+      rawViewerCfg = typeof fields.viewer_config === 'string'
+        ? JSON.parse(fields.viewer_config)
+        : fields.viewer_config;
+    }
+    const hasCustomViewerConfig = Boolean(
+      rawViewerCfg &&
+      typeof rawViewerCfg === 'object' &&
+      Object.keys(rawViewerCfg).length > 0 &&
+      rawViewerCfg.inheritTenant !== true
+    );
+    const storedViewerConfig = hasCustomViewerConfig ? sanitizeViewerConfig(rawViewerCfg) : null;
+    const viewerConfig = resolveEffectiveViewerConfig(storedViewerConfig, tenantDefaults, hasCustomViewerConfig);
     const nowIso = new Date().toISOString();
 
     const metadata = {
@@ -391,7 +435,8 @@ export async function qrRoutes(fastify, options) {
       lastRotatedAt: nowIso,
       description: typeof fields.description === 'string' ? fields.description.trim() : '',
       palette: colors.palette || [colors.dominant, '#FFFFFF'],
-      viewerConfig,
+      hasCustomViewerConfig,
+      viewerConfig: storedViewerConfig,
       createdAt: nowIso
     };
 
@@ -496,6 +541,7 @@ export async function qrRoutes(fastify, options) {
                 q.scan_count, q.max_scans, q.is_active, q.color_primary, q.color_secondary,
                 q.model_filename, q.metadata, q.created_at, q.updated_at,
                 t.name AS tenant_name,
+                t.default_viewer_config AS tenant_default_viewer_config,
                 u.username AS owner_username,
                 u.full_name AS owner_name
          FROM qr_items q
@@ -540,9 +586,12 @@ export async function qrRoutes(fastify, options) {
     const { qrId } = request.params;
     const baseUrl = resolveRequestBaseUrl(request);
     const result = await db.query(
-      `SELECT id, tenant_id, owner_user_id, view_token, title, target_url, rotation_strategy, scan_count, max_scans,
-              is_active, color_primary, color_secondary, model_filename, metadata, created_at, updated_at
-       FROM qr_items WHERE id = $1`,
+      `SELECT q.id, q.tenant_id, q.owner_user_id, q.view_token, q.title, q.target_url, q.rotation_strategy, q.scan_count, q.max_scans,
+              q.is_active, q.color_primary, q.color_secondary, q.model_filename, q.metadata, q.created_at, q.updated_at,
+              t.default_viewer_config AS tenant_default_viewer_config
+       FROM qr_items q
+       LEFT JOIN tenants t ON t.id = q.tenant_id
+       WHERE q.id = $1`,
       [qrId]
     );
 
@@ -827,19 +876,38 @@ export async function qrRoutes(fastify, options) {
       metadata.description = fields.description.trim();
     }
 
+    const tenantDefaults = await fetchTenantDefaultConfig(item.tenant_id);
+
     if (fields.viewer_config !== undefined) {
-      const parsedCfg = typeof fields.viewer_config === 'string'
-        ? JSON.parse(fields.viewer_config)
-        : fields.viewer_config;
-      metadata.viewerConfig = sanitizeViewerConfig(parsedCfg);
+      let parsedCfg = null;
+      if (fields.viewer_config !== null && fields.viewer_config !== '') {
+        parsedCfg = typeof fields.viewer_config === 'string'
+          ? JSON.parse(fields.viewer_config)
+          : fields.viewer_config;
+      }
+      const wantsReset =
+        parsedCfg === null ||
+        (typeof parsedCfg === 'object' && (parsedCfg.inheritTenant === true || parsedCfg.reset === true));
+      if (wantsReset) {
+        metadata.hasCustomViewerConfig = false;
+        metadata.viewerConfig = null;
+      } else {
+        metadata.hasCustomViewerConfig = true;
+        metadata.viewerConfig = sanitizeViewerConfig(parsedCfg);
+      }
+      const effectiveCfg = resolveEffectiveViewerConfig(
+        metadata.viewerConfig,
+        tenantDefaults,
+        metadata.hasCustomViewerConfig
+      );
       await eventBus.publish(`qr_events:${qrId}`, {
         type: 'viewer_config_updated',
         qrId,
-        viewerConfig: metadata.viewerConfig
+        viewerConfig: effectiveCfg
       });
     }
 
-    // Actualizar paleta e imagen si se subió o eligió una nueva
+    // Actualizar paleta e imagen si se subió o eligió una nueva o si se enviaron colores explícitos
     let colorPrimary = item.color_primary;
     let colorSecondary = item.color_secondary;
     let dominantColor = (metadata.palette && metadata.palette[0]) || item.color_primary || '#1e293b';
@@ -871,9 +939,21 @@ export async function qrRoutes(fastify, options) {
       }
     }
 
+    const explicitPrimary = sanitizeOptionalHexColor(fields.color_primary, null);
+    const explicitSecondary = sanitizeOptionalHexColor(fields.color_secondary, null);
+    if (explicitPrimary) {
+      colorPrimary = explicitPrimary;
+      dominantColor = explicitPrimary;
+      metadata.palette = [explicitPrimary, explicitSecondary || colorSecondary || '#FFFFFF'];
+    }
+    if (explicitSecondary) {
+      colorSecondary = explicitSecondary;
+    }
+
     let newQrPng = item.current_qr_png;
     const imageChanged = Boolean(media.imageBuffer && media.imageBuffer.length > 0);
-    if (shouldRotate || urlChanged || imageChanged) {
+    const colorChanged = colorPrimary !== item.color_primary || colorSecondary !== item.color_secondary;
+    if (shouldRotate || urlChanged || imageChanged || colorChanged) {
       const oldToken = metadata.currentToken || 'initial';
       const token = (shouldRotate || urlChanged || !metadata.currentToken)
         ? crypto.randomBytes(4).toString('hex')
@@ -971,7 +1051,7 @@ export async function qrRoutes(fastify, options) {
         dominantColorHex: dominantColor,
         secondaryColorHex: colorSecondary
       });
-    } else if (imageChanged && item.model_blob) {
+    } else if ((imageChanged || colorChanged) && item.model_blob) {
       newModelBlob = await process3dModel({
         modelBuffer: item.model_blob,
         format: item.model_format || 'glb',
@@ -1035,7 +1115,8 @@ export async function qrRoutes(fastify, options) {
         color_primary: colorPrimary,
         color_secondary: colorSecondary,
         model_filename: newModelFilename,
-        metadata
+        metadata,
+        tenant_default_viewer_config: tenantDefaults
       },
       baseUrl,
       dailyStats
@@ -1144,18 +1225,19 @@ export async function qrRoutes(fastify, options) {
       });
     }
 
-    const [refreshed, dailyStats] = await Promise.all([
+    const [refreshed, dailyStats, tenantDefaults] = await Promise.all([
       findOwnedQrItem(
         qrId,
         request,
         'id, tenant_id, owner_user_id, view_token, title, target_url, rotation_strategy, scan_count, max_scans, is_active, color_primary, color_secondary, model_filename, metadata, created_at, updated_at'
       ),
-      getDailyStatsForQr(qrId)
+      getDailyStatsForQr(qrId),
+      fetchTenantDefaultConfig(item.tenant_id)
     ]);
 
     return reply.send({
       success: true,
-      qr: serializeQrItem(refreshed, baseUrl, dailyStats)
+      qr: serializeQrItem({ ...refreshed, tenant_default_viewer_config: tenantDefaults }, baseUrl, dailyStats)
     });
   }
 
@@ -1188,17 +1270,18 @@ export async function qrRoutes(fastify, options) {
       baseUrl
     });
 
-    const [refreshed, dailyStats] = await Promise.all([
+    const [refreshed, dailyStats, tenantDefaults] = await Promise.all([
       findOwnedQrItem(
         qrId,
         request,
         'id, tenant_id, owner_user_id, view_token, title, target_url, rotation_strategy, scan_count, max_scans, is_active, color_primary, color_secondary, model_filename, metadata, created_at, updated_at'
       ),
-      getDailyStatsForQr(qrId)
+      getDailyStatsForQr(qrId),
+      fetchTenantDefaultConfig(item.tenant_id)
     ]);
     return reply.send({
       success: true,
-      qr: serializeQrItem(refreshed, baseUrl, dailyStats)
+      qr: serializeQrItem({ ...refreshed, tenant_default_viewer_config: tenantDefaults }, baseUrl, dailyStats)
     });
   });
 

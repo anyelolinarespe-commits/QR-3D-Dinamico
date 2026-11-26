@@ -40,7 +40,7 @@ async function resolveApiKeyAuth(apiKey) {
 
   const keyHash = hashApiKey(apiKey);
   const result = await db.query(
-    'SELECT id, name, website_url, api_key_prefix, rate_limit_rpm, is_active FROM tenants WHERE api_key_hash = $1',
+    'SELECT id, name, website_url, api_key_prefix, rate_limit_rpm, is_active, default_viewer_config FROM tenants WHERE api_key_hash = $1',
     [keyHash]
   );
 
@@ -48,7 +48,21 @@ async function resolveApiKeyAuth(apiKey) {
     return null;
   }
 
-  const tenant = result.rows[0];
+  const rawTenant = result.rows[0];
+  let parsedDefaultCfg = {};
+  if (rawTenant.default_viewer_config) {
+    try {
+      parsedDefaultCfg = typeof rawTenant.default_viewer_config === 'string'
+        ? JSON.parse(rawTenant.default_viewer_config)
+        : rawTenant.default_viewer_config;
+    } catch {
+      parsedDefaultCfg = {};
+    }
+  }
+  const tenant = {
+    ...rawTenant,
+    default_viewer_config: parsedDefaultCfg && typeof parsedDefaultCfg === 'object' ? parsedDefaultCfg : {}
+  };
   return {
     authType: 'api_key',
     tenant,

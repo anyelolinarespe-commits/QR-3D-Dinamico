@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS tenants (
     api_key_prefix TEXT NOT NULL,
     is_active INTEGER DEFAULT 1,
     rate_limit_rpm INTEGER DEFAULT 120,
+    default_viewer_config TEXT DEFAULT '{}',
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -344,6 +345,9 @@ export async function initDb(options = {}) {
     const tenantCols = sqliteDb.prepare('PRAGMA table_info(tenants)').all();
     if (!tenantCols.some((c) => c.name === 'website_url')) {
       sqliteDb.exec("ALTER TABLE tenants ADD COLUMN website_url TEXT DEFAULT '';");
+    }
+    if (!tenantCols.some((c) => c.name === 'default_viewer_config')) {
+      sqliteDb.exec("ALTER TABLE tenants ADD COLUMN default_viewer_config TEXT DEFAULT '{}';");
     }
     const qrCols = sqliteDb.prepare('PRAGMA table_info(qr_items)').all();
     if (!qrCols.some((c) => c.name === 'view_token')) {

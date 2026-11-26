@@ -3,6 +3,11 @@ import { config } from '../config/env.js';
 import { eventBus } from '../config/redis.js';
 import { generateQrMatrix } from '../services/qr.service.js';
 import {
+  sanitizeOptionalHexColor,
+  sanitizeViewerConfig,
+  VIEWER_PRESETS
+} from '../services/viewerConfig.service.js';
+import {
   buildScanUrl,
   ensureQrPngForBaseUrl,
   getDailyStatsForQr,
@@ -77,11 +82,202 @@ function renderStatusPage({ statusTitle, badgeText, message, icon = '🔒' }) {
 </html>`;
 }
 
-function renderUnifiedViewPage(viewData) {
+function parseQueryBool(val) {
+  if (val === undefined || val === null || val === '') return null;
+  const norm = String(val).trim().toLowerCase();
+  if (norm === '1' || norm === 'true' || norm === 'yes' || norm === 'on') return true;
+  if (norm === '0' || norm === 'false' || norm === 'no' || norm === 'off') return false;
+  return null;
+}
+
+function resolveViewOptions(baseViewerConfig, query = {}) {
+  const cfg = { ...baseViewerConfig };
+  const attrs = {};
+  const q = query && typeof query === 'object' ? query : {};
+
+  const embed = parseQueryBool(q.embed) === true;
+  const rawTheme = typeof q.theme === 'string' ? q.theme.trim().toLowerCase() : (typeof q.preset === 'string' ? q.preset.trim().toLowerCase() : '');
+  const themeAliases = { light: 'warm_sand', dark: 'warm_dark', munay: 'warm_sand' };
+  const resolvedPreset = themeAliases[rawTheme] || rawTheme;
+  if (resolvedPreset && VIEWER_PRESETS[resolvedPreset]) {
+    Object.assign(cfg, VIEWER_PRESETS[resolvedPreset]);
+    attrs.theme = resolvedPreset;
+  }
+
+  const rawUiTheme = typeof q.ui_theme === 'string' ? q.ui_theme.trim().toLowerCase() : '';
+  if (['auto', 'light', 'dark', 'custom'].includes(rawUiTheme)) {
+    cfg.uiTheme = rawUiTheme;
+    attrs['ui-theme'] = rawUiTheme;
+  }
+
+  const transparentParam = parseQueryBool(q.transparent);
+  if (transparentParam === true || String(q.bg || '').trim().toLowerCase() === 'transparent') {
+    cfg.backgroundPreset = 'transparent';
+    attrs.transparent = 'true';
+  } else if (typeof q.bg === 'string' && q.bg.trim()) {
+    const bgHex = sanitizeOptionalHexColor(q.bg, null);
+    if (bgHex) {
+      cfg.mode = 'manual';
+      cfg.preset = 'custom';
+      cfg.backgroundPreset = 'custom';
+      cfg.backgroundColor = bgHex;
+      attrs['bg-color'] = bgHex;
+    } else if (VIEWER_PRESETS[q.bg.trim().toLowerCase()]) {
+      cfg.backgroundPreset = q.bg.trim().toLowerCase();
+      attrs['bg-preset'] = cfg.backgroundPreset;
+    }
+  }
+
+  const accentHex = sanitizeOptionalHexColor(q.accent, null);
+  if (accentHex) {
+    cfg.accentColor = accentHex;
+    attrs['accent-color'] = accentHex;
+  }
+  const surfaceHex = sanitizeOptionalHexColor(q.surface, null);
+  if (surfaceHex) {
+    cfg.surfaceColor = surfaceHex;
+    attrs['surface-color'] = surfaceHex;
+  }
+  const textHex = sanitizeOptionalHexColor(q.text, null);
+  if (textHex) {
+    cfg.textColor = textHex;
+    attrs['text-color'] = textHex;
+  }
+
+  const toolbarParam = parseQueryBool(q.toolbar);
+  if (toolbarParam !== null) {
+    cfg.showToolbar = toolbarParam;
+    attrs['hide-toolbar'] = toolbarParam ? 'false' : 'true';
+  }
+
+  const hintParam = parseQueryBool(q.hint);
+  if (hintParam !== null) {
+    cfg.showHint = hintParam;
+    attrs['hide-hint'] = hintParam ? 'false' : 'true';
+  }
+
+  const totemParam = parseQueryBool(q.totem);
+  if (totemParam !== null) {
+    cfg.showTotem = totemParam;
+    attrs['show-totem'] = totemParam ? 'true' : 'false';
+  }
+
+  const revealParam = typeof q.reveal === 'string' ? q.reveal.trim().toLowerCase() : '';
+  if (revealParam === 'blocks' || revealParam === 'fade') {
+    cfg.qrRevealStyle = revealParam;
+    attrs['qr-reveal'] = revealParam;
+  }
+
+  const badgeParam = parseQueryBool(q.badge);
+  const hideBadge = embed ? (badgeParam === null ? false : !badgeParam) : (badgeParam === null ? true : !badgeParam);
+
+  return {
+    embed,
+    hideBadge,
+    attrs,
+    viewerConfig: sanitizeViewerConfig(cfg)
+  };
+}
+
+function isLightUiConfig(cfg) {
+  if (cfg.uiTheme === 'light') return true;
+  if (cfg.uiTheme === 'dark') return false;
+  if (['warm_sand', 'light_studio', 'outdoor', 'transparent'].includes(cfg.backgroundPreset)) return true;
+  if (cfg.backgroundPreset === 'custom' && /^#[0-9a-fA-F]{6}$/.test(cfg.backgroundColor || '')) {
+    const hex = cfg.backgroundColor;
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return (0.299 * r + 0.587 * g + 0.114 * b) > 155;
+  }
+  return false;
+}
+
+function renderEmbedOnlyPage(viewData, options) {
+  const safeTitle = escapeHtml(viewData.title);
+  const safeToken = escapeHtml(viewData.viewToken);
+  const cfg = options.viewerConfig;
+  const isTransparent = cfg.backgroundPreset === 'transparent';
+  const isLight = isLightUiConfig(cfg);
+
+  const attrPairs = [
+    `id="unified-viewer"`,
+    `view-token="${safeToken}"`,
+    `ar-title="${safeTitle}"`,
+    `flat="true"`,
+    `hide-badge="${options.hideBadge ? 'true' : 'false'}"`,
+    `viewer-config="${escapeHtml(JSON.stringify(cfg))}"`,
+    `width="100%"`,
+    `height="100%"`
+  ];
+  for (const [k, v] of Object.entries(options.attrs)) {
+    attrPairs.push(`${escapeHtml(k)}="${escapeHtml(v)}"`);
+  }
+
+  const cssVars = [];
+  if (cfg.accentColor) {
+    cssVars.push(`--qr3d-accent:${escapeHtml(cfg.accentColor)};`);
+    cssVars.push(`--qr3d-toast-bg:${escapeHtml(cfg.accentColor)};`);
+  }
+  if (cfg.surfaceColor) cssVars.push(`--qr3d-surface:${escapeHtml(cfg.surfaceColor)};`);
+  if (cfg.textColor) cssVars.push(`--qr3d-text:${escapeHtml(cfg.textColor)};`);
+
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>${safeTitle}</title>
+  <script src="/widget/3dqr-viewer.js" type="module"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: ${isTransparent ? 'transparent' : (isLight ? '#f4efe6' : '#070a11')};
+    }
+    qr-3d-viewer {
+      width: 100%;
+      height: 100%;
+      display: block;
+      ${cssVars.join(' ')}
+    }
+  </style>
+</head>
+<body>
+  <qr-3d-viewer ${attrPairs.join(' ')}></qr-3d-viewer>
+</body>
+</html>`;
+}
+
+function renderUnifiedViewPage(viewData, query = {}) {
+  const options = resolveViewOptions(viewData.viewerConfig, query);
+  if (options.embed) {
+    return renderEmbedOnlyPage(viewData, options);
+  }
+
+  const effectiveCfg = options.viewerConfig;
+  const isLightUi = isLightUiConfig(effectiveCfg);
+  const accentHex = effectiveCfg.accentColor || (isLightUi ? '#0f3d2e' : '#0284c7');
+  const pageBgCss = isLightUi
+    ? (effectiveCfg.backgroundPreset === 'custom' && effectiveCfg.backgroundColor
+        ? `radial-gradient(circle at 30% 20%, ${escapeHtml(effectiveCfg.backgroundColor)} 0%, #e7dfd0 85%)`
+        : 'radial-gradient(circle at 30% 20%, #faf8f4 0%, #ebe3d5 80%)')
+    : 'radial-gradient(circle at 30% 20%, #141c2f 0%, #070a11 72%)';
+  const panelBgCss = escapeHtml(effectiveCfg.surfaceColor || (isLightUi ? 'rgba(255, 255, 255, 0.94)' : '#101624'));
+  const dockBgCss = escapeHtml(effectiveCfg.surfaceColor || (isLightUi ? 'rgba(255, 255, 255, 0.96)' : 'rgba(16, 22, 36, 0.92)'));
+  const textMainCss = escapeHtml(effectiveCfg.textColor || (isLightUi ? '#0f172a' : '#f8fafc'));
+  const mutedCss = isLightUi ? '#475569' : '#94a3b8';
+  const borderCss = isLightUi ? 'rgba(15, 23, 42, 0.12)' : 'rgba(148, 163, 184, 0.16)';
   const safeTitle = escapeHtml(viewData.title);
   const safeDesc = escapeHtml(viewData.description);
   const safeToken = escapeHtml(viewData.viewToken);
   const isStatic = viewData.linkMode === 'static';
+  const extraViewerAttrs = Object.entries(options.attrs)
+    .map(([k, v]) => `${escapeHtml(k)}="${escapeHtml(v)}"`)
+    .join(' ');
   const initialDataJson = JSON.stringify({
     viewToken: viewData.viewToken,
     linkMode: viewData.linkMode,
@@ -124,18 +320,19 @@ function renderUnifiedViewPage(viewData) {
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --bg: #070a11;
-      --panel: #101624;
-      --panel-border: rgba(148, 163, 184, 0.16);
-      --text: #f8fafc;
-      --muted: #94a3b8;
-      --accent: #38bdf8;
-      --accent-green: #22c55e;
+      --bg: ${isLightUi ? '#f5efe6' : '#070a11'};
+      --panel: ${panelBgCss};
+      --dock-bg: ${dockBgCss};
+      --panel-border: ${borderCss};
+      --text: ${textMainCss};
+      --muted: ${mutedCss};
+      --accent: ${escapeHtml(accentHex)};
+      --accent-green: ${isLightUi ? '#0f3d2e' : '#22c55e'};
       --accent-amber: #f59e0b;
     }
     html, body {
       height: 100%;
-      background: radial-gradient(circle at 30% 20%, #141c2f 0%, #070a11 72%);
+      background: ${pageBgCss};
       color: var(--text);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
@@ -149,7 +346,7 @@ function renderUnifiedViewPage(viewData) {
       margin: 0 auto;
     }
     .topbar {
-      background: rgba(16, 22, 36, 0.85);
+      background: var(--dock-bg);
       backdrop-filter: blur(12px);
       border: 1px solid var(--panel-border);
       border-radius: 16px;
@@ -164,7 +361,7 @@ function renderUnifiedViewPage(viewData) {
       font-size: 20px;
       font-weight: 800;
       letter-spacing: -0.02em;
-      color: #f8fafc;
+      color: var(--text);
     }
     .title-block p {
       font-size: 13px;
@@ -189,19 +386,19 @@ function renderUnifiedViewPage(viewData) {
       border: 1px solid;
     }
     .pill-static {
-      background: rgba(56, 189, 248, 0.14);
-      color: #7dd3fc;
-      border-color: rgba(56, 189, 248, 0.35);
+      background: ${isLightUi ? 'rgba(14, 116, 144, 0.10)' : 'rgba(56, 189, 248, 0.14)'};
+      color: ${isLightUi ? '#0e7490' : '#7dd3fc'};
+      border-color: ${isLightUi ? 'rgba(14, 116, 144, 0.28)' : 'rgba(56, 189, 248, 0.35)'};
     }
     .pill-dynamic {
-      background: rgba(245, 158, 11, 0.16);
-      color: #fcd34d;
-      border-color: rgba(245, 158, 11, 0.38);
+      background: ${isLightUi ? 'rgba(217, 119, 6, 0.10)' : 'rgba(245, 158, 11, 0.16)'};
+      color: ${isLightUi ? '#b45309' : '#fcd34d'};
+      border-color: ${isLightUi ? 'rgba(217, 119, 6, 0.28)' : 'rgba(245, 158, 11, 0.38)'};
     }
     .pill-live {
-      background: rgba(34, 197, 94, 0.14);
-      color: #86efac;
-      border-color: rgba(34, 197, 94, 0.34);
+      background: ${isLightUi ? 'rgba(15, 61, 46, 0.10)' : 'rgba(34, 197, 94, 0.14)'};
+      color: ${isLightUi ? '#065f46' : '#86efac'};
+      border-color: ${isLightUi ? 'rgba(15, 61, 46, 0.28)' : 'rgba(34, 197, 94, 0.34)'};
     }
     .live-dot {
       width: 8px;
@@ -247,7 +444,7 @@ function renderUnifiedViewPage(viewData) {
     }
 
     .qr-dock {
-      background: rgba(16, 22, 36, 0.92);
+      background: var(--dock-bg);
       border: 1px solid var(--panel-border);
       border-radius: 18px;
       padding: 22px;
@@ -255,7 +452,7 @@ function renderUnifiedViewPage(viewData) {
       flex-direction: column;
       justify-content: space-between;
       gap: 16px;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+      box-shadow: ${isLightUi ? '0 16px 36px rgba(15, 23, 42, 0.10)' : '0 20px 40px rgba(0, 0, 0, 0.45)'};
       position: relative;
       overflow: hidden;
     }
@@ -268,7 +465,7 @@ function renderUnifiedViewPage(viewData) {
     .qr-dock-head h2 {
       font-size: 16px;
       font-weight: 800;
-      color: #f8fafc;
+      color: var(--text);
     }
     .qr-tag {
       font-size: 11px;
@@ -277,8 +474,8 @@ function renderUnifiedViewPage(viewData) {
       letter-spacing: 0.05em;
       padding: 4px 10px;
       border-radius: 9999px;
-      background: rgba(255, 255, 255, 0.07);
-      color: #cbd5e1;
+      background: ${isLightUi ? 'rgba(15, 23, 42, 0.06)' : 'rgba(255, 255, 255, 0.07)'};
+      color: ${isLightUi ? '#334155' : '#cbd5e1'};
     }
     .qr-frame-wrap {
       display: flex;
@@ -296,7 +493,7 @@ function renderUnifiedViewPage(viewData) {
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 14px 32px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.14);
+      box-shadow: ${isLightUi ? '0 10px 24px rgba(15, 23, 42, 0.10), 0 0 0 1px rgba(15, 23, 42, 0.08)' : '0 14px 32px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.14)'};
       position: relative;
       transition: transform 0.28s ease, box-shadow 0.28s ease;
     }
@@ -318,8 +515,8 @@ function renderUnifiedViewPage(viewData) {
 
     .countdown-box {
       width: 100%;
-      background: rgba(15, 23, 42, 0.85);
-      border: 1px solid rgba(148, 163, 184, 0.18);
+      background: ${isLightUi ? 'rgba(15, 23, 42, 0.04)' : 'rgba(15, 23, 42, 0.85)'};
+      border: 1px solid ${isLightUi ? 'rgba(15, 23, 42, 0.12)' : 'rgba(148, 163, 184, 0.18)'};
       border-radius: 12px;
       padding: 10px 12px;
       display: flex;
@@ -331,20 +528,20 @@ function renderUnifiedViewPage(viewData) {
       justify-content: space-between;
       align-items: center;
       font-size: 12px;
-      color: #cbd5e1;
+      color: ${isLightUi ? '#334155' : '#cbd5e1'};
       font-weight: 600;
     }
     .countdown-timer {
       font-family: monospace;
       font-size: 13px;
-      color: #fcd34d;
+      color: ${isLightUi ? '#b45309' : '#fcd34d'};
       font-weight: 700;
     }
     .progress-track {
       width: 100%;
       height: 6px;
       border-radius: 9999px;
-      background: rgba(255, 255, 255, 0.08);
+      background: ${isLightUi ? 'rgba(15, 23, 42, 0.10)' : 'rgba(255, 255, 255, 0.08)'};
       overflow: hidden;
     }
     .progress-bar {
@@ -355,17 +552,17 @@ function renderUnifiedViewPage(viewData) {
     }
 
     .info-panel {
-      background: rgba(255, 255, 255, 0.035);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: ${isLightUi ? 'rgba(15, 23, 42, 0.03)' : 'rgba(255, 255, 255, 0.035)'};
+      border: 1px solid ${isLightUi ? 'rgba(15, 23, 42, 0.08)' : 'rgba(255, 255, 255, 0.08)'};
       border-radius: 12px;
       padding: 12px 14px;
       font-size: 12.5px;
-      color: #cbd5e1;
+      color: ${isLightUi ? '#334155' : '#cbd5e1'};
       line-height: 1.5;
     }
     .daily-counter-card {
-      background: linear-gradient(135deg, rgba(14, 165, 233, 0.14), rgba(34, 197, 94, 0.1));
-      border: 1px solid rgba(56, 189, 248, 0.3);
+      background: ${isLightUi ? 'rgba(15, 61, 46, 0.06)' : 'linear-gradient(135deg, rgba(14, 165, 233, 0.14), rgba(34, 197, 94, 0.1))'};
+      border: 1px solid ${isLightUi ? 'rgba(15, 61, 46, 0.22)' : 'rgba(56, 189, 248, 0.3)'};
       border-radius: 12px;
       padding: 11px 13px;
       margin-bottom: 10px;
@@ -381,7 +578,7 @@ function renderUnifiedViewPage(viewData) {
       align-items: center;
       font-size: 11.5px;
       font-weight: 700;
-      color: #bae6fd;
+      color: ${isLightUi ? '#0f3d2e' : '#bae6fd'};
       margin-bottom: 8px;
       text-transform: uppercase;
       letter-spacing: 0.04em;
@@ -389,8 +586,8 @@ function renderUnifiedViewPage(viewData) {
     .daily-date-chip {
       font-family: monospace;
       font-size: 11px;
-      color: #86efac;
-      background: rgba(16, 185, 129, 0.16);
+      color: ${isLightUi ? '#065f46' : '#86efac'};
+      background: ${isLightUi ? 'rgba(16, 185, 129, 0.14)' : 'rgba(16, 185, 129, 0.16)'};
       padding: 2px 7px;
       border-radius: 9999px;
       border: 1px solid rgba(52, 211, 153, 0.35);
@@ -401,8 +598,8 @@ function renderUnifiedViewPage(viewData) {
       gap: 8px;
     }
     .daily-metric {
-      background: rgba(15, 23, 42, 0.65);
-      border: 1px solid rgba(148, 163, 184, 0.16);
+      background: ${isLightUi ? '#ffffff' : 'rgba(15, 23, 42, 0.65)'};
+      border: 1px solid ${isLightUi ? 'rgba(15, 23, 42, 0.10)' : 'rgba(148, 163, 184, 0.16)'};
       border-radius: 9px;
       padding: 8px 10px;
       text-align: center;
@@ -411,13 +608,13 @@ function renderUnifiedViewPage(viewData) {
       display: block;
       font-size: 20px;
       font-weight: 800;
-      color: #ffffff;
+      color: ${isLightUi ? '#0f172a' : '#ffffff'};
       line-height: 1.15;
     }
     .daily-metric-label {
       display: block;
       font-size: 11px;
-      color: #94a3b8;
+      color: var(--muted);
       margin-top: 2px;
     }
     .meta-rows {
@@ -426,7 +623,7 @@ function renderUnifiedViewPage(viewData) {
       gap: 6px;
       margin-top: 10px;
       padding-top: 10px;
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      border-top: 1px solid ${isLightUi ? 'rgba(15, 23, 42, 0.08)' : 'rgba(255, 255, 255, 0.08)'};
       font-size: 12px;
       color: var(--muted);
     }
@@ -437,13 +634,13 @@ function renderUnifiedViewPage(viewData) {
       gap: 8px;
     }
     .meta-row strong {
-      color: #e2e8f0;
+      color: ${isLightUi ? '#0f172a' : '#e2e8f0'};
       font-weight: 700;
     }
 
     .btn-aerial-toggle {
       width: 100%;
-      background: linear-gradient(135deg, #0284c7, #2563eb);
+      background: ${effectiveCfg.accentColor ? escapeHtml(effectiveCfg.accentColor) : (isLightUi ? '#0f3d2e' : 'linear-gradient(135deg, #0284c7, #2563eb)')};
       color: #ffffff;
       border: none;
       border-radius: 12px;
@@ -528,8 +725,9 @@ function renderUnifiedViewPage(viewData) {
           id="unified-viewer"
           view-token="${safeToken}"
           ar-title="${safeTitle}"
-          viewer-config="${escapeHtml(JSON.stringify(viewData.viewerConfig))}"
-          hide-badge="true"
+          viewer-config="${escapeHtml(JSON.stringify(effectiveCfg))}"
+          hide-badge="${options.hideBadge ? 'true' : 'false'}"
+          ${extraViewerAttrs}
           width="100%"
           height="100%">
         </qr-3d-viewer>
@@ -821,7 +1019,11 @@ function renderUnifiedViewPage(viewData) {
 
 async function findActiveViewItem(viewToken, { allowInactive = false } = {}) {
   const result = await db.query(
-    `SELECT * FROM qr_items WHERE view_token = $1 LIMIT 1`,
+    `SELECT q.*, t.default_viewer_config AS tenant_default_viewer_config
+     FROM qr_items q
+     LEFT JOIN tenants t ON t.id = q.tenant_id
+     WHERE q.view_token = $1
+     LIMIT 1`,
     [viewToken]
   );
   if (result.rows.length === 0) {
@@ -871,7 +1073,7 @@ export async function viewRoutes(fastify) {
 
     const dailyStats = await getDailyStatsForQr(item.id);
     const viewData = serializePublicViewData(item, resolveRequestBaseUrl(request), dailyStats);
-    return reply.type('text/html').send(renderUnifiedViewPage(viewData));
+    return reply.type('text/html').send(renderUnifiedViewPage(viewData, request.query || {}));
   });
 
   // 2. Metadatos públicos seguros para la vista (sin target_url, ni tenant_id, ni currentToken)

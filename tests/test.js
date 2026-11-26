@@ -1282,8 +1282,152 @@ async function runTests() {
   assert.strictEqual(resAdminAfterSiteSuspend.statusCode, 401);
   console.log('✅ Cambio de contraseña, logout y revocación inmediata por suspensión verificados.');
 
-  // Test 27: Respuesta explícita 503 cuando el servicio / base de datos no se activó
-  console.log('\nTest 27: Verificando bloqueo y mensaje de error 503 si el servicio no se activó...');
+  // Test 27: Tema por defecto del Tenant, cascada de configuración y colores explícitos del QR
+  console.log('\nTest 27: Verificando tema por defecto del Tenant, herencia y colores explícitos de QR...');
+  const resCreateMunay = await app.inject({
+    method: 'POST',
+    url: '/api/tenants',
+    headers: { authorization: superBearer, 'content-type': 'application/json' },
+    payload: JSON.stringify({
+      name: 'Munay Turismo',
+      website_url: 'https://munay.pe',
+      default_viewer_config: {
+        preset: 'warm_sand',
+        uiTheme: 'light',
+        accentColor: '#0f3d2e',
+        showToolbar: false,
+        showHint: false,
+        qrRevealStyle: 'blocks',
+        qrColorPrimary: '#0f3d2e',
+        qrColorSecondary: '#ffffff'
+      }
+    })
+  });
+  assert.strictEqual(resCreateMunay.statusCode, 201, resCreateMunay.body);
+  const munayTenantJson = JSON.parse(resCreateMunay.body);
+  const munayKey = munayTenantJson.tenant.apiKey;
+  assert.strictEqual(munayTenantJson.tenant.default_viewer_config.accentColor, '#0f3d2e');
+  assert.strictEqual(munayTenantJson.tenant.default_viewer_config.qrRevealStyle, 'blocks');
+
+  const resMunayMe = await app.inject({
+    method: 'GET',
+    url: '/api/tenants/me',
+    headers: { 'x-api-key': munayKey }
+  });
+  assert.strictEqual(resMunayMe.statusCode, 200);
+  const munayMeJson = JSON.parse(resMunayMe.body);
+  assert.strictEqual(munayMeJson.tenant.default_viewer_config.preset, 'warm_sand');
+  assert.strictEqual(munayMeJson.tenant.default_viewer_config.showToolbar, false);
+
+  // Crear QR en Munay sin enviar viewer_config ni color_primary -> debe heredar todo del tenant
+  const resMunayQr = await app.inject({
+    method: 'POST',
+    url: '/api/qr',
+    headers: { 'x-api-key': munayKey, 'content-type': 'application/json' },
+    payload: JSON.stringify({
+      title: 'Museo Tumbas Reales de Sipán — Munay',
+      target_url: 'https://munay.pe/sipan'
+    })
+  });
+  assert.strictEqual(resMunayQr.statusCode, 201, resMunayQr.body);
+  const munayQr = JSON.parse(resMunayQr.body).qr;
+  assert.strictEqual(munayQr.colors.primary, '#0f3d2e');
+  assert.strictEqual(munayQr.colors.secondary, '#ffffff');
+  assert.strictEqual(munayQr.viewerConfig.preset, 'warm_sand');
+  assert.strictEqual(munayQr.viewerConfig.uiTheme, 'light');
+  assert.strictEqual(munayQr.viewerConfig.accentColor, '#0f3d2e');
+  assert.strictEqual(munayQr.viewerConfig.showToolbar, false);
+  assert.strictEqual(munayQr.viewerConfig.showHint, false);
+  assert.strictEqual(munayQr.viewerConfig.qrRevealStyle, 'blocks');
+
+  const munayMetaRes = await app.inject({ method: 'GET', url: `/view/${munayQr.viewToken}/meta` });
+  assert.strictEqual(munayMetaRes.statusCode, 200);
+  const munayMeta = JSON.parse(munayMetaRes.body);
+  assert.strictEqual(munayMeta.viewerConfig.accentColor, '#0f3d2e');
+  assert.strictEqual(munayMeta.viewerConfig.qrRevealStyle, 'blocks');
+
+  // Si el sitio actualiza su tema por defecto, el QR que hereda del sitio recibe el cambio automáticamente
+  const resPatchMunayTheme = await app.inject({
+    method: 'PATCH',
+    url: '/api/tenants/me',
+    headers: { 'x-api-key': munayKey, 'content-type': 'application/json' },
+    payload: JSON.stringify({
+      default_viewer_config: {
+        preset: 'warm_sand',
+        uiTheme: 'light',
+        accentColor: '#14532d',
+        showToolbar: false,
+        showHint: true,
+        qrRevealStyle: 'blocks'
+      }
+    })
+  });
+  assert.strictEqual(resPatchMunayTheme.statusCode, 200);
+  const munayMetaAfterTheme = JSON.parse((await app.inject({ method: 'GET', url: `/view/${munayQr.viewToken}/meta` })).body);
+  assert.strictEqual(munayMetaAfterTheme.viewerConfig.accentColor, '#14532d');
+  assert.strictEqual(munayMetaAfterTheme.viewerConfig.showHint, true);
+
+  // Override manual en ese QR + colores explícitos y luego revertir con inheritTenant
+  const resMunayOverride = await app.inject({
+    method: 'PUT',
+    url: `/api/qr/${munayQr.id}`,
+    headers: { 'x-api-key': munayKey, 'content-type': 'application/json' },
+    payload: JSON.stringify({
+      color_primary: '#166534',
+      color_secondary: '#f8fafc',
+      viewer_config: {
+        mode: 'manual',
+        preset: 'custom',
+        backgroundPreset: 'custom',
+        backgroundColor: '#112233',
+        uiTheme: 'dark'
+      }
+    })
+  });
+  assert.strictEqual(resMunayOverride.statusCode, 200);
+  const munayOverrideJson = JSON.parse(resMunayOverride.body);
+  assert.strictEqual(munayOverrideJson.qr.color_primary, '#166534');
+  assert.strictEqual(munayOverrideJson.qr.color_secondary, '#f8fafc');
+  assert.strictEqual(munayOverrideJson.qr.viewerConfig.backgroundColor, '#112233');
+  assert.strictEqual(munayOverrideJson.qr.viewerConfig.uiTheme, 'dark');
+
+  const resMunayRevert = await app.inject({
+    method: 'PUT',
+    url: `/api/qr/${munayQr.id}`,
+    headers: { 'x-api-key': munayKey, 'content-type': 'application/json' },
+    payload: JSON.stringify({ viewer_config: { inheritTenant: true } })
+  });
+  assert.strictEqual(resMunayRevert.statusCode, 200);
+  assert.strictEqual(JSON.parse(resMunayRevert.body).viewerConfig.accentColor, '#14532d');
+  console.log('✅ Tema por defecto del Tenant, herencia en cascada y colores explícitos verificados.');
+
+  // Test 28: Vista pública con modo ?embed=1, parámetros de tema y presets nuevos
+  console.log('\nTest 28: Verificando /view/:viewToken con ?embed=1 y parámetros de paleta...');
+  const resPresets2 = await app.inject({ method: 'GET', url: '/api/viewer-presets' });
+  const presets2 = JSON.parse(resPresets2.body).presets;
+  assert.ok(presets2.warm_sand && presets2.transparent, 'Debe incluir presets warm_sand y transparent');
+
+  const resFullLightView = await app.inject({ method: 'GET', url: `/view/${munayQr.viewToken}` });
+  assert.strictEqual(resFullLightView.statusCode, 200);
+  assert.ok(resFullLightView.body.includes('#14532d'), 'Vista completa debe aplicar el color de acento heredado');
+
+  const resEmbedView = await app.inject({
+    method: 'GET',
+    url: `/view/${munayQr.viewToken}?embed=1&transparent=1&toolbar=0&hint=0&accent=0f3d2e&reveal=blocks&badge=0`
+  });
+  assert.strictEqual(resEmbedView.statusCode, 200);
+  assert.ok(!resEmbedView.body.includes('class="topbar"'), 'Modo ?embed=1 no debe renderizar topbar');
+  assert.ok(!resEmbedView.body.includes('id="dock-qr-img"'), 'Modo ?embed=1 no debe renderizar dock lateral');
+  assert.ok(resEmbedView.body.includes('transparent="true"'), 'Modo ?embed=1 debe pasar transparent="true"');
+  assert.ok(resEmbedView.body.includes('hide-toolbar="true"'), 'Modo ?embed=1 debe ocultar toolbar');
+  assert.ok(resEmbedView.body.includes('hide-hint="true"'), 'Modo ?embed=1 debe ocultar hint');
+  assert.ok(resEmbedView.body.includes('qr-reveal="blocks"'), 'Modo ?embed=1 debe pasar qr-reveal="blocks"');
+  assert.ok(resEmbedView.body.includes('--qr3d-accent:#0f3d2e'), 'Modo ?embed=1 debe aplicar CSS var --qr3d-accent');
+  assert.ok(!resEmbedView.body.includes('/admin'), 'Modo ?embed=1 no debe enlazar a /admin');
+  console.log('✅ Modo ?embed=1, parámetros de paleta y presets nuevos verificados.');
+
+  // Test 29: Respuesta explícita 503 cuando el servicio / base de datos no se activó
+  console.log('\nTest 29: Verificando bloqueo y mensaje de error 503 si el servicio no se activó...');
   setDbErrorForTest('Fallo simulado de base de datos');
 
   const resHealthDown = await app.inject({ method: 'GET', url: '/health' });
@@ -1307,7 +1451,7 @@ async function runTests() {
   assert.strictEqual(resViewDown.statusCode, 503);
   console.log('✅ Estado inactivo (503 SERVICE_INACTIVE) verificado correctamente.');
 
-  console.log('\n🎉 ¡TODAS LAS PRUEBAS (27/27) PASARON SATISFACTORIAMENTE!\n');
+  console.log('\n🎉 ¡TODAS LAS PRUEBAS (29/29) PASARON SATISFACTORIAMENTE!\n');
   } finally {
     stopQrRotationScheduler();
     if (app) await app.close().catch(() => {});

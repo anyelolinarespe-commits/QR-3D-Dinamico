@@ -7,6 +7,7 @@ import {
   hashPassword,
   serializeUser
 } from '../services/auth.service.js';
+import { sanitizeTenantDefaultConfig } from '../services/viewerConfig.service.js';
 
 function sanitizeWebsiteUrl(raw) {
   if (raw === undefined || raw === null) return '';
@@ -16,25 +17,34 @@ function sanitizeWebsiteUrl(raw) {
   return `https://${trimmed}`.slice(0, 500);
 }
 
+function parseTenantDefaultConfig(raw) {
+  return sanitizeTenantDefaultConfig(raw);
+}
+
 export async function tenantRoutes(fastify) {
   // Información del sitio/tenant actual
   fastify.get('/api/tenants/me', { preHandler: [requireAuth] }, async (request, reply) => {
+    const defaultConfig = parseTenantDefaultConfig(request.tenant.default_viewer_config);
     if (request.authUser?.role === 'user') {
       return reply.send({
         tenant: {
           id: request.tenant.id,
           name: request.tenant.name,
           website_url: request.tenant.website_url || '',
-          is_active: Boolean(request.tenant.is_active)
+          is_active: Boolean(request.tenant.is_active),
+          default_viewer_config: defaultConfig
         }
       });
     }
     return reply.send({
-      tenant: request.tenant
+      tenant: {
+        ...request.tenant,
+        default_viewer_config: defaultConfig
+      }
     });
   });
 
-  // Actualizar nombre o URL del sitio web administrado (Administrador de sitio)
+  // Actualizar nombre, URL o tema visual por defecto del sitio web administrado (Administrador de sitio)
   fastify.patch('/api/tenants/me', { preHandler: [requireRole('admin')] }, async (request, reply) => {
     const body = request.body && typeof request.body === 'object' ? request.body : {};
     const current = request.tenant;
@@ -45,20 +55,27 @@ export async function tenantRoutes(fastify) {
     const nextWebsite = body.website_url !== undefined
       ? sanitizeWebsiteUrl(body.website_url)
       : (current.website_url || '');
+    const nextDefaultConfig = body.default_viewer_config !== undefined
+      ? parseTenantDefaultConfig(body.default_viewer_config)
+      : parseTenantDefaultConfig(current.default_viewer_config);
 
     await db.query(
-      'UPDATE tenants SET name = $1, website_url = $2 WHERE id = $3',
-      [nextName, nextWebsite, current.id]
+      'UPDATE tenants SET name = $1, website_url = $2, default_viewer_config = $3 WHERE id = $4',
+      [nextName, nextWebsite, JSON.stringify(nextDefaultConfig), current.id]
     );
 
     const refreshed = await db.query(
-      'SELECT id, name, website_url, api_key_prefix, is_active, rate_limit_rpm, created_at FROM tenants WHERE id = $1',
+      'SELECT id, name, website_url, api_key_prefix, is_active, rate_limit_rpm, default_viewer_config, created_at FROM tenants WHERE id = $1',
       [current.id]
     );
+    const row = refreshed.rows[0];
 
     return reply.send({
       success: true,
-      tenant: refreshed.rows[0]
+      tenant: {
+        ...row,
+        default_viewer_config: parseTenantDefaultConfig(row.default_viewer_config)
+      }
     });
   });
 
@@ -84,7 +101,7 @@ export async function tenantRoutes(fastify) {
   // Listar todos los sitios/tenants (solo Superadmin)
   fastify.get('/api/tenants', { preHandler: [requireRole('superadmin')] }, async (request, reply) => {
     const res = await db.query(
-      `SELECT t.id, t.name, t.website_url, t.api_key_prefix, t.is_active, t.rate_limit_rpm, t.created_at,
+      `SELECT t.id, t.name, t.website_url, t.api_key_prefix, t.is_active, t.rate_limit_rpm, t.default_viewer_config, t.created_at,
               (SELECT COUNT(*) FROM users u WHERE u.tenant_id = t.id AND u.role = 'admin') AS admin_count,
               (SELECT COUNT(*) FROM users u WHERE u.tenant_id = t.id AND u.role = 'user') AS user_count,
               (SELECT COUNT(*) FROM qr_items q WHERE q.tenant_id = t.id) AS qr_count,
@@ -102,6 +119,7 @@ export async function tenantRoutes(fastify) {
         api_key_prefix: r.api_key_prefix,
         is_active: Boolean(r.is_active),
         rate_limit_rpm: Number(r.rate_limit_rpm || 120),
+        default_viewer_config: parseTenantDefaultConfig(r.default_viewer_config),
         created_at: r.created_at,
         adminCount: Number(r.admin_count || 0),
         userCount: Number(r.user_count || 0),
@@ -118,6 +136,7 @@ export async function tenantRoutes(fastify) {
     const name = String(body.name || '').trim();
     const rateLimitRpm = Math.max(10, parseInt(body.rate_limit_rpm || '120', 10) || 120);
     const websiteUrl = sanitizeWebsiteUrl(body.website_url);
+    const defaultViewerConfig = parseTenantDefaultConfig(body.default_viewer_config);
 
     if (!name) {
       return reply.status(400).send({ error: 'El nombre del sitio/inquilino es requerido' });
@@ -170,9 +189,9 @@ export async function tenantRoutes(fastify) {
     const prefix = rawApiKey.slice(0, 10);
 
     await db.query(
-      `INSERT INTO tenants (id, name, website_url, api_key_hash, api_key_prefix, is_active, rate_limit_rpm)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [tenantId, name, websiteUrl, keyHash, prefix, true, rateLimitRpm]
+      `INSERT INTO tenants (id, name, website_url, api_key_hash, api_key_prefix, is_active, rate_limit_rpm, default_viewer_config)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [tenantId, name, websiteUrl, keyHash, prefix, true, rateLimitRpm, JSON.stringify(defaultViewerConfig)]
     );
 
     let createdAdmin = null;
@@ -204,6 +223,7 @@ export async function tenantRoutes(fastify) {
         apiKey: rawApiKey, // Se muestra una sola vez
         prefix,
         rate_limit_rpm: rateLimitRpm,
+        default_viewer_config: defaultViewerConfig,
         is_active: true
       },
       ...(createdAdmin ? { adminUser: createdAdmin } : {}),
@@ -233,10 +253,13 @@ export async function tenantRoutes(fastify) {
     const nextRpm = body.rate_limit_rpm !== undefined
       ? Math.max(10, parseInt(body.rate_limit_rpm, 10) || 120)
       : Number(existing.rate_limit_rpm || 120);
+    const nextDefaultConfig = body.default_viewer_config !== undefined
+      ? parseTenantDefaultConfig(body.default_viewer_config)
+      : parseTenantDefaultConfig(existing.default_viewer_config);
 
     await db.query(
-      'UPDATE tenants SET name = $1, website_url = $2, is_active = $3, rate_limit_rpm = $4 WHERE id = $5',
-      [nextName, nextWebsite, nextActive, nextRpm, tenantId]
+      'UPDATE tenants SET name = $1, website_url = $2, is_active = $3, rate_limit_rpm = $4, default_viewer_config = $5 WHERE id = $6',
+      [nextName, nextWebsite, nextActive, nextRpm, JSON.stringify(nextDefaultConfig), tenantId]
     );
 
     if (!nextActive) {
@@ -244,10 +267,17 @@ export async function tenantRoutes(fastify) {
     }
 
     const updated = await db.query(
-      'SELECT id, name, website_url, api_key_prefix, is_active, rate_limit_rpm, created_at FROM tenants WHERE id = $1',
+      'SELECT id, name, website_url, api_key_prefix, is_active, rate_limit_rpm, default_viewer_config, created_at FROM tenants WHERE id = $1',
       [tenantId]
     );
-    return reply.send({ success: true, tenant: updated.rows[0] });
+    const updatedRow = updated.rows[0];
+    return reply.send({
+      success: true,
+      tenant: {
+        ...updatedRow,
+        default_viewer_config: parseTenantDefaultConfig(updatedRow.default_viewer_config)
+      }
+    });
   });
 
   // Rotar API Key de un sitio específico (solo Superadmin)

@@ -25,7 +25,14 @@ export const VIEWER_PRESETS = {
     showTotem: true,
     autoRotate: true,
     cameraMode: 'smooth',
-    cameraPose: null
+    cameraPose: null,
+    uiTheme: 'auto',
+    accentColor: null,
+    surfaceColor: null,
+    textColor: null,
+    showToolbar: true,
+    showHint: true,
+    qrRevealStyle: 'blocks'
   },
   archaeological: {
     mode: 'manual',
@@ -44,7 +51,14 @@ export const VIEWER_PRESETS = {
     showTotem: true,
     autoRotate: true,
     cameraMode: 'smooth',
-    cameraPose: null
+    cameraPose: null,
+    uiTheme: 'dark',
+    accentColor: null,
+    surfaceColor: null,
+    textColor: null,
+    showToolbar: true,
+    showHint: true,
+    qrRevealStyle: 'blocks'
   },
   museum_night: {
     mode: 'manual',
@@ -63,7 +77,14 @@ export const VIEWER_PRESETS = {
     showTotem: true,
     autoRotate: true,
     cameraMode: 'smooth',
-    cameraPose: null
+    cameraPose: null,
+    uiTheme: 'dark',
+    accentColor: null,
+    surfaceColor: null,
+    textColor: null,
+    showToolbar: true,
+    showHint: true,
+    qrRevealStyle: 'blocks'
   },
   studio: {
     mode: 'manual',
@@ -82,7 +103,14 @@ export const VIEWER_PRESETS = {
     showTotem: true,
     autoRotate: true,
     cameraMode: 'smooth',
-    cameraPose: null
+    cameraPose: null,
+    uiTheme: 'light',
+    accentColor: null,
+    surfaceColor: null,
+    textColor: null,
+    showToolbar: true,
+    showHint: true,
+    qrRevealStyle: 'blocks'
   },
   outdoor: {
     mode: 'manual',
@@ -101,7 +129,66 @@ export const VIEWER_PRESETS = {
     showTotem: true,
     autoRotate: true,
     cameraMode: 'smooth',
-    cameraPose: null
+    cameraPose: null,
+    uiTheme: 'light',
+    accentColor: null,
+    surfaceColor: null,
+    textColor: null,
+    showToolbar: true,
+    showHint: true,
+    qrRevealStyle: 'blocks'
+  },
+  warm_sand: {
+    mode: 'manual',
+    preset: 'warm_sand',
+    exposure: 1.0,
+    sunAzimuth: -108,
+    sunElevation: 44,
+    sunIntensity: 1.48,
+    sunMode: 'scene',
+    ambientIntensity: 0.36,
+    colorBoost: 1.06,
+    fixSrgb: 'auto',
+    edgeMode: 'smart',
+    backgroundPreset: 'warm_sand',
+    backgroundColor: '#eae1d0',
+    showTotem: true,
+    autoRotate: true,
+    cameraMode: 'smooth',
+    cameraPose: null,
+    uiTheme: 'light',
+    accentColor: '#0f3d2e',
+    surfaceColor: '#ffffff',
+    textColor: '#0f3d2e',
+    showToolbar: true,
+    showHint: true,
+    qrRevealStyle: 'blocks'
+  },
+  transparent: {
+    mode: 'manual',
+    preset: 'transparent',
+    exposure: 0.98,
+    sunAzimuth: -108,
+    sunElevation: 42,
+    sunIntensity: 1.52,
+    sunMode: 'scene',
+    ambientIntensity: 0.28,
+    colorBoost: 1.05,
+    fixSrgb: 'auto',
+    edgeMode: 'smart',
+    backgroundPreset: 'transparent',
+    backgroundColor: '#eae1d0',
+    showTotem: true,
+    autoRotate: true,
+    cameraMode: 'smooth',
+    cameraPose: null,
+    uiTheme: 'auto',
+    accentColor: null,
+    surfaceColor: null,
+    textColor: null,
+    showToolbar: true,
+    showHint: true,
+    qrRevealStyle: 'blocks'
   }
 };
 
@@ -135,8 +222,32 @@ export const BACKGROUND_STYLES = {
     css: 'radial-gradient(circle at 50% 25%, #bae6fd 0%, #e0f2fe 58%, #cbd5e1 100%)',
     hex: '#d5eaf7',
     light: true
+  },
+  warm_sand: {
+    css: 'radial-gradient(circle at 50% 35%, #f5efe4 0%, #dfd4c1 100%)',
+    hex: '#eae1d0',
+    light: true
+  },
+  transparent: {
+    css: 'transparent',
+    hex: null,
+    light: true
   }
 };
+
+const THEME_ALIASES = {
+  light: 'warm_sand',
+  dark: 'warm_dark',
+  munay: 'warm_sand'
+};
+
+function sanitizeViewerHex(val) {
+  if (typeof val !== 'string') return null;
+  const trimmed = val.trim();
+  if (!trimmed) return null;
+  const withHash = trimmed.startsWith('#') ? trimmed : `#${trimmed}`;
+  return /^#[0-9a-fA-F]{6}$/.test(withHash) ? withHash.toLowerCase() : null;
+}
 
 function srgbToLinearChannel(c) {
   return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
@@ -149,7 +260,7 @@ class Qr3dViewer extends HTMLElement {
     this.apiUrl = this.getAttribute('api-url') || window.location.origin;
     this.qrId = this.getAttribute('qr-id');
     this.viewToken = this.getAttribute('view-token') || null;
-    this.hideBadge = this.getAttribute('hide-badge') === 'true';
+    this.hideBadge = this.readBoolAttr('hide-badge') === true;
     this.eventSource = null;
     this.scene = null;
     this.camera = null;
@@ -172,12 +283,15 @@ class Qr3dViewer extends HTMLElement {
     this.hasExplicitAutoRotateAttr = this.hasAttribute('auto-rotate');
     this.showEdges = this.getAttribute('show-edges') !== 'false';
     this.autoRotate = this.getAttribute('auto-rotate') !== 'false';
-    this.aerialRequested = this.getAttribute('aerial-scan') === 'true';
+    this.aerialRequested = this.readBoolAttr('aerial-scan') === true;
 
     this.viewerConfig = { ...VIEWER_PRESETS.auto };
     this._lastActiveEdgeMode = 'smart';
+    this._attrOverrides = {};
     this._userToolbarOverrides = {};
     this._hasLocalToolbarEdits = false;
+    this._reloadScheduled = false;
+    this._hasInitializedScene = false;
     this.modelStats = { generator: '', isLegacyThreeExporter: false };
     this.framingCenter = null;
     this.localLightingCenter = null;
@@ -185,15 +299,19 @@ class Qr3dViewer extends HTMLElement {
     this._lightingState = null;
     this._yAxis = null;
 
-    // Estado de Vista Aérea 90° y QR cromático
+    // Estado de Vista Aérea 90° y QR cromático (y animación en bloques)
     this.isAerialMode = false;
     this.autoRotateBeforeAerial = this.autoRotate;
     this.defaultView = null;
     this.mainBounds = null;
     this.cameraAnim = null;
     this.aerialQrMesh = null;
+    this.aerialQrBackingMesh = null;
+    this.aerialBlocksMesh = null;
+    this._aerialBlockData = null;
     this.aerialSamples = null;
     this.qrMatrixCache = null;
+    this._modelRevealSnapshot = null;
     this.pointerDownInfo = null;
 
     // Estado de optimización de renderizado y AR
@@ -217,39 +335,225 @@ class Qr3dViewer extends HTMLElement {
     };
   }
 
+  readBoolAttr(name) {
+    if (!this.hasAttribute(name)) return null;
+    const raw = (this.getAttribute(name) || '').trim().toLowerCase();
+    if (raw === 'false' || raw === '0' || raw === 'no' || raw === 'off') return false;
+    return true;
+  }
+
+  collectAttributeOverrides() {
+    const overrides = {};
+    const rawTheme = (this.getAttribute('theme') || '').trim().toLowerCase();
+    const resolvedTheme = THEME_ALIASES[rawTheme] || rawTheme;
+    if (resolvedTheme && VIEWER_PRESETS[resolvedTheme]) {
+      Object.assign(overrides, VIEWER_PRESETS[resolvedTheme]);
+    }
+
+    const bgPresetAttr = (this.getAttribute('bg-preset') || '').trim().toLowerCase();
+    if (bgPresetAttr && (BACKGROUND_STYLES[bgPresetAttr] || bgPresetAttr === 'custom')) {
+      overrides.backgroundPreset = bgPresetAttr;
+    }
+
+    const bgColorRaw = (this.getAttribute('bg-color') || '').trim();
+    if (bgColorRaw.toLowerCase() === 'transparent') {
+      overrides.backgroundPreset = 'transparent';
+    } else {
+      const hexBg = sanitizeViewerHex(bgColorRaw);
+      if (hexBg) {
+        overrides.backgroundPreset = 'custom';
+        overrides.backgroundColor = hexBg;
+      }
+    }
+
+    const transparentAttr = this.readBoolAttr('transparent');
+    if (transparentAttr === true) {
+      overrides.backgroundPreset = 'transparent';
+    } else if (transparentAttr === false && !bgPresetAttr && !bgColorRaw && !resolvedTheme) {
+      overrides.backgroundPreset = 'warm_dark';
+    }
+
+    const uiThemeAttr = (this.getAttribute('ui-theme') || '').trim().toLowerCase();
+    if (['auto', 'light', 'dark', 'custom'].includes(uiThemeAttr)) {
+      overrides.uiTheme = uiThemeAttr;
+    }
+
+    const accentHex = sanitizeViewerHex(this.getAttribute('accent-color'));
+    if (accentHex) overrides.accentColor = accentHex;
+
+    const surfaceHex = sanitizeViewerHex(this.getAttribute('surface-color'));
+    if (surfaceHex) overrides.surfaceColor = surfaceHex;
+
+    const textHex = sanitizeViewerHex(this.getAttribute('text-color'));
+    if (textHex) overrides.textColor = textHex;
+
+    const hideToolbarAttr = this.readBoolAttr('hide-toolbar');
+    if (hideToolbarAttr !== null) {
+      overrides.showToolbar = !hideToolbarAttr;
+    }
+
+    const hideHintAttr = this.readBoolAttr('hide-hint');
+    if (hideHintAttr !== null) {
+      overrides.showHint = !hideHintAttr;
+    }
+
+    const showTotemAttr = this.readBoolAttr('show-totem');
+    if (showTotemAttr !== null) {
+      overrides.showTotem = showTotemAttr;
+    }
+
+    const autoRotateAttr = this.readBoolAttr('auto-rotate');
+    if (autoRotateAttr !== null) {
+      overrides.autoRotate = autoRotateAttr;
+    }
+
+    const showEdgesAttr = this.readBoolAttr('show-edges');
+    const edgeModeAttr = (this.getAttribute('edge-mode') || '').trim().toLowerCase();
+    if (['smart', 'all', 'off'].includes(edgeModeAttr)) {
+      overrides.edgeMode = edgeModeAttr;
+    } else if (showEdgesAttr !== null) {
+      overrides.edgeMode = showEdgesAttr ? 'smart' : 'off';
+    }
+
+    const camModeAttr = (this.getAttribute('camera-mode') || '').trim().toLowerCase();
+    if (['smooth', 'direct'].includes(camModeAttr)) {
+      overrides.cameraMode = camModeAttr;
+    }
+
+    const revealAttr = (this.getAttribute('qr-reveal') || '').trim().toLowerCase();
+    if (['fade', 'blocks'].includes(revealAttr)) {
+      overrides.qrRevealStyle = revealAttr;
+    }
+
+    this._attrOverrides = overrides;
+    return overrides;
+  }
+
   static get observedAttributes() {
-    return ['qr-id', 'view-token', 'api-url', 'auto-rotate', 'aerial-scan', 'hide-badge', 'viewer-config'];
+    return [
+      'qr-id',
+      'view-token',
+      'api-url',
+      'auto-rotate',
+      'aerial-scan',
+      'hide-badge',
+      'hide-toolbar',
+      'hide-hint',
+      'flat',
+      'transparent',
+      'theme',
+      'ui-theme',
+      'bg-preset',
+      'bg-color',
+      'accent-color',
+      'surface-color',
+      'text-color',
+      'show-totem',
+      'show-edges',
+      'edge-mode',
+      'camera-mode',
+      'qr-reveal',
+      'viewer-config'
+    ];
+  }
+
+  scheduleReloadSource() {
+    if (!this.isConnected || !this._hasInitializedScene || this._reloadScheduled) return;
+    this._reloadScheduled = true;
+    queueMicrotask(() => {
+      this._reloadScheduled = false;
+      if (!this.isConnected) return;
+      this.reloadSource();
+    });
+  }
+
+  reloadSource() {
+    if (this.eventSource) {
+      this.eventSource.close();
+      this.eventSource = null;
+    }
+    this.isAerialMode = false;
+    this.cameraAnim = null;
+    this.aerialSamples = null;
+    this.qrMatrixCache = null;
+    this._modelRevealSnapshot = null;
+    if (this.aerialBlocksMesh) {
+      if (this.aerialBlocksMesh.parent) this.aerialBlocksMesh.parent.remove(this.aerialBlocksMesh);
+      if (this.aerialBlocksMesh.geometry) this.aerialBlocksMesh.geometry.dispose();
+      if (this.aerialBlocksMesh.material) this.aerialBlocksMesh.material.dispose();
+      this.aerialBlocksMesh = null;
+      this._aerialBlockData = null;
+    }
+    if (this.aerialQrBackingMesh) {
+      if (this.aerialQrBackingMesh.parent) this.aerialQrBackingMesh.parent.remove(this.aerialQrBackingMesh);
+      if (this.aerialQrBackingMesh.geometry) this.aerialQrBackingMesh.geometry.dispose();
+      if (this.aerialQrBackingMesh.material) this.aerialQrBackingMesh.material.dispose();
+      this.aerialQrBackingMesh = null;
+    }
+    const loaderEl = this.shadowRoot && this.shadowRoot.getElementById('loader');
+    if (loaderEl) {
+      loaderEl.style.display = 'flex';
+      loaderEl.style.opacity = '1';
+      loaderEl.innerHTML = `<div class="spinner"></div><span>Cargando modelo 3D...</span>`;
+    }
+    this.loadModel();
+    this.initRealtimeSSE();
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
-    if (oldValue !== newValue) {
-      if (name === 'qr-id') this.qrId = newValue;
-      if (name === 'view-token') this.viewToken = newValue;
-      if (name === 'api-url') this.apiUrl = newValue || window.location.origin;
-      if (name === 'hide-badge') this.hideBadge = newValue === 'true';
-      if (name === 'auto-rotate') {
-        this.autoRotate = newValue !== 'false';
+    if (oldValue === newValue) return;
+    if (name === 'qr-id') {
+      this.qrId = newValue;
+      this.scheduleReloadSource();
+      return;
+    }
+    if (name === 'view-token') {
+      this.viewToken = newValue || null;
+      this.scheduleReloadSource();
+      return;
+    }
+    if (name === 'api-url') {
+      this.apiUrl = newValue || window.location.origin;
+      this.scheduleReloadSource();
+      return;
+    }
+    if (name === 'hide-badge') {
+      this.hideBadge = this.readBoolAttr('hide-badge') === true;
+      return;
+    }
+    if (name === 'viewer-config' && newValue) {
+      try {
+        const parsed = JSON.parse(newValue);
+        if (parsed && typeof parsed === 'object') {
+          this.setViewerConfig(parsed, { applyCamera: Boolean(this.currentModel) });
+        }
+      } catch {
+        // Ignorar JSON inválido
+      }
+      return;
+    }
+    if (name === 'aerial-scan') {
+      const wantAerial = this.readBoolAttr('aerial-scan') === true;
+      this.aerialRequested = wantAerial;
+      if (this.currentModel) {
+        if (wantAerial && !this.isAerialMode) this.enterAerialScanMode();
+        if (!wantAerial && this.isAerialMode) this.exitAerialScanMode();
+      }
+      return;
+    }
+
+    this.hasExplicitShowEdgesAttr = this.hasAttribute('show-edges');
+    this.hasExplicitAutoRotateAttr = this.hasAttribute('auto-rotate');
+    if (name === 'auto-rotate') {
+      this.autoRotate = newValue !== 'false';
+      if (this.isConnected) {
         this.updateRotateButtonLabel();
         if (this.autoRotate) this.requestRender();
       }
-      if (name === 'viewer-config' && newValue) {
-        try {
-          const parsed = JSON.parse(newValue);
-          if (parsed && typeof parsed === 'object') {
-            this.setViewerConfig(parsed, { applyCamera: Boolean(this.currentModel) });
-          }
-        } catch {
-          // Ignorar JSON inválido
-        }
-      }
-      if (name === 'aerial-scan') {
-        const wantAerial = newValue === 'true';
-        this.aerialRequested = wantAerial;
-        if (this.currentModel) {
-          if (wantAerial && !this.isAerialMode) this.enterAerialScanMode();
-          if (!wantAerial && this.isAerialMode) this.exitAerialScanMode();
-        }
-      }
+    }
+    const overrides = this.collectAttributeOverrides();
+    if (this.isConnected) {
+      this.setViewerConfig(overrides, { applyCamera: false });
     }
   }
 
@@ -274,6 +578,8 @@ class Qr3dViewer extends HTMLElement {
   }
 
   connectedCallback() {
+    this.hideBadge = this.readBoolAttr('hide-badge') === true;
+    this.aerialRequested = this.readBoolAttr('aerial-scan') === true;
     const rawCfgAttr = this.getAttribute('viewer-config');
     if (rawCfgAttr) {
       try {
@@ -293,6 +599,11 @@ class Qr3dViewer extends HTMLElement {
     } else if (this.hasExplicitAutoRotateAttr) {
       this.viewerConfig.autoRotate = this.autoRotate;
     }
+    const attrOverrides = this.collectAttributeOverrides();
+    this.viewerConfig = { ...this.viewerConfig, ...attrOverrides };
+    if (attrOverrides.autoRotate !== undefined) {
+      this.autoRotate = attrOverrides.autoRotate;
+    }
     this.render();
     this.applyBackgroundStyle();
     this.updateRotateButtonLabel();
@@ -302,6 +613,7 @@ class Qr3dViewer extends HTMLElement {
     this.loadDependencies().then(() => {
       if (!this.isConnected) return;
       this.initThree();
+      this._hasInitializedScene = true;
       this.loadModel();
       this.initRealtimeSSE();
     });
@@ -372,20 +684,62 @@ class Qr3dViewer extends HTMLElement {
           width: ${width};
           height: ${height};
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-          border-radius: 16px;
+          border-radius: var(--qr3d-radius, 16px);
           overflow: hidden;
-          background: ${BACKGROUND_STYLES.warm_dark.css};
-          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+          background: var(--qr3d-bg, var(--_cfg-bg, ${BACKGROUND_STYLES.warm_dark.css}));
+          box-shadow: var(--qr3d-shadow, 0 10px 25px -5px rgba(0, 0, 0, 0.4));
           user-select: none;
           transition: background 0.35s ease;
+          --_qr3d-surface: var(--qr3d-surface, var(--_cfg-surface, rgba(15, 23, 42, 0.88)));
+          --_qr3d-surface-hover: var(--qr3d-surface-hover, rgba(30, 41, 59, 0.95));
+          --_qr3d-text: var(--qr3d-text, var(--_cfg-text, #cbd5e1));
+          --_qr3d-border: var(--qr3d-border, rgba(255, 255, 255, 0.16));
+          --_qr3d-accent: var(--qr3d-accent, var(--_cfg-accent, #d97706));
+          --_qr3d-accent-text: var(--qr3d-accent-text, #ffffff);
+          --_qr3d-toast-bg: var(--qr3d-toast-bg, var(--_cfg-accent, #059669));
+          --_qr3d-hint-bg: var(--qr3d-hint-bg, rgba(15, 23, 42, 0.5));
+          --_qr3d-hint-text: var(--qr3d-hint-text, rgba(255, 255, 255, 0.7));
+        }
+
+        :host(.light-ui) {
+          --_qr3d-surface: var(--qr3d-surface, var(--_cfg-surface, rgba(255, 255, 255, 0.90)));
+          --_qr3d-surface-hover: var(--qr3d-surface-hover, #ffffff);
+          --_qr3d-text: var(--qr3d-text, var(--_cfg-text, #1e293b));
+          --_qr3d-border: var(--qr3d-border, rgba(15, 23, 42, 0.14));
+          --_qr3d-accent: var(--qr3d-accent, var(--_cfg-accent, #0f3d2e));
+          --_qr3d-accent-text: var(--qr3d-accent-text, #ffffff);
+          --_qr3d-toast-bg: var(--qr3d-toast-bg, var(--_cfg-accent, #0f3d2e));
+          --_qr3d-hint-bg: var(--qr3d-hint-bg, rgba(255, 255, 255, 0.82));
+          --_qr3d-hint-text: var(--qr3d-hint-text, rgba(15, 23, 42, 0.78));
+        }
+
+        :host([flat]),
+        :host([flat="true"]) {
+          border-radius: 0;
+          box-shadow: none;
+        }
+        :host([flat="false"]) {
+          border-radius: var(--qr3d-radius, 16px);
+          box-shadow: var(--qr3d-shadow, 0 10px 25px -5px rgba(0, 0, 0, 0.4));
         }
 
         :host(.light-bg) .hint-3d {
-          color: rgba(15, 23, 42, 0.78);
-          background: rgba(255, 255, 255, 0.72);
+          color: var(--_qr3d-hint-text);
+          background: var(--_qr3d-hint-bg);
         }
 
+        :host([hide-badge]) .qr-badge-container,
         :host([hide-badge="true"]) .qr-badge-container {
+          display: none;
+        }
+        :host([hide-badge="false"]) .qr-badge-container {
+          display: flex;
+        }
+
+        :host(.toolbar-hidden) .controls-toolbar {
+          display: none;
+        }
+        :host(.hint-hidden) .hint-3d {
           display: none;
         }
 
@@ -405,15 +759,16 @@ class Qr3dViewer extends HTMLElement {
           position: absolute;
           bottom: 16px;
           right: 16px;
-          background: rgba(15, 23, 42, 0.93);
-          border: 1px solid rgba(255, 255, 255, 0.18);
+          background: var(--_qr3d-surface);
+          border: 1px solid var(--_qr3d-border);
           border-radius: 12px;
           padding: 10px;
           display: flex;
           flex-direction: column;
           align-items: center;
           gap: 6px;
-          box-shadow: 0 8px 16px rgba(0, 0, 0, 0.45);
+          box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25);
+          backdrop-filter: blur(8px);
           transition: transform 0.2s ease, border-color 0.2s ease;
           z-index: 10;
           cursor: pointer;
@@ -421,12 +776,12 @@ class Qr3dViewer extends HTMLElement {
 
         .qr-badge-container:hover {
           transform: scale(1.04);
-          border-color: rgba(245, 158, 11, 0.7);
+          border-color: var(--_qr3d-accent);
         }
 
         .qr-badge-container.aerial-active {
-          border-color: #f59e0b;
-          box-shadow: 0 0 20px rgba(245, 158, 11, 0.28);
+          border-color: var(--_qr3d-accent);
+          box-shadow: 0 0 20px rgba(15, 61, 46, 0.25);
         }
 
         .qr-badge-header {
@@ -435,7 +790,7 @@ class Qr3dViewer extends HTMLElement {
           justify-content: space-between;
           width: 100%;
           font-size: 11px;
-          color: #cbd5e1;
+          color: var(--_qr3d-text);
           font-weight: 600;
           text-transform: uppercase;
           letter-spacing: 0.5px;
@@ -486,8 +841,8 @@ class Qr3dViewer extends HTMLElement {
           top: 56px;
           left: 50%;
           transform: translateX(-50%) translateY(-20px);
-          background: #059669;
-          color: #ffffff;
+          background: var(--_qr3d-toast-bg);
+          color: var(--_qr3d-accent-text);
           padding: 8px 16px;
           border-radius: 9999px;
           font-size: 13px;
@@ -519,14 +874,15 @@ class Qr3dViewer extends HTMLElement {
         }
 
         .btn-tool {
-          background: rgba(15, 23, 42, 0.88);
-          border: 1px solid rgba(255, 255, 255, 0.16);
-          color: #cbd5e1;
+          background: var(--_qr3d-surface);
+          border: 1px solid var(--_qr3d-border);
+          color: var(--_qr3d-text);
           padding: 6px 12px;
           border-radius: 8px;
           font-size: 12px;
           font-weight: 600;
           cursor: pointer;
+          backdrop-filter: blur(8px);
           transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
           display: flex;
           align-items: center;
@@ -534,27 +890,27 @@ class Qr3dViewer extends HTMLElement {
         }
 
         .btn-tool:hover {
-          background: rgba(30, 41, 59, 0.95);
-          color: #ffffff;
-          border-color: rgba(255, 255, 255, 0.35);
+          background: var(--_qr3d-surface-hover);
+          border-color: var(--_qr3d-accent);
         }
 
         .btn-tool.active {
-          background: rgba(217, 119, 6, 0.88);
-          border-color: #fbbf24;
-          color: #ffffff;
+          background: var(--_qr3d-accent);
+          border-color: var(--_qr3d-accent);
+          color: var(--_qr3d-accent-text);
         }
 
         .hint-3d {
           position: absolute;
           bottom: 16px;
           left: 16px;
-          color: rgba(255, 255, 255, 0.55);
+          color: var(--_qr3d-hint-text);
           font-size: 12px;
           pointer-events: none;
-          background: rgba(15, 23, 42, 0.5);
+          background: var(--_qr3d-hint-bg);
           padding: 4px 10px;
           border-radius: 999px;
+          backdrop-filter: blur(6px);
         }
 
         .loader {
@@ -562,7 +918,7 @@ class Qr3dViewer extends HTMLElement {
           top: 50%;
           left: 50%;
           transform: translate(-50%, -50%);
-          color: #60a5fa;
+          color: var(--_qr3d-accent);
           font-size: 14px;
           display: flex;
           flex-direction: column;
@@ -575,8 +931,8 @@ class Qr3dViewer extends HTMLElement {
         .spinner {
           width: 32px;
           height: 32px;
-          border: 3px solid rgba(96, 165, 250, 0.2);
-          border-top-color: #60a5fa;
+          border: 3px solid rgba(148, 163, 184, 0.25);
+          border-top-color: var(--_qr3d-accent);
           border-radius: 50%;
           animation: spin 0.8s linear infinite;
         }
@@ -709,6 +1065,7 @@ class Qr3dViewer extends HTMLElement {
   }
 
   updateRotateButtonLabel() {
+    if (!this.shadowRoot) return;
     const btn = this.shadowRoot.getElementById('btn-rotate');
     if (btn) {
       btn.innerText = this.autoRotate ? '🔄 Auto-Giro: ON' : '⏸️ Auto-Giro: OFF';
@@ -716,6 +1073,7 @@ class Qr3dViewer extends HTMLElement {
   }
 
   updateEdgesButtonLabel() {
+    if (!this.shadowRoot) return;
     const btn = this.shadowRoot.getElementById('btn-edges');
     if (!btn) return;
     const mode = this.viewerConfig.edgeMode || 'smart';
@@ -732,6 +1090,7 @@ class Qr3dViewer extends HTMLElement {
   }
 
   updateCameraModeButtonLabel() {
+    if (!this.shadowRoot) return;
     const btn = this.shadowRoot.getElementById('btn-camera-mode');
     if (!btn) return;
     const isDirect = this.viewerConfig.cameraMode === 'direct';
@@ -740,6 +1099,7 @@ class Qr3dViewer extends HTMLElement {
   }
 
   updateSunModeButtonLabel() {
+    if (!this.shadowRoot) return;
     const btn = this.shadowRoot.getElementById('btn-sun-mode');
     if (!btn) return;
     const isModel = this.viewerConfig.sunMode === 'model';
@@ -771,7 +1131,8 @@ class Qr3dViewer extends HTMLElement {
     this.renderer = new window.THREE.WebGLRenderer({
       canvas,
       antialias: true,
-      alpha: false,
+      alpha: true,
+      premultipliedAlpha: true,
       powerPreference: 'high-performance'
     });
     this._lastWidth = width;
@@ -937,7 +1298,9 @@ class Qr3dViewer extends HTMLElement {
             this.syncSunTransform({ updateShadow: true });
           }
 
-          if (this.aerialQrMesh && this.cameraAnim.fadeAerialTo !== null) {
+          if (this.aerialBlocksMesh && this.cameraAnim.blockMode) {
+            this.updateAerialBlocksAnimation(rawT, this.cameraAnim.blockMode);
+          } else if (this.aerialQrMesh && this.cameraAnim.fadeAerialTo !== null) {
             const fromOp = this.cameraAnim.fadeAerialFrom;
             const toOp = this.cameraAnim.fadeAerialTo;
             this.aerialQrMesh.material.opacity = fromOp + (toOp - fromOp) * t;
@@ -1000,10 +1363,14 @@ class Qr3dViewer extends HTMLElement {
     const prevTotemVis = totemNode ? totemNode.visible : true;
     const prevEdgeVis = this.edgeLines.map((l) => l.visible);
     const prevAerialVis = this.aerialQrMesh ? this.aerialQrMesh.visible : false;
+    const prevBackingVis = this.aerialQrBackingMesh ? this.aerialQrBackingMesh.visible : false;
+    const prevBlocksVis = this.aerialBlocksMesh ? this.aerialBlocksMesh.visible : false;
 
     if (totemNode) totemNode.visible = false;
     this.edgeLines.forEach((l) => (l.visible = false));
     if (this.aerialQrMesh) this.aerialQrMesh.visible = false;
+    if (this.aerialQrBackingMesh) this.aerialQrBackingMesh.visible = false;
+    if (this.aerialBlocksMesh) this.aerialBlocksMesh.visible = false;
 
     const prevRotY = this.modelPivot ? this.modelPivot.rotation.y : 0;
     if (this.modelPivot) {
@@ -1015,7 +1382,7 @@ class Qr3dViewer extends HTMLElement {
     this.currentModel.traverse((child) => {
       if (!child.isMesh || !child.visible) return;
       if (totemNode && this.isDescendantOf(child, totemNode)) return;
-      if (child === this.aerialQrMesh) return;
+      if (child === this.aerialQrMesh || child === this.aerialQrBackingMesh || child === this.aerialBlocksMesh) return;
       box.expandByObject(child);
     });
 
@@ -1026,6 +1393,8 @@ class Qr3dViewer extends HTMLElement {
     if (totemNode) totemNode.visible = prevTotemVis;
     this.edgeLines.forEach((l, i) => (l.visible = prevEdgeVis[i]));
     if (this.aerialQrMesh) this.aerialQrMesh.visible = prevAerialVis;
+    if (this.aerialQrBackingMesh) this.aerialQrBackingMesh.visible = prevBackingVis;
+    if (this.aerialBlocksMesh) this.aerialBlocksMesh.visible = prevBlocksVis;
     if (this.modelPivot) {
       this.modelPivot.rotation.y = prevRotY;
       this.modelPivot.updateMatrixWorld(true);
@@ -1142,6 +1511,34 @@ class Qr3dViewer extends HTMLElement {
     if (!this.renderer || !this.scene || !this.modelPivot || !this.mainBounds) return null;
     if (this.aerialSamples) return this.aerialSamples;
 
+    // Capturar el modelo sin alterar de forma permanente una transición/ocultamiento en curso
+    const snap = this._modelRevealSnapshot;
+    const savedModelVis = this.currentModel ? this.currentModel.visible : true;
+    const savedModelScaleY = this.currentModel ? this.currentModel.scale.y : 1;
+    const savedMatStates = snap
+      ? snap.matSnapshots.map((e) => ({
+          mat: e.mat,
+          transparent: e.mat.transparent,
+          opacity: e.mat.opacity,
+          depthWrite: e.mat.depthWrite
+        }))
+      : null;
+
+    if (this.currentModel) {
+      this.currentModel.visible = true;
+      if (snap) {
+        this.currentModel.scale.y = snap.scaleY;
+        for (const entry of snap.matSnapshots) {
+          if (entry.mat.transparent !== entry.transparent) {
+            entry.mat.transparent = entry.transparent;
+            entry.mat.needsUpdate = true;
+          }
+          entry.mat.opacity = entry.opacity;
+          entry.mat.depthWrite = entry.depthWrite;
+        }
+      }
+    }
+
     const { box, center, size, side } = this.mainBounds;
     const halfSide = Math.max(side * 0.5, 0.5);
     const res = 128;
@@ -1159,11 +1556,15 @@ class Qr3dViewer extends HTMLElement {
     const prevTotemVis = totemNode ? totemNode.visible : true;
     const prevEdgeVis = this.edgeLines.map((l) => l.visible);
     const prevAerialVis = this.aerialQrMesh ? this.aerialQrMesh.visible : false;
+    const prevBackingVis = this.aerialQrBackingMesh ? this.aerialQrBackingMesh.visible : false;
+    const prevBlocksVis = this.aerialBlocksMesh ? this.aerialBlocksMesh.visible : false;
     const prevRotY = this.modelPivot.rotation.y;
 
     if (totemNode) totemNode.visible = false;
     this.edgeLines.forEach((l) => (l.visible = false));
     if (this.aerialQrMesh) this.aerialQrMesh.visible = false;
+    if (this.aerialQrBackingMesh) this.aerialQrBackingMesh.visible = false;
+    if (this.aerialBlocksMesh) this.aerialBlocksMesh.visible = false;
     this.modelPivot.rotation.y = 0;
     this.modelPivot.updateMatrixWorld(true);
     this.syncSunTransform({ updateShadow: true });
@@ -1188,6 +1589,44 @@ class Qr3dViewer extends HTMLElement {
     const rawPixels = new Uint8Array(res * res * 4);
     this.renderer.readRenderTargetPixels(rt, 0, 0, res, res, rawPixels);
 
+    // Segundo pase GPU ultrarrápido para muestrear la altura real (Y) de cada parte del modelo 3D
+    let heightPixels = null;
+    try {
+      const spanY = Math.max(0.05, size.y);
+      const heightMat = new window.THREE.ShaderMaterial({
+        uniforms: {
+          uMinY: { value: box.min.y },
+          uSpanY: { value: spanY }
+        },
+        vertexShader: `
+          uniform float uMinY;
+          uniform float uSpanY;
+          varying float vNormH;
+          void main() {
+            vec4 wp = modelMatrix * vec4(position, 1.0);
+            vNormH = clamp((wp.y - uMinY) / uSpanY, 0.0, 1.0);
+            gl_Position = projectionMatrix * viewMatrix * wp;
+          }
+        `,
+        fragmentShader: `
+          varying float vNormH;
+          void main() {
+            gl_FragColor = vec4(vNormH, vNormH, vNormH, 1.0);
+          }
+        `
+      });
+      const prevOverride = this.scene.overrideMaterial;
+      this.scene.overrideMaterial = heightMat;
+      this.renderer.clear();
+      this.renderer.render(this.scene, orthoCam);
+      heightPixels = new Uint8Array(res * res * 4);
+      this.renderer.readRenderTargetPixels(rt, 0, 0, res, res, heightPixels);
+      this.scene.overrideMaterial = prevOverride;
+      heightMat.dispose();
+    } catch {
+      heightPixels = null;
+    }
+
     this.renderer.setRenderTarget(prevTarget);
     this.scene.background = prevBg;
     this.renderer.setClearColor(prevClearColor, prevClearAlpha);
@@ -1196,6 +1635,22 @@ class Qr3dViewer extends HTMLElement {
     if (totemNode) totemNode.visible = prevTotemVis;
     this.edgeLines.forEach((l, i) => (l.visible = prevEdgeVis[i]));
     if (this.aerialQrMesh) this.aerialQrMesh.visible = prevAerialVis;
+    if (this.aerialQrBackingMesh) this.aerialQrBackingMesh.visible = prevBackingVis;
+    if (this.aerialBlocksMesh) this.aerialBlocksMesh.visible = prevBlocksVis;
+    if (this.currentModel) {
+      if (savedMatStates) {
+        for (const s of savedMatStates) {
+          if (s.mat.transparent !== s.transparent) {
+            s.mat.transparent = s.transparent;
+            s.mat.needsUpdate = true;
+          }
+          s.mat.opacity = s.opacity;
+          s.mat.depthWrite = s.depthWrite;
+        }
+      }
+      this.currentModel.scale.y = savedModelScaleY;
+      this.currentModel.visible = savedModelVis;
+    }
     this.modelPivot.rotation.y = prevRotY;
     this.modelPivot.updateMatrixWorld(true);
     this.syncSunTransform({ updateShadow: true });
@@ -1224,12 +1679,23 @@ class Qr3dViewer extends HTMLElement {
     this.aerialSamples = {
       res,
       rawPixels,
+      heightPixels,
       minValidRow,
       maxValidRow,
       minValidCol,
       maxValidCol
     };
     return this.aerialSamples;
+  }
+
+  sampleAerialSurfaceAtUV(samples, u, v) {
+    const { res, rawPixels, heightPixels } = samples;
+    const rawX = Math.max(0, Math.min(res - 1, Math.round(u * (res - 1))));
+    const rawY = Math.max(0, Math.min(res - 1, Math.round((1 - v) * (res - 1))));
+    const idx = (rawY * res + rawX) * 4;
+    const hasSurface = rawPixels[idx + 3] > 96;
+    const normHeight = heightPixels && hasSurface ? (heightPixels[idx] / 255) : (hasSurface ? 0.35 : 0.05);
+    return { hasSurface, normHeight };
   }
 
   sampleAerialColorAtUV(samples, u, v) {
@@ -1297,71 +1763,133 @@ class Qr3dViewer extends HTMLElement {
     return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
   }
 
-  /**
-   * Genera un canvas QR sólido y vívido donde cada píxel (oscuro y claro) adopta el color
-   * muestreado desde 90° arriba con saturación alta y contraste legible sin aspecto transparente.
-   */
-  buildAerialColoredQrCanvas(matrix, samples, { pixelSize = 768 } = {}) {
+  solveToneToLuminance(sr, sg, sb, targetLum, satScale = 1, allowLightLift = false) {
+    const lumTarget = Math.max(8, Math.min(242, targetLum));
+    const [h, s] = this.rgbToHsv(sr, sg, sb);
+    const adjSat = s >= 0.06 ? Math.max(0, Math.min(0.84, s * satScale)) : 0;
+    if (adjSat < 0.06) {
+      const g = Math.round(lumTarget);
+      return [g, g, g];
+    }
+
+    let lo = 0.04;
+    let hi = 1.0;
+    for (let step = 0; step < 10; step++) {
+      const mid = (lo + hi) * 0.5;
+      const [tr, tg, tb] = this.hsvToRgb(h, adjSat, mid);
+      const lum = 0.299 * tr + 0.587 * tg + 0.114 * tb;
+      if (lum < lumTarget) lo = mid;
+      else hi = mid;
+    }
+    let [r, g, b] = this.hsvToRgb(h, adjSat, (lo + hi) * 0.5);
+    if (allowLightLift) {
+      const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+      if (lum < lumTarget) {
+        const lift = Math.min(1, (lumTarget - lum) / Math.max(1, 255 - lum));
+        r = Math.round(r + (255 - r) * lift);
+        g = Math.round(g + (255 - g) * lift);
+        b = Math.round(b + (255 - b) * lift);
+      }
+    }
+    return [r, g, b];
+  }
+
+  computeAerialQrModuleColors(matrix, samples) {
     const N = matrix.size;
-    const margin = 2;
-    const total = N + margin * 2;
-    const cell = pixelSize / total;
-
-    const canvas = document.createElement('canvas');
-    canvas.width = pixelSize;
-    canvas.height = pixelSize;
-    const ctx = canvas.getContext('2d');
-
-    // Fondo sólido luminoso de la zona de silencio (sin transparencia fantasmal)
-    ctx.fillStyle = '#f6f8f2';
-    ctx.fillRect(0, 0, pixelSize, pixelSize);
+    const qrColors = new Uint8Array(N * N * 3);
+    const modelColors = new Uint8Array(N * N * 3);
+    let edgeR = 0, edgeG = 0, edgeB = 0, edgeCount = 0;
 
     for (let r = 0; r < N; r++) {
       for (let c = 0; c < N; c++) {
-        const bit = matrix.modules[r * N + c];
+        const idx = r * N + c;
+        const bit = matrix.modules[idx];
         const u = (c + 0.5) / N;
         const v = (r + 0.5) / N;
         const [sr, sg, sb] = this.sampleAerialColorAtUV(samples, u, v);
-        const [h, s] = this.rgbToHsv(sr, sg, sb);
+        modelColors[idx * 3] = sr;
+        modelColors[idx * 3 + 1] = sg;
+        modelColors[idx * 3 + 2] = sb;
 
+        if (r === 0 || r === N - 1 || c === 0 || c === N - 1) {
+          edgeR += sr;
+          edgeG += sg;
+          edgeB += sb;
+          edgeCount++;
+        }
+
+        const origLum = 0.299 * sr + 0.587 * sg + 0.114 * sb;
         const isFinder =
           (r < 8 && c < 8) ||
           (r < 8 && c >= N - 8) ||
           (r >= N - 8 && c < 8);
 
         if (bit === 1) {
-          // Píxel oscuro: color saturado y vibrante fiel al material (verde, terracota, azul, ocre)
-          const darkSat = s >= 0.10 ? Math.max(0.68, Math.min(0.96, s * 1.45)) : 0.10;
-          const targetLum = isFinder ? 44 : 76;
-
-          // Ajustar V en HSV hasta alcanzar la luminancia objetivo preservando el tono real
-          let lo = 0.08, hi = 0.85;
-          for (let step = 0; step < 8; step++) {
-            const mid = (lo + hi) * 0.5;
-            const [tr, tg, tb] = this.hsvToRgb(h, darkSat, mid);
-            const lum = 0.299 * tr + 0.587 * tg + 0.114 * tb;
-            if (lum < targetLum) lo = mid;
-            else hi = mid;
-          }
-          const [dr, dg, db] = this.hsvToRgb(h, darkSat, (lo + hi) * 0.5);
-          ctx.fillStyle = `rgb(${dr}, ${dg}, ${db})`;
+          const targetDarkLum = isFinder
+            ? 38
+            : Math.max(36, Math.min(58, origLum * 0.30 + 22));
+          const [dr, dg, db] = this.solveToneToLuminance(
+            sr,
+            sg,
+            sb,
+            targetDarkLum,
+            isFinder ? 0.90 : 0.96,
+            false
+          );
+          qrColors[idx * 3] = dr;
+          qrColors[idx * 3 + 1] = dg;
+          qrColors[idx * 3 + 2] = db;
         } else {
-          // Píxel claro: mantiene color visible del modelo (verde claro, coral, celeste, crema) con luminancia >= 198
-          const lightSat = isFinder
-            ? Math.min(s, 0.22)
-            : (s >= 0.10 ? Math.max(0.32, Math.min(0.58, s * 0.85)) : 0.05);
-          let [lr, lg, lb] = this.hsvToRgb(h, lightSat, 0.98);
-          const lum = 0.299 * lr + 0.587 * lg + 0.114 * lb;
-          const minLightLum = isFinder ? 230 : 198;
-          if (lum < minLightLum) {
-            const lift = Math.min(1, (minLightLum - lum) / Math.max(1, 255 - lum));
-            lr = Math.round(lr + (255 - lr) * lift);
-            lg = Math.round(lg + (255 - lg) * lift);
-            lb = Math.round(lb + (255 - lb) * lift);
-          }
-          ctx.fillStyle = `rgb(${lr}, ${lg}, ${lb})`;
+          const targetLightLum = isFinder
+            ? Math.min(218, Math.max(origLum, 194))
+            : Math.min(214, Math.max(origLum, 166));
+          const [lr, lg, lb] = this.solveToneToLuminance(
+            sr,
+            sg,
+            sb,
+            targetLightLum,
+            isFinder ? 0.72 : 0.95,
+            true
+          );
+          qrColors[idx * 3] = lr;
+          qrColors[idx * 3 + 1] = lg;
+          qrColors[idx * 3 + 2] = lb;
         }
+      }
+    }
 
+    const avgR = edgeCount > 0 ? Math.round(edgeR / edgeCount) : 214;
+    const avgG = edgeCount > 0 ? Math.round(edgeG / edgeCount) : 206;
+    const avgB = edgeCount > 0 ? Math.round(edgeB / edgeCount) : 186;
+    const quietRgb = this.solveToneToLuminance(avgR, avgG, avgB, 198, 0.42, true);
+    const quietColor = `rgb(${quietRgb[0]}, ${quietRgb[1]}, ${quietRgb[2]})`;
+
+    return { size: N, qrColors, modelColors, quietRgb, quietColor };
+  }
+
+  /**
+   * Genera un canvas QR opaco donde cada módulo adopta el tono real de la maqueta vista desde arriba
+   * preservando contraste legible sin velos translúcidos.
+   */
+  buildAerialColoredQrCanvas(matrix, samples, { pixelSize = 768, moduleColors = null } = {}) {
+    const N = matrix.size;
+    const margin = 2;
+    const total = N + margin * 2;
+    const cell = pixelSize / total;
+    const computed = moduleColors || this.computeAerialQrModuleColors(matrix, samples);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = pixelSize;
+    canvas.height = pixelSize;
+    const ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = computed.quietColor || '#ecefe9';
+    ctx.fillRect(0, 0, pixelSize, pixelSize);
+
+    for (let r = 0; r < N; r++) {
+      for (let c = 0; c < N; c++) {
+        const idx = (r * N + c) * 3;
+        ctx.fillStyle = `rgb(${computed.qrColors[idx]}, ${computed.qrColors[idx + 1]}, ${computed.qrColors[idx + 2]})`;
         const x = Math.floor((c + margin) * cell);
         const y = Math.floor((r + margin) * cell);
         const w = Math.ceil((c + margin + 1) * cell) - x;
@@ -1371,6 +1899,516 @@ class Qr3dViewer extends HTMLElement {
     }
 
     return canvas;
+  }
+
+  prepareModelRevealState() {
+    if (!this.currentModel) return;
+    if (this._modelRevealSnapshot) return;
+    const matSnapshots = [];
+    const seenMats = new Set();
+    this.currentModel.traverse((child) => {
+      if (!child.isMesh || !child.material) return;
+      if (child === this.aerialQrMesh || child === this.aerialQrBackingMesh || child === this.aerialBlocksMesh) return;
+      const mats = Array.isArray(child.material) ? child.material : [child.material];
+      for (const mat of mats) {
+        if (mat && !seenMats.has(mat)) {
+          seenMats.add(mat);
+          matSnapshots.push({
+            mat,
+            transparent: Boolean(mat.transparent),
+            opacity: mat.opacity !== undefined ? mat.opacity : 1,
+            depthWrite: mat.depthWrite !== undefined ? mat.depthWrite : true
+          });
+        }
+      }
+    });
+    const edgeSnapshots = [];
+    const seenEdgeMats = new Set();
+    for (const line of [...this.smartEdgeLines, ...this.allEdgeLines]) {
+      if (line.material && !seenEdgeMats.has(line.material)) {
+        seenEdgeMats.add(line.material);
+        edgeSnapshots.push({
+          mat: line.material,
+          opacity: line.material.opacity !== undefined ? line.material.opacity : 0.42
+        });
+      }
+    }
+    this._modelRevealSnapshot = {
+      scaleY: this.currentModel.scale.y || 1,
+      matSnapshots,
+      edgeSnapshots
+    };
+  }
+
+  setModelRevealVisibility(factor) {
+    if (!this.currentModel) return;
+    this.prepareModelRevealState();
+    const snap = this._modelRevealSnapshot;
+    const clamped = Math.max(0, Math.min(1, factor));
+
+    if (clamped <= 0.01) {
+      this.currentModel.visible = false;
+      return;
+    }
+
+    this.currentModel.visible = true;
+    this.currentModel.scale.y = snap.scaleY * (0.9 + 0.1 * clamped);
+
+    for (const entry of snap.matSnapshots) {
+      const needTrans = clamped < 0.995 || entry.transparent;
+      if (entry.mat.transparent !== needTrans) {
+        entry.mat.transparent = needTrans;
+        entry.mat.needsUpdate = true;
+      }
+      entry.mat.opacity = entry.opacity * clamped;
+      entry.mat.depthWrite = clamped >= 0.98 ? entry.depthWrite : false;
+    }
+
+    for (const edge of snap.edgeSnapshots) {
+      edge.mat.opacity = edge.opacity * clamped;
+    }
+  }
+
+  restoreModelRevealState() {
+    if (!this.currentModel) return;
+    this.currentModel.visible = true;
+    const snap = this._modelRevealSnapshot;
+    if (!snap) return;
+
+    this.currentModel.scale.y = snap.scaleY;
+    for (const entry of snap.matSnapshots) {
+      if (entry.mat.transparent !== entry.transparent) {
+        entry.mat.transparent = entry.transparent;
+        entry.mat.needsUpdate = true;
+      }
+      entry.mat.opacity = entry.opacity;
+      entry.mat.depthWrite = entry.depthWrite;
+    }
+    for (const edge of snap.edgeSnapshots) {
+      edge.mat.opacity = edge.opacity;
+    }
+    this._modelRevealSnapshot = null;
+  }
+
+  createShadedBoxGeometry(w, h, d, facePalette = null) {
+    const geo = new window.THREE.BoxGeometry(w, h, d);
+    const pos = geo.attributes.position;
+    const norm = geo.attributes.normal;
+    if (!pos || !norm) return geo;
+
+    const pal = facePalette || {
+      top: [1, 1, 1],
+      right: [0.74, 0.74, 0.74],
+      left: [0.62, 0.62, 0.62],
+      front: [0.68, 0.68, 0.68],
+      back: [0.56, 0.56, 0.56],
+      bottom: [0.48, 0.48, 0.48]
+    };
+
+    const colors = new Float32Array(pos.count * 3);
+    for (let i = 0; i < pos.count; i++) {
+      const nx = norm.getX(i);
+      const ny = norm.getY(i);
+      const nz = norm.getZ(i);
+      let c = pal.back;
+      if (ny > 0.5) c = pal.top;
+      else if (ny < -0.5) c = pal.bottom;
+      else if (nx > 0.5) c = pal.right;
+      else if (nx < -0.5) c = pal.left;
+      else if (nz > 0.5) c = pal.front;
+
+      colors[i * 3] = c[0];
+      colors[i * 3 + 1] = c[1];
+      colors[i * 3 + 2] = c[2];
+    }
+    geo.setAttribute('color', new window.THREE.BufferAttribute(colors, 3));
+    return geo;
+  }
+
+  createBeveledCubeGeometry(w, h, d) {
+    const geo = new window.THREE.BufferGeometry();
+    const hw = w * 0.5;
+    const hh = h * 0.5;
+    const hd = d * 0.5;
+    const tw = hw * 0.78;
+    const td = hd * 0.78;
+    const by = hh - Math.min(h * 0.24, Math.min(w, d) * 0.16);
+
+    const positions = [];
+    const colors = [];
+
+    const pushQuad = (a, b, c, p4, shade) => {
+      const tris = [a, b, c, a, c, p4];
+      for (const v of tris) {
+        positions.push(v[0], v[1], v[2]);
+        colors.push(shade, shade, shade);
+      }
+    };
+
+    // Cara superior (+Y): 1.0 sin oscurecimiento para mantener el contraste exacto al escanear
+    pushQuad([-tw, hh, td], [tw, hh, td], [tw, hh, -td], [-tw, hh, -td], 1.0);
+
+    // Biseles inclinados superiores (marcan nítidamente cada cubo desde vista aérea)
+    pushQuad([-hw, by, hd], [hw, by, hd], [tw, hh, td], [-tw, hh, td], 0.72);     // +Z frente
+    pushQuad([hw, by, -hd], [-hw, by, -hd], [-tw, hh, -td], [tw, hh, -td], 0.46); // -Z atrás
+    pushQuad([hw, by, hd], [hw, by, -hd], [tw, hh, -td], [tw, hh, td], 0.56);     // +X derecha
+    pushQuad([-hw, by, -hd], [-hw, by, hd], [-tw, hh, td], [-tw, hh, -td], 0.82); // -X izquierda
+
+    // Paredes verticales del cubo
+    pushQuad([-hw, -hh, hd], [hw, -hh, hd], [hw, by, hd], [-hw, by, hd], 0.62);     // +Z frente
+    pushQuad([hw, -hh, -hd], [-hw, -hh, -hd], [-hw, by, -hd], [hw, by, -hd], 0.38); // -Z atrás
+    pushQuad([hw, -hh, hd], [hw, -hh, -hd], [hw, by, -hd], [hw, by, hd], 0.48);     // +X derecha
+    pushQuad([-hw, -hh, -hd], [-hw, -hh, hd], [-hw, by, hd], [-hw, by, -hd], 0.74); // -X izquierda
+
+    // Base inferior (-Y)
+    pushQuad([-hw, -hh, -hd], [hw, -hh, -hd], [hw, -hh, hd], [-hw, -hh, hd], 0.35);
+
+    geo.setAttribute('position', new window.THREE.Float32BufferAttribute(positions, 3));
+    geo.setAttribute('color', new window.THREE.Float32BufferAttribute(colors, 3));
+    geo.computeVertexNormals();
+    return geo;
+  }
+
+  snapAerialBlocksToQrState() {
+    if (!this.aerialBlocksMesh || !this._aerialBlockData) return;
+    if (!this._blockTmpObj) this._blockTmpObj = new window.THREE.Object3D();
+    const obj = this._blockTmpObj;
+    const data = this._aerialBlockData;
+    for (let i = 0; i < data.length; i++) {
+      const b = data[i];
+      obj.position.set(b.x, b.finalCenterY, b.z);
+      obj.rotation.set(0, 0, 0);
+      obj.scale.set(b.finalXZ, b.finalScaleY, b.finalXZ);
+      obj.updateMatrix();
+      this.aerialBlocksMesh.setMatrixAt(i, obj.matrix);
+      this.aerialBlocksMesh.setColorAt(i, b.qrCol);
+    }
+    this.aerialBlocksMesh.instanceMatrix.needsUpdate = true;
+    if (this.aerialBlocksMesh.instanceColor) {
+      this.aerialBlocksMesh.instanceColor.needsUpdate = true;
+    }
+  }
+
+  ensureAerialBlocksMesh(matrix, moduleColors, samples = null) {
+    if (!this.modelPivot || !this.mainBounds || !window.THREE) return null;
+    const N = matrix.size;
+    const count = N * N;
+    const margin = 2;
+    const total = N + margin * 2;
+    const side = this.mainBounds.side * 0.94;
+    const cell = side / total;
+    const { box, center, size } = this.mainBounds;
+    const unitBlockH = cell;
+    const plateTopY = box.max.y + Math.max(0.38, side * 0.05);
+    const plateH = Math.max(0.05, Math.min(side * 0.035, cell * 0.72));
+
+    if (
+      this.aerialBlocksMesh &&
+      (!this._aerialBlockData || this._aerialBlockData.length !== count)
+    ) {
+      this.modelPivot.remove(this.aerialBlocksMesh);
+      this.aerialBlocksMesh.geometry.dispose();
+      this.aerialBlocksMesh.material.dispose();
+      this.aerialBlocksMesh = null;
+      this._aerialBlockData = null;
+    }
+
+    if (!this.aerialBlocksMesh) {
+      const geo = this.createBeveledCubeGeometry(cell, unitBlockH, cell);
+      const mat = new window.THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        vertexColors: true,
+        toneMapped: false,
+        transparent: false,
+        depthWrite: true,
+        opacity: 1
+      });
+      this.aerialBlocksMesh = new window.THREE.InstancedMesh(geo, mat, count);
+      this.aerialBlocksMesh.renderOrder = 6;
+      this.aerialBlocksMesh.frustumCulled = false;
+      this.aerialBlocksMesh.visible = false;
+      this.modelPivot.add(this.aerialBlocksMesh);
+    }
+
+    const qRgb = moduleColors.quietRgb || [220, 212, 194];
+    const quietLinear = new window.THREE.Color(qRgb[0] / 255, qRgb[1] / 255, qRgb[2] / 255).convertSRGBToLinear();
+
+    if (
+      this.aerialQrBackingMesh &&
+      (this._aerialBackingSide !== side || this._aerialBackingPlateH !== plateH)
+    ) {
+      const wasVisible = this.aerialQrBackingMesh.visible;
+      this.modelPivot.remove(this.aerialQrBackingMesh);
+      this.aerialQrBackingMesh.geometry.dispose();
+      this.aerialQrBackingMesh.material.dispose();
+      this.aerialQrBackingMesh = null;
+      this._pendingBackingVis = wasVisible;
+    }
+
+    if (!this.aerialQrBackingMesh) {
+      const plateGeo = this.createShadedBoxGeometry(side, plateH, side, {
+        top: [1, 1, 1],
+        right: [0.80, 0.80, 0.80],
+        left: [0.90, 0.90, 0.90],
+        front: [0.86, 0.86, 0.86],
+        back: [0.74, 0.74, 0.74],
+        bottom: [0.68, 0.68, 0.68]
+      });
+      const plateMat = new window.THREE.MeshBasicMaterial({
+        color: quietLinear.clone(),
+        vertexColors: true,
+        toneMapped: false,
+        transparent: false,
+        depthWrite: true,
+        opacity: 1
+      });
+      this.aerialQrBackingMesh = new window.THREE.Mesh(plateGeo, plateMat);
+      this.aerialQrBackingMesh.position.set(center.x, plateTopY - plateH * 0.5, center.z);
+      this.aerialQrBackingMesh.renderOrder = 4;
+      this.aerialQrBackingMesh.visible = Boolean(this._pendingBackingVis);
+      this._aerialBackingSide = side;
+      this._aerialBackingPlateH = plateH;
+      this._aerialPlateTopY = plateTopY;
+      this._pendingBackingVis = undefined;
+      this.modelPivot.add(this.aerialQrBackingMesh);
+    } else {
+      this._aerialPlateTopY = plateTopY;
+      this.aerialQrBackingMesh.position.set(center.x, plateTopY - plateH * 0.5, center.z);
+      if (this.aerialQrBackingMesh.material && this.aerialQrBackingMesh.material.color) {
+        this.aerialQrBackingMesh.material.color.copy(quietLinear);
+      }
+    }
+
+    if (!this._blockTmpObj) this._blockTmpObj = new window.THREE.Object3D();
+    if (!this._blockTmpColor) this._blockTmpColor = new window.THREE.Color();
+
+    const hash = (a, b) => {
+      const n = Math.sin(a * 127.1 + b * 311.7) * 43758.5453;
+      return n - Math.floor(n);
+    };
+
+    const blockData = new Array(count);
+
+    for (let r = 0; r < N; r++) {
+      for (let c = 0; c < N; c++) {
+        const i = r * N + c;
+        const bit = matrix.modules[i] ? 1 : 0;
+        const x = center.x - side * 0.5 + (c + margin + 0.5) * cell;
+        const z = center.z - side * 0.5 + (r + margin + 0.5) * cell;
+        const u = (c + 0.5) / N;
+        const v = (r + 0.5) / N;
+        const surface = samples ? this.sampleAerialSurfaceAtUV(samples, u, v) : { hasSurface: true, normHeight: 0.45 };
+        const h1 = hash(r, c);
+        const h2 = hash(r + 17, c + 31);
+        const h3 = hash(r + 53, c + 11);
+        const radial = Math.min(1, Math.hypot((c / N) - 0.5, (r / N) - 0.5) * 1.45);
+
+        const colHeight = surface.hasSurface
+          ? Math.max(unitBlockH, surface.normHeight * size.y)
+          : unitBlockH * 0.25;
+        const baseScaleY = Math.max(0.25, colHeight / unitBlockH);
+        const baseCenterY = surface.hasSurface
+          ? box.min.y + colHeight * 0.5
+          : box.min.y + unitBlockH * 0.15;
+
+        const finalScaleY = bit === 1 ? 0.72 : 0.24;
+        const finalCenterY = plateTopY + (unitBlockH * finalScaleY) * 0.5;
+        const finalXZ = 0.97;
+
+        const modCol = new window.THREE.Color(
+          moduleColors.modelColors[i * 3] / 255,
+          moduleColors.modelColors[i * 3 + 1] / 255,
+          moduleColors.modelColors[i * 3 + 2] / 255
+        ).convertSRGBToLinear();
+
+        const qrCol = new window.THREE.Color(
+          moduleColors.qrColors[i * 3] / 255,
+          moduleColors.qrColors[i * 3 + 1] / 255,
+          moduleColors.qrColors[i * 3 + 2] / 255
+        ).convertSRGBToLinear();
+
+        blockData[i] = {
+          bit,
+          x,
+          z,
+          hasSurface: surface.hasSurface,
+          baseCenterY,
+          baseScaleY,
+          finalCenterY,
+          finalScaleY,
+          finalXZ,
+          burstY: Math.max(plateTopY + unitBlockH, baseCenterY + colHeight * 0.5) + Math.max(0.55, size.y * 0.55) * (0.45 + h1 * 0.85),
+          dx: (x - center.x) * (0.16 + h2 * 0.26),
+          dz: (z - center.z) * (0.16 + h3 * 0.26),
+          rx: (h1 - 0.5) * Math.PI * 1.6,
+          ry: (h2 - 0.5) * Math.PI * 1.6,
+          delay: 0.22 * radial,
+          modCol,
+          qrCol
+        };
+
+        this._blockTmpObj.position.set(x, baseCenterY, z);
+        this._blockTmpObj.rotation.set(0, 0, 0);
+        const initXZ = surface.hasSurface ? 0.94 : 0.05;
+        this._blockTmpObj.scale.set(initXZ, surface.hasSurface ? baseScaleY : 0.05, initXZ);
+        this._blockTmpObj.updateMatrix();
+        this.aerialBlocksMesh.setMatrixAt(i, this._blockTmpObj.matrix);
+        this.aerialBlocksMesh.setColorAt(i, modCol);
+      }
+    }
+
+    this._aerialBlockData = blockData;
+    this.aerialBlocksMesh.instanceMatrix.needsUpdate = true;
+    if (this.aerialBlocksMesh.instanceColor) {
+      this.aerialBlocksMesh.instanceColor.needsUpdate = true;
+    }
+    return this.aerialBlocksMesh;
+  }
+
+  updateAerialBlocksAnimation(rawT, mode = 'enter') {
+    if (!this.aerialBlocksMesh || !this._aerialBlockData) return;
+    const data = this._aerialBlockData;
+    const obj = this._blockTmpObj;
+    const col = this._blockTmpColor;
+    const easeOut = (t) => 1 - Math.pow(1 - t, 3);
+    const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+
+    if (mode === 'enter') {
+      // Transición sólida sin velos transparentes: al desprenderse los cubos, reemplazan directamente a la maqueta
+      if (this.currentModel) {
+        this.currentModel.visible = rawT < 0.04;
+      }
+
+      // Los bloques permanecen siempre opacos formando el cuerpo 3D escaneable del QR
+      this.aerialBlocksMesh.visible = true;
+      this.aerialBlocksMesh.material.opacity = 1;
+
+      if (this.aerialQrBackingMesh) {
+        if (rawT > 0.68) {
+          const bs = Math.max(0.01, easeOut((rawT - 0.68) / 0.32));
+          this.aerialQrBackingMesh.visible = true;
+          this.aerialQrBackingMesh.scale.set(bs, 1, bs);
+        } else {
+          this.aerialQrBackingMesh.visible = false;
+          this.aerialQrBackingMesh.scale.set(0.01, 1, 0.01);
+        }
+        this.aerialQrBackingMesh.material.opacity = 1;
+      }
+
+      if (this.aerialQrMesh) {
+        this.aerialQrMesh.visible = false;
+        this.aerialQrMesh.material.opacity = 0;
+      }
+
+      for (let i = 0; i < data.length; i++) {
+        const b = data[i];
+        const p = Math.max(0, Math.min(1, (rawT - b.delay) / Math.max(0.01, 1 - b.delay)));
+        if (p < 0.22) {
+          // Voxelización in-situ sobre el modelo
+          const u = easeOut(p / 0.22);
+          obj.position.set(b.x, b.baseCenterY, b.z);
+          obj.rotation.set(0, 0, 0);
+          const xz = b.hasSurface ? 0.94 : 0.05 + 0.42 * u;
+          const sy = b.hasSurface ? b.baseScaleY : 0.05 + 0.35 * u;
+          obj.scale.set(xz, sy, xz);
+          col.copy(b.modCol);
+        } else if (p < 0.56) {
+          // Desarme y elevación en bloques desde las partes del modelo
+          const u = easeOut((p - 0.22) / 0.34);
+          obj.position.set(b.x + b.dx * u, b.baseCenterY + (b.burstY - b.baseCenterY) * u, b.z + b.dz * u);
+          obj.rotation.set(b.rx * u, b.ry * u, 0);
+          const xz = b.hasSurface ? (0.94 - 0.06 * u) : (0.47 + 0.41 * u);
+          const sy = (b.hasSurface ? b.baseScaleY : 0.4) * (1 - u) + 0.88 * u;
+          obj.scale.set(xz, sy, xz);
+          col.copy(b.modCol).lerp(b.qrCol, u * 0.4);
+        } else {
+          // Reensamble en los bloques 3D que forman el cuerpo del QR
+          const u = easeInOut((p - 0.56) / 0.44);
+          obj.position.set(
+            b.x + b.dx * (1 - u),
+            b.burstY + (b.finalCenterY - b.burstY) * u,
+            b.z + b.dz * (1 - u)
+          );
+          obj.rotation.set(b.rx * (1 - u), b.ry * (1 - u), 0);
+          const xz = 0.88 + (b.finalXZ - 0.88) * u;
+          const sy = 0.88 + (b.finalScaleY - 0.88) * u;
+          obj.scale.set(xz, sy, xz);
+          col.copy(b.modCol).lerp(b.qrCol, 0.4 + 0.6 * u);
+        }
+        obj.updateMatrix();
+        this.aerialBlocksMesh.setMatrixAt(i, obj.matrix);
+        this.aerialBlocksMesh.setColorAt(i, col);
+      }
+    } else {
+      // Salida sólida: el cuerpo en cubos del QR se desarma y reensambla la maqueta sin transparencia
+      if (this.aerialQrMesh) {
+        this.aerialQrMesh.material.opacity = 0;
+        this.aerialQrMesh.visible = false;
+      }
+      if (this.aerialQrBackingMesh) {
+        if (rawT < 0.22) {
+          const bs = Math.max(0.01, 1 - easeOut(rawT / 0.22));
+          this.aerialQrBackingMesh.scale.set(bs, 1, bs);
+          this.aerialQrBackingMesh.visible = true;
+        } else {
+          this.aerialQrBackingMesh.visible = false;
+          this.aerialQrBackingMesh.scale.set(1, 1, 1);
+        }
+        this.aerialQrBackingMesh.material.opacity = 1;
+      }
+
+      if (this.currentModel) {
+        this.currentModel.visible = rawT >= 0.96;
+      }
+
+      this.aerialBlocksMesh.visible = rawT < 0.97;
+      this.aerialBlocksMesh.material.opacity = 1;
+
+      for (let i = 0; i < data.length; i++) {
+        const b = data[i];
+        const p = Math.max(0, Math.min(1, (rawT - b.delay * 0.55) / Math.max(0.01, 1 - b.delay * 0.55)));
+        if (p < 0.42) {
+          const u = easeOut(p / 0.42);
+          obj.position.set(
+            b.x + b.dx * 0.75 * u,
+            b.finalCenterY + (b.burstY - b.finalCenterY) * 0.65 * u,
+            b.z + b.dz * 0.75 * u
+          );
+          obj.rotation.set(b.rx * 0.7 * u, b.ry * 0.7 * u, 0);
+          obj.scale.set(
+            b.finalXZ + (0.90 - b.finalXZ) * u,
+            b.finalScaleY + (0.88 - b.finalScaleY) * u,
+            b.finalXZ + (0.90 - b.finalXZ) * u
+          );
+          col.copy(b.qrCol).lerp(b.modCol, u * 0.55);
+        } else {
+          const u = easeInOut((p - 0.42) / 0.58);
+          const midY = b.finalCenterY + (b.burstY - b.finalCenterY) * 0.65;
+          obj.position.set(
+            b.x + b.dx * 0.75 * (1 - u),
+            midY * (1 - u) + b.baseCenterY * u,
+            b.z + b.dz * 0.75 * (1 - u)
+          );
+          obj.rotation.set(b.rx * 0.7 * (1 - u), b.ry * 0.7 * (1 - u), 0);
+          const targetXZ = b.hasSurface ? 0.94 : 0.05;
+          const targetSY = b.hasSurface ? b.baseScaleY : 0.05;
+          obj.scale.set(
+            0.90 * (1 - u) + targetXZ * u,
+            0.88 * (1 - u) + targetSY * u,
+            0.90 * (1 - u) + targetXZ * u
+          );
+          col.copy(b.qrCol).lerp(b.modCol, 0.55 + 0.45 * u);
+        }
+        obj.updateMatrix();
+        this.aerialBlocksMesh.setMatrixAt(i, obj.matrix);
+        this.aerialBlocksMesh.setColorAt(i, col);
+      }
+    }
+
+    this.aerialBlocksMesh.instanceMatrix.needsUpdate = true;
+    if (this.aerialBlocksMesh.instanceColor) {
+      this.aerialBlocksMesh.instanceColor.needsUpdate = true;
+    }
   }
 
   async fetchQrMatrix() {
@@ -1386,15 +2424,18 @@ class Qr3dViewer extends HTMLElement {
     }
   }
 
-  async applyAerialColoredQr() {
+  async applyAerialColoredQr({ buildBlocks = false } = {}) {
     if (!this.currentModel || !this.mainBounds) return;
     const matrix = this.qrMatrixCache || (await this.fetchQrMatrix());
     const samples = this.sampleAerial90Colors();
     if (!matrix || !samples) return;
 
+    const moduleColors = this.computeAerialQrModuleColors(matrix, samples);
+
     // 1. Canvas sólido con los colores aéreos para el overlay 3D cenital sobre la maqueta
     const overlayCanvas = this.buildAerialColoredQrCanvas(matrix, samples, {
-      pixelSize: 1024
+      pixelSize: 1024,
+      moduleColors
     });
 
     if (!this.aerialQrMesh) {
@@ -1413,7 +2454,7 @@ class Qr3dViewer extends HTMLElement {
       this.aerialQrMesh.rotation.x = -Math.PI / 2;
       this.aerialQrMesh.position.set(
         this.mainBounds.center.x,
-        this.mainBounds.box.max.y + 0.45,
+        this.mainBounds.box.max.y + Math.max(0.45, side * 0.055),
         this.mainBounds.center.z
       );
       this.aerialQrMesh.renderOrder = 5;
@@ -1425,11 +2466,34 @@ class Qr3dViewer extends HTMLElement {
       this.aerialQrMesh.material.map = tex;
       this.aerialQrMesh.material.needsUpdate = true;
     }
-    this.aerialQrMesh.visible = true;
+    const useBlocks = buildBlocks || (this.viewerConfig.qrRevealStyle || 'blocks') === 'blocks';
+
+    if (useBlocks) {
+      this.aerialQrMesh.visible = false;
+      this.ensureAerialBlocksMesh(matrix, moduleColors, samples);
+      if (this.isAerialMode && !this.cameraAnim && this.aerialBlocksMesh) {
+        this.snapAerialBlocksToQrState();
+        this.aerialBlocksMesh.visible = true;
+        this.aerialBlocksMesh.material.opacity = 1;
+        if (this.aerialQrBackingMesh) {
+          this.aerialQrBackingMesh.visible = true;
+          this.aerialQrBackingMesh.scale.set(1, 1, 1);
+          this.aerialQrBackingMesh.material.opacity = 1;
+        }
+      }
+    } else {
+      this.aerialQrMesh.visible = true;
+      if (this.aerialBlocksMesh) this.aerialBlocksMesh.visible = false;
+      if (this.aerialQrBackingMesh) {
+        this.aerialQrBackingMesh.visible = false;
+        this.aerialQrBackingMesh.material.opacity = 0;
+      }
+    }
 
     // 2. Canvas sólido con los colores aéreos para la tarjeta 2D y el totem 3D
     const opaqueCanvas = this.buildAerialColoredQrCanvas(matrix, samples, {
-      pixelSize: 512
+      pixelSize: 512,
+      moduleColors
     });
 
     const aerialDataUrl = opaqueCanvas.toDataURL('image/png');
@@ -1452,10 +2516,14 @@ class Qr3dViewer extends HTMLElement {
         mat.needsUpdate = true;
       }
     }
+    this.requestRender();
   }
 
-  async enterAerialScanMode() {
+  async enterAerialScanMode(options = {}) {
     if (!this.currentModel || !this.mainBounds || !this.camera || !this.controls) return;
+
+    const revealStyle = options.style || this.viewerConfig.qrRevealStyle || 'blocks';
+    const useBlocks = revealStyle === 'blocks';
 
     if (!this.isAerialMode) {
       this.autoRotateBeforeAerial = this.autoRotate;
@@ -1475,55 +2543,109 @@ class Qr3dViewer extends HTMLElement {
       btnAerial.innerText = '↩️ Volver a 3D';
     }
     if (badge) badge.classList.add('aerial-active');
-    if (badgeTitle) badgeTitle.innerText = 'QR Aéreo 90°';
+    if (badgeTitle) badgeTitle.innerText = useBlocks ? 'QR Bloques 90°' : 'QR Aéreo 90°';
     if (badgeSub) badgeSub.innerText = 'Colores tomados de la vista 90°';
     if (hint) hint.innerText = '🛸 Vista Aérea 90° activa · Escanea el QR cromático o haz clic para volver';
 
-    // Generar muestras cenitales y aplicar los colores al QR
-    await this.applyAerialColoredQr();
+    // Generar muestras cenitales y aplicar los colores al QR (y bloques si corresponde)
+    await this.applyAerialColoredQr({ buildBlocks: useBlocks });
 
-    // Calcular cámara cenital a 90° centrada sobre el modelo principal
-    const { center, side } = this.mainBounds;
+    // Calcular cámara aérea centrada sobre el QR en bloques (ligera inclinación ~7° para evidenciar relieve 3D) o 90° en modo fade
+    const { box, center, side } = this.mainBounds;
     const halfSide = Math.max(side * 0.5, 0.5);
     const vFov = window.THREE.MathUtils.degToRad(this.camera.fov);
     const aspect = Math.max(0.5, this.camera.aspect || 1);
     const hFov = 2 * Math.atan(Math.tan(vFov / 2) * aspect);
     const limitingFov = Math.min(vFov, hFov);
-    const aerialDist = (halfSide / Math.tan(limitingFov / 2)) * 1.40;
+    const aerialDist = (halfSide / Math.tan(limitingFov / 2)) * (useBlocks ? 1.44 : 1.40);
+    const plateTopY = this._aerialPlateTopY || (box.max.y + Math.max(0.38, side * 0.05));
 
-    const toTarget = center.clone();
-    const toPos = new window.THREE.Vector3(
-      center.x,
-      center.y + aerialDist,
-      center.z + aerialDist * 0.0025
-    );
+    const toTarget = useBlocks
+      ? new window.THREE.Vector3(center.x, plateTopY, center.z)
+      : center.clone();
+    const toPos = useBlocks
+      ? new window.THREE.Vector3(
+          center.x,
+          plateTopY + aerialDist * 0.997,
+          center.z + aerialDist * 0.065
+        )
+      : new window.THREE.Vector3(
+          center.x,
+          center.y + aerialDist,
+          center.z + aerialDist * 0.0025
+        );
 
     const twoPi = Math.PI * 2;
     let rotY = ((this.modelPivot.rotation.y % twoPi) + twoPi) % twoPi;
     if (rotY > Math.PI) rotY -= twoPi;
     this.modelPivot.rotation.y = rotY;
 
+    const isDirect = this.viewerConfig.cameraMode === 'direct';
+    if (useBlocks && this.aerialQrMesh) {
+      this.aerialQrMesh.visible = false;
+      this.aerialQrMesh.material.opacity = 0;
+    }
+    if (useBlocks && this.aerialQrBackingMesh) {
+      this.aerialQrBackingMesh.visible = false;
+      this.aerialQrBackingMesh.scale.set(0.01, 1, 0.01);
+      this.aerialQrBackingMesh.material.opacity = 1;
+    }
+
     this.cameraAnim = {
       startTime: performance.now(),
-      duration: this.viewerConfig.cameraMode === 'direct' ? 1 : 700,
+      duration: isDirect ? 1 : (useBlocks ? 1350 : 700),
       fromPos: this.camera.position.clone(),
       toPos,
       fromTarget: this.controls.target.clone(),
       toTarget,
       fromRotY: rotY,
       toRotY: 0,
-      fadeAerialFrom: this.aerialQrMesh ? this.aerialQrMesh.material.opacity : 0,
-      fadeAerialTo: 1,
-      onComplete: null
+      fadeAerialFrom: !useBlocks && this.aerialQrMesh ? this.aerialQrMesh.material.opacity : 0,
+      fadeAerialTo: useBlocks ? 0 : 1,
+      blockMode: useBlocks && this.aerialBlocksMesh ? 'enter' : null,
+      onComplete: () => {
+        if (useBlocks && this.aerialBlocksMesh) {
+          this.updateAerialBlocksAnimation(1, 'enter');
+          this.snapAerialBlocksToQrState();
+          this.aerialBlocksMesh.visible = true;
+          this.aerialBlocksMesh.material.opacity = 1;
+          if (this.aerialQrBackingMesh) {
+            this.aerialQrBackingMesh.visible = true;
+            this.aerialQrBackingMesh.scale.set(1, 1, 1);
+            this.aerialQrBackingMesh.material.opacity = 1;
+          }
+          if (this.currentModel) {
+            this.currentModel.visible = false;
+          }
+          if (this.aerialQrMesh) {
+            this.aerialQrMesh.visible = false;
+            this.aerialQrMesh.material.opacity = 0;
+          }
+        } else {
+          if (this.aerialBlocksMesh) this.aerialBlocksMesh.visible = false;
+          if (this.aerialQrBackingMesh) {
+            this.aerialQrBackingMesh.visible = false;
+            this.aerialQrBackingMesh.material.opacity = 0;
+          }
+          if (this.aerialQrMesh) {
+            this.aerialQrMesh.visible = true;
+            this.aerialQrMesh.material.opacity = 1;
+          }
+        }
+        this.requestRender();
+      }
     };
-    this.requestRender({ durationMs: 850 });
+    this.requestRender({ durationMs: useBlocks ? 1500 : 850 });
   }
 
-  exitAerialScanMode() {
+  exitAerialScanMode(options = {}) {
     if (!this.isAerialMode) return;
     this.isAerialMode = false;
     this.autoRotate = this.autoRotateBeforeAerial;
     this.updateRotateButtonLabel();
+
+    const revealStyle = options.style || this.viewerConfig.qrRevealStyle || 'blocks';
+    const useBlocks = revealStyle === 'blocks' && Boolean(this.aerialBlocksMesh);
 
     const btnAerial = this.shadowRoot.getElementById('btn-aerial');
     const badge = this.shadowRoot.getElementById('qr-badge');
@@ -1551,27 +2673,45 @@ class Qr3dViewer extends HTMLElement {
       }));
     }
 
+    const isDirect = this.viewerConfig.cameraMode === 'direct';
     if (this.defaultView) {
       this.cameraAnim = {
         startTime: performance.now(),
-        duration: this.viewerConfig.cameraMode === 'direct' ? 1 : 650,
+        duration: isDirect ? 1 : (useBlocks ? 950 : 650),
         fromPos: this.camera.position.clone(),
         toPos: this.defaultView.cameraPos.clone(),
         fromTarget: this.controls.target.clone(),
         toTarget: this.defaultView.target.clone(),
         fromRotY: this.modelPivot ? this.modelPivot.rotation.y : 0,
         toRotY: null,
-        fadeAerialFrom: this.aerialQrMesh ? this.aerialQrMesh.material.opacity : 0,
+        fadeAerialFrom: !useBlocks && this.aerialQrMesh ? this.aerialQrMesh.material.opacity : 0,
         fadeAerialTo: 0,
+        blockMode: useBlocks ? 'exit' : null,
         onComplete: () => {
           if (this.aerialQrMesh) this.aerialQrMesh.visible = false;
+          if (this.aerialQrBackingMesh) {
+            this.aerialQrBackingMesh.visible = false;
+            this.aerialQrBackingMesh.scale.set(1, 1, 1);
+            this.aerialQrBackingMesh.material.opacity = 1;
+          }
+          if (this.aerialBlocksMesh) this.aerialBlocksMesh.visible = false;
+          this.restoreModelRevealState();
+          this.applyEdgeMode();
+          this.applyTotemVisibility();
           this.requestRender();
         }
       };
-    } else if (this.aerialQrMesh) {
-      this.aerialQrMesh.visible = false;
+    } else {
+      if (this.aerialQrMesh) this.aerialQrMesh.visible = false;
+      if (this.aerialQrBackingMesh) {
+        this.aerialQrBackingMesh.visible = false;
+        this.aerialQrBackingMesh.scale.set(1, 1, 1);
+        this.aerialQrBackingMesh.material.opacity = 1;
+      }
+      if (this.aerialBlocksMesh) this.aerialBlocksMesh.visible = false;
+      this.restoreModelRevealState();
     }
-    this.requestRender({ durationMs: 800 });
+    this.requestRender({ durationMs: 1100 });
   }
 
   async fetchViewerConfig() {
@@ -1584,15 +2724,24 @@ class Qr3dViewer extends HTMLElement {
       if (this._hasLocalStudioEdits) return this.viewerConfig;
       const saved = data.viewerConfig || (data.metadata && data.metadata.viewerConfig);
       if (saved && typeof saved === 'object') {
-        const effective = this._hasLocalToolbarEdits
-          ? { ...saved, ...this._userToolbarOverrides }
-          : saved;
+        const effective = {
+          ...saved,
+          ...(this._attrOverrides || {}),
+          ...(this._hasLocalToolbarEdits ? this._userToolbarOverrides : {})
+        };
         this.setViewerConfig(effective, { applyCamera: true });
       }
       return this.viewerConfig;
     } catch {
       return null;
     }
+  }
+
+  setQrRevealStyle(style) {
+    const normalized = style === 'blocks' ? 'blocks' : 'fade';
+    this.viewerConfig.qrRevealStyle = normalized;
+    this._attrOverrides.qrRevealStyle = normalized;
+    return normalized;
   }
 
   getViewerConfig() {
@@ -1628,10 +2777,19 @@ class Qr3dViewer extends HTMLElement {
     const merged = { ...this.viewerConfig, ...nextConfig };
     if (merged.mode === 'auto' && nextConfig.mode === 'auto') {
       Object.assign(merged, VIEWER_PRESETS.auto, {
+        backgroundPreset: nextConfig.backgroundPreset !== undefined ? nextConfig.backgroundPreset : merged.backgroundPreset,
+        backgroundColor: nextConfig.backgroundColor !== undefined ? nextConfig.backgroundColor : merged.backgroundColor,
         sunMode: nextConfig.sunMode !== undefined ? nextConfig.sunMode : merged.sunMode,
         autoRotate: typeof nextConfig.autoRotate === 'boolean' ? nextConfig.autoRotate : merged.autoRotate,
         cameraMode: nextConfig.cameraMode !== undefined ? nextConfig.cameraMode : merged.cameraMode,
-        cameraPose: nextConfig.cameraPose !== undefined ? nextConfig.cameraPose : null
+        cameraPose: nextConfig.cameraPose !== undefined ? nextConfig.cameraPose : null,
+        uiTheme: nextConfig.uiTheme !== undefined ? nextConfig.uiTheme : merged.uiTheme,
+        accentColor: nextConfig.accentColor !== undefined ? nextConfig.accentColor : merged.accentColor,
+        surfaceColor: nextConfig.surfaceColor !== undefined ? nextConfig.surfaceColor : merged.surfaceColor,
+        textColor: nextConfig.textColor !== undefined ? nextConfig.textColor : merged.textColor,
+        showToolbar: typeof nextConfig.showToolbar === 'boolean' ? nextConfig.showToolbar : merged.showToolbar,
+        showHint: typeof nextConfig.showHint === 'boolean' ? nextConfig.showHint : merged.showHint,
+        qrRevealStyle: nextConfig.qrRevealStyle !== undefined ? nextConfig.qrRevealStyle : merged.qrRevealStyle
       });
     }
     this.viewerConfig = merged;
@@ -1663,6 +2821,14 @@ class Qr3dViewer extends HTMLElement {
       this.updateCameraFraming({ applyCamera: true });
     }
     this.aerialSamples = null;
+    if (
+      this.isAerialMode &&
+      (this.viewerConfig.qrRevealStyle || 'blocks') === 'blocks' &&
+      !this.cameraAnim &&
+      this.currentModel
+    ) {
+      this.currentModel.visible = false;
+    }
     this.requestRender({ durationMs: 600 });
   }
 
@@ -1670,30 +2836,53 @@ class Qr3dViewer extends HTMLElement {
     const host = this.shadowRoot && this.shadowRoot.host;
     const cfg = this.viewerConfig;
     const preset = cfg.backgroundPreset || 'warm_dark';
+    const isTransparent = preset === 'transparent' || this.readBoolAttr('transparent') === true;
     let bgCss = BACKGROUND_STYLES.warm_dark.css;
-    let bgHex = BACKGROUND_STYLES.warm_dark.hex;
     let isLight = false;
 
-    if (preset === 'custom' && /^#[0-9a-fA-F]{6}$/.test(cfg.backgroundColor || '')) {
+    if (isTransparent) {
+      bgCss = 'transparent';
+      isLight = cfg.uiTheme === 'dark' ? false : true;
+    } else if (preset === 'custom' && /^#[0-9a-fA-F]{6}$/.test(cfg.backgroundColor || '')) {
       const hex = cfg.backgroundColor;
       bgCss = `radial-gradient(circle at 50% 35%, ${hex}cc 0%, ${hex} 100%)`;
-      bgHex = hex;
       const r = parseInt(hex.slice(1, 3), 16);
       const g = parseInt(hex.slice(3, 5), 16);
       const b = parseInt(hex.slice(5, 7), 16);
       isLight = (0.299 * r + 0.587 * g + 0.114 * b) > 155;
     } else if (BACKGROUND_STYLES[preset]) {
       bgCss = BACKGROUND_STYLES[preset].css;
-      bgHex = BACKGROUND_STYLES[preset].hex || bgHex;
       isLight = BACKGROUND_STYLES[preset].light;
     }
 
     if (this.scene && window.THREE) {
-      this.scene.background = new window.THREE.Color(bgHex);
+      this.scene.background = null;
     }
+    if (this.renderer) {
+      this.renderer.setClearColor(0x000000, 0);
+    }
+
     if (host) {
-      host.style.background = bgCss;
+      host.style.setProperty('--_cfg-bg', bgCss);
       host.classList.toggle('light-bg', isLight);
+
+      const uiTheme = cfg.uiTheme || 'auto';
+      const useLightUi = uiTheme === 'light' || (uiTheme === 'auto' && isLight);
+      host.classList.toggle('light-ui', useLightUi);
+
+      if (cfg.accentColor) host.style.setProperty('--_cfg-accent', cfg.accentColor);
+      else host.style.removeProperty('--_cfg-accent');
+
+      if (cfg.surfaceColor) host.style.setProperty('--_cfg-surface', cfg.surfaceColor);
+      else host.style.removeProperty('--_cfg-surface');
+
+      if (cfg.textColor) host.style.setProperty('--_cfg-text', cfg.textColor);
+      else host.style.removeProperty('--_cfg-text');
+
+      const hideToolbar = cfg.showToolbar === false || this.readBoolAttr('hide-toolbar') === true;
+      const hideHint = cfg.showHint === false || this.readBoolAttr('hide-hint') === true;
+      host.classList.toggle('toolbar-hidden', hideToolbar);
+      host.classList.toggle('hint-hidden', hideHint);
     }
   }
 
@@ -1990,6 +3179,10 @@ class Qr3dViewer extends HTMLElement {
         this.edgeTargetMeshes = [];
         this.aerialSamples = null;
         this.aerialQrMesh = null;
+        this.aerialQrBackingMesh = null;
+        this.aerialBlocksMesh = null;
+        this._aerialBlockData = null;
+        this._modelRevealSnapshot = null;
 
         const rawGenerator =
           (gltf.parser && gltf.parser.json && gltf.parser.json.asset && gltf.parser.json.asset.generator) || '';
@@ -2169,7 +3362,12 @@ class Qr3dViewer extends HTMLElement {
         } else if (data.type === 'status_updated') {
           this.dispatchEvent(new CustomEvent('qr-status-change', { detail: data }));
         } else if (data.type === 'viewer_config_updated' && data.viewerConfig) {
-          this.setViewerConfig(data.viewerConfig, { applyCamera: true });
+          const effective = {
+            ...data.viewerConfig,
+            ...(this._attrOverrides || {}),
+            ...(this._hasLocalToolbarEdits ? this._userToolbarOverrides : {})
+          };
+          this.setViewerConfig(effective, { applyCamera: true });
         }
       } catch (err) {
         // Ignorar heartbeats u otros mensajes planos
@@ -2243,12 +3441,19 @@ class Qr3dViewer extends HTMLElement {
 
     if (isIOS && this.currentModel) {
       try {
+        this.restoreModelRevealState();
         this.showToastMessage('📱 Preparando modelo USDZ para AR Quick Look...', 3500);
         if (!window.THREE.USDZExporter) {
           await this.loadScript('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/USDZExporter.js');
         }
         const hiddenVis = [];
-        for (const obj of [...this.smartEdgeLines, ...this.allEdgeLines, ...(this.aerialQrMesh ? [this.aerialQrMesh] : [])]) {
+        for (const obj of [
+          ...this.smartEdgeLines,
+          ...this.allEdgeLines,
+          ...(this.aerialQrMesh ? [this.aerialQrMesh] : []),
+          ...(this.aerialQrBackingMesh ? [this.aerialQrBackingMesh] : []),
+          ...(this.aerialBlocksMesh ? [this.aerialBlocksMesh] : [])
+        ]) {
           if (obj.visible) {
             hiddenVis.push(obj);
             obj.visible = false;

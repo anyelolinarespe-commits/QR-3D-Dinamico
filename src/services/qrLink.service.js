@@ -3,7 +3,7 @@ import { db } from '../db/pool.js';
 import { config } from '../config/env.js';
 import { eventBus } from '../config/redis.js';
 import { generateQrPngBuffer } from './qr.service.js';
-import { sanitizeViewerConfig } from './viewerConfig.service.js';
+import { resolveEffectiveViewerConfig, sanitizeViewerConfig } from './viewerConfig.service.js';
 
 export const ALLOWED_ROTATION_STRATEGIES = new Set([
   'static',
@@ -657,6 +657,11 @@ export function serializePublicViewData(item, baseUrl = config.publicBaseUrl, da
   const linkMode = getLinkMode(item.rotation_strategy, intervalSec);
   const viewEnabled = meta.viewEnabled !== false;
   const todayDate = dailyStats?.todayDate || getLocalDayWindow().todayDate;
+  const effectiveViewerConfig = resolveEffectiveViewerConfig(
+    meta.viewerConfig,
+    item.tenant_default_viewer_config,
+    meta.hasCustomViewerConfig
+  );
 
   return {
     viewToken,
@@ -678,7 +683,7 @@ export function serializePublicViewData(item, baseUrl = config.publicBaseUrl, da
       primary: item.color_primary,
       secondary: item.color_secondary
     },
-    viewerConfig: sanitizeViewerConfig(meta.viewerConfig),
+    viewerConfig: effectiveViewerConfig,
     modelUrl: `${baseUrl}/view/${viewToken}/model`,
     imageUrl: `${baseUrl}/view/${viewToken}/image`,
     matrixUrl: `${baseUrl}/view/${viewToken}/matrix`,
@@ -696,6 +701,11 @@ export function serializeQrItem(item, baseUrl = config.publicBaseUrl, dailyStats
   const linkMode = getLinkMode(item.rotation_strategy, intervalSec);
   const viewEnabled = meta.viewEnabled !== false;
   const todayDate = dailyStats?.todayDate || getLocalDayWindow().todayDate;
+  const effectiveViewerConfig = resolveEffectiveViewerConfig(
+    meta.viewerConfig,
+    item.tenant_default_viewer_config,
+    meta.hasCustomViewerConfig
+  );
 
   return {
     id: item.id,
@@ -726,7 +736,8 @@ export function serializeQrItem(item, baseUrl = config.publicBaseUrl, dailyStats
     color_primary: item.color_primary,
     color_secondary: item.color_secondary,
     model_filename: item.model_filename,
-    viewerConfig: sanitizeViewerConfig(meta.viewerConfig),
+    viewerConfig: effectiveViewerConfig,
+    hasCustomViewerConfig: Boolean(meta.hasCustomViewerConfig),
     modelUrl: `${baseUrl}/api/qr/${item.id}/model`,
     imageUrl: `${baseUrl}/api/qr/${item.id}/image`,
     scanUrl: buildScanUrl(item.id, null, baseUrl),

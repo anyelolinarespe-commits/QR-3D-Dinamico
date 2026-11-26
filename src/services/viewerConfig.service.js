@@ -21,7 +21,14 @@ export const VIEWER_PRESETS = {
     showTotem: true,
     autoRotate: true,
     cameraMode: 'smooth',
-    cameraPose: null
+    cameraPose: null,
+    uiTheme: 'auto',
+    accentColor: null,
+    surfaceColor: null,
+    textColor: null,
+    showToolbar: true,
+    showHint: true,
+    qrRevealStyle: 'blocks'
   },
   archaeological: {
     mode: 'manual',
@@ -40,7 +47,14 @@ export const VIEWER_PRESETS = {
     showTotem: true,
     autoRotate: true,
     cameraMode: 'smooth',
-    cameraPose: null
+    cameraPose: null,
+    uiTheme: 'dark',
+    accentColor: null,
+    surfaceColor: null,
+    textColor: null,
+    showToolbar: true,
+    showHint: true,
+    qrRevealStyle: 'blocks'
   },
   museum_night: {
     mode: 'manual',
@@ -59,7 +73,14 @@ export const VIEWER_PRESETS = {
     showTotem: true,
     autoRotate: true,
     cameraMode: 'smooth',
-    cameraPose: null
+    cameraPose: null,
+    uiTheme: 'dark',
+    accentColor: null,
+    surfaceColor: null,
+    textColor: null,
+    showToolbar: true,
+    showHint: true,
+    qrRevealStyle: 'blocks'
   },
   studio: {
     mode: 'manual',
@@ -78,7 +99,14 @@ export const VIEWER_PRESETS = {
     showTotem: true,
     autoRotate: true,
     cameraMode: 'smooth',
-    cameraPose: null
+    cameraPose: null,
+    uiTheme: 'light',
+    accentColor: null,
+    surfaceColor: null,
+    textColor: null,
+    showToolbar: true,
+    showHint: true,
+    qrRevealStyle: 'blocks'
   },
   outdoor: {
     mode: 'manual',
@@ -97,17 +125,97 @@ export const VIEWER_PRESETS = {
     showTotem: true,
     autoRotate: true,
     cameraMode: 'smooth',
-    cameraPose: null
+    cameraPose: null,
+    uiTheme: 'light',
+    accentColor: null,
+    surfaceColor: null,
+    textColor: null,
+    showToolbar: true,
+    showHint: true,
+    qrRevealStyle: 'blocks'
+  },
+  warm_sand: {
+    mode: 'manual',
+    preset: 'warm_sand',
+    exposure: 1.0,
+    sunAzimuth: -108,
+    sunElevation: 44,
+    sunIntensity: 1.48,
+    sunMode: 'scene',
+    ambientIntensity: 0.36,
+    colorBoost: 1.06,
+    fixSrgb: 'auto',
+    edgeMode: 'smart',
+    backgroundPreset: 'warm_sand',
+    backgroundColor: '#eae1d0',
+    showTotem: true,
+    autoRotate: true,
+    cameraMode: 'smooth',
+    cameraPose: null,
+    uiTheme: 'light',
+    accentColor: '#0f3d2e',
+    surfaceColor: '#ffffff',
+    textColor: '#0f3d2e',
+    showToolbar: true,
+    showHint: true,
+    qrRevealStyle: 'blocks'
+  },
+  transparent: {
+    mode: 'manual',
+    preset: 'transparent',
+    exposure: 0.98,
+    sunAzimuth: -108,
+    sunElevation: 42,
+    sunIntensity: 1.52,
+    sunMode: 'scene',
+    ambientIntensity: 0.28,
+    colorBoost: 1.05,
+    fixSrgb: 'auto',
+    edgeMode: 'smart',
+    backgroundPreset: 'transparent',
+    backgroundColor: '#eae1d0',
+    showTotem: true,
+    autoRotate: true,
+    cameraMode: 'smooth',
+    cameraPose: null,
+    uiTheme: 'auto',
+    accentColor: null,
+    surfaceColor: null,
+    textColor: null,
+    showToolbar: true,
+    showHint: true,
+    qrRevealStyle: 'blocks'
   }
 };
 
 const VALID_MODES = new Set(['auto', 'manual']);
-const VALID_PRESETS = new Set(['auto', 'archaeological', 'museum_night', 'studio', 'outdoor', 'custom']);
+const VALID_PRESETS = new Set([
+  'auto',
+  'archaeological',
+  'museum_night',
+  'studio',
+  'outdoor',
+  'warm_sand',
+  'transparent',
+  'custom'
+]);
 const VALID_FIX_SRGB = new Set(['auto', 'on', 'off']);
 const VALID_EDGE_MODES = new Set(['smart', 'all', 'off']);
 const VALID_CAMERA_MODES = new Set(['smooth', 'direct']);
 const VALID_SUN_MODES = new Set(['scene', 'model']);
-const VALID_BG_PRESETS = new Set(['auto', 'warm_dark', 'slate', 'night', 'light_studio', 'outdoor', 'custom']);
+const VALID_BG_PRESETS = new Set([
+  'auto',
+  'warm_dark',
+  'slate',
+  'night',
+  'light_studio',
+  'outdoor',
+  'warm_sand',
+  'transparent',
+  'custom'
+]);
+const VALID_UI_THEMES = new Set(['auto', 'dark', 'light', 'custom']);
+const VALID_QR_REVEAL_STYLES = new Set(['fade', 'blocks']);
 
 function clampNum(value, min, max, fallback) {
   const n = Number(value);
@@ -115,10 +223,20 @@ function clampNum(value, min, max, fallback) {
   return Math.min(max, Math.max(min, n));
 }
 
-function sanitizeHexColor(value, fallback = '#1a1612') {
+export function sanitizeHexColor(value, fallback = '#1a1612') {
   if (typeof value !== 'string') return fallback;
   const trimmed = value.trim();
   return /^#[0-9a-fA-F]{6}$/.test(trimmed) ? trimmed.toLowerCase() : fallback;
+}
+
+export function sanitizeOptionalHexColor(value, fallback = null) {
+  if (value === undefined) return fallback;
+  if (value === null || value === '') return null;
+  if (typeof value !== 'string') return fallback;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const withHash = trimmed.startsWith('#') ? trimmed : `#${trimmed}`;
+  return /^#[0-9a-fA-F]{6}$/.test(withHash) ? withHash.toLowerCase() : fallback;
 }
 
 function sanitizeVec3(arr) {
@@ -139,11 +257,7 @@ function sanitizeCameraPose(pose) {
   return { position, target, pivotRotY };
 }
 
-/**
- * Normaliza y valida la configuración visual del visor recibida desde el cliente.
- * Si mode === 'auto', restaura los valores del perfil automático preservando solo preferencias explícitas opcionales.
- */
-export function sanitizeViewerConfig(rawInput) {
+function parseJsonObject(rawInput) {
   let parsed = rawInput;
   if (typeof rawInput === 'string') {
     try {
@@ -152,9 +266,15 @@ export function sanitizeViewerConfig(rawInput) {
       parsed = {};
     }
   }
-  if (!parsed || typeof parsed !== 'object') {
-    parsed = {};
-  }
+  return parsed && typeof parsed === 'object' ? parsed : {};
+}
+
+/**
+ * Normaliza y valida la configuración visual del visor recibida desde el cliente.
+ * Si mode === 'auto', restaura los valores del perfil automático preservando preferencias explícitas opcionales.
+ */
+export function sanitizeViewerConfig(rawInput) {
+  const parsed = parseJsonObject(rawInput);
 
   const inferredMode =
     !VALID_MODES.has(parsed.mode) && parsed.preset && parsed.preset !== 'auto' && VIEWER_PRESETS[parsed.preset]
@@ -162,12 +282,29 @@ export function sanitizeViewerConfig(rawInput) {
       : parsed.mode;
   const mode = VALID_MODES.has(inferredMode) ? inferredMode : 'auto';
   if (mode === 'auto') {
+    const bgPreset = VALID_BG_PRESETS.has(parsed.backgroundPreset)
+      ? parsed.backgroundPreset
+      : VIEWER_PRESETS.auto.backgroundPreset;
+    const bgColor = bgPreset === 'custom'
+      ? sanitizeHexColor(parsed.backgroundColor, VIEWER_PRESETS.auto.backgroundColor)
+      : (VIEWER_PRESETS[bgPreset]?.backgroundColor || VIEWER_PRESETS.auto.backgroundColor);
     return {
       ...VIEWER_PRESETS.auto,
+      backgroundPreset: bgPreset,
+      backgroundColor: bgColor,
       sunMode: VALID_SUN_MODES.has(parsed.sunMode) ? parsed.sunMode : VIEWER_PRESETS.auto.sunMode,
       autoRotate: typeof parsed.autoRotate === 'boolean' ? parsed.autoRotate : VIEWER_PRESETS.auto.autoRotate,
       cameraMode: VALID_CAMERA_MODES.has(parsed.cameraMode) ? parsed.cameraMode : VIEWER_PRESETS.auto.cameraMode,
-      cameraPose: sanitizeCameraPose(parsed.cameraPose)
+      cameraPose: sanitizeCameraPose(parsed.cameraPose),
+      uiTheme: VALID_UI_THEMES.has(parsed.uiTheme) ? parsed.uiTheme : VIEWER_PRESETS.auto.uiTheme,
+      accentColor: sanitizeOptionalHexColor(parsed.accentColor, VIEWER_PRESETS.auto.accentColor),
+      surfaceColor: sanitizeOptionalHexColor(parsed.surfaceColor, VIEWER_PRESETS.auto.surfaceColor),
+      textColor: sanitizeOptionalHexColor(parsed.textColor, VIEWER_PRESETS.auto.textColor),
+      showToolbar: typeof parsed.showToolbar === 'boolean' ? parsed.showToolbar : VIEWER_PRESETS.auto.showToolbar,
+      showHint: typeof parsed.showHint === 'boolean' ? parsed.showHint : VIEWER_PRESETS.auto.showHint,
+      qrRevealStyle: VALID_QR_REVEAL_STYLES.has(parsed.qrRevealStyle)
+        ? parsed.qrRevealStyle
+        : VIEWER_PRESETS.auto.qrRevealStyle
     };
   }
 
@@ -193,6 +330,81 @@ export function sanitizeViewerConfig(rawInput) {
     showTotem: typeof parsed.showTotem === 'boolean' ? parsed.showTotem : base.showTotem,
     autoRotate: typeof parsed.autoRotate === 'boolean' ? parsed.autoRotate : base.autoRotate,
     cameraMode: VALID_CAMERA_MODES.has(parsed.cameraMode) ? parsed.cameraMode : base.cameraMode,
-    cameraPose: sanitizeCameraPose(parsed.cameraPose)
+    cameraPose: sanitizeCameraPose(parsed.cameraPose),
+    uiTheme: VALID_UI_THEMES.has(parsed.uiTheme) ? parsed.uiTheme : base.uiTheme,
+    accentColor: sanitizeOptionalHexColor(parsed.accentColor, base.accentColor),
+    surfaceColor: sanitizeOptionalHexColor(parsed.surfaceColor, base.surfaceColor),
+    textColor: sanitizeOptionalHexColor(parsed.textColor, base.textColor),
+    showToolbar: typeof parsed.showToolbar === 'boolean' ? parsed.showToolbar : base.showToolbar,
+    showHint: typeof parsed.showHint === 'boolean' ? parsed.showHint : base.showHint,
+    qrRevealStyle: VALID_QR_REVEAL_STYLES.has(parsed.qrRevealStyle)
+      ? parsed.qrRevealStyle
+      : base.qrRevealStyle
+  };
+}
+
+/**
+ * Normaliza la configuración visual por defecto de un sitio/tenant.
+ * Permite almacenar presets, tema UI, visibilidad de controles y colores por defecto de QR.
+ */
+export function sanitizeTenantDefaultConfig(rawInput) {
+  if (rawInput === null || rawInput === undefined || rawInput === '') {
+    return {};
+  }
+  const parsed = parseJsonObject(rawInput);
+  if (Object.keys(parsed).length === 0) {
+    return {};
+  }
+  if (parsed.reset === true || parsed.enabled === false) {
+    return {};
+  }
+
+  const viewerCfg = sanitizeViewerConfig(parsed);
+  const qrColorPrimary = sanitizeOptionalHexColor(parsed.qrColorPrimary ?? parsed.color_primary, null);
+  const qrColorSecondary = sanitizeOptionalHexColor(parsed.qrColorSecondary ?? parsed.color_secondary, null);
+
+  return {
+    ...viewerCfg,
+    qrColorPrimary,
+    qrColorSecondary
+  };
+}
+
+/**
+ * Resuelve el viewerConfig efectivo respetando cascada:
+ * configuración explícita del QR > tema por defecto del Tenant > preset auto por defecto.
+ */
+export function resolveEffectiveViewerConfig(qrViewerConfig, tenantDefaultConfig = null, hasCustomViewerConfig = undefined) {
+  const tenantRaw = parseJsonObject(tenantDefaultConfig);
+  const hasTenantDefaults = Object.keys(tenantRaw).length > 0;
+  const tenantCfg = hasTenantDefaults ? sanitizeTenantDefaultConfig(tenantRaw) : null;
+
+  const qrRaw = parseJsonObject(qrViewerConfig);
+  const qrHasKeys = Object.keys(qrRaw).length > 0 && qrRaw.inheritTenant !== true;
+  const useCustomQr = hasCustomViewerConfig === true || (hasCustomViewerConfig === undefined && qrHasKeys);
+
+  if (!useCustomQr) {
+    if (tenantCfg) {
+      const { qrColorPrimary, qrColorSecondary, ...viewerPart } = tenantCfg;
+      return sanitizeViewerConfig(viewerPart);
+    }
+    return sanitizeViewerConfig({});
+  }
+
+  const sanitizedQr = sanitizeViewerConfig(qrRaw);
+  if (!tenantCfg) {
+    return sanitizedQr;
+  }
+
+  // Heredar tokens de UI/tema del tenant cuando el QR no los fijó explícitamente
+  return {
+    ...sanitizedQr,
+    uiTheme: qrRaw.uiTheme !== undefined ? sanitizedQr.uiTheme : (tenantCfg.uiTheme || sanitizedQr.uiTheme),
+    accentColor: qrRaw.accentColor !== undefined ? sanitizedQr.accentColor : (tenantCfg.accentColor ?? sanitizedQr.accentColor),
+    surfaceColor: qrRaw.surfaceColor !== undefined ? sanitizedQr.surfaceColor : (tenantCfg.surfaceColor ?? sanitizedQr.surfaceColor),
+    textColor: qrRaw.textColor !== undefined ? sanitizedQr.textColor : (tenantCfg.textColor ?? sanitizedQr.textColor),
+    showToolbar: qrRaw.showToolbar !== undefined ? sanitizedQr.showToolbar : tenantCfg.showToolbar,
+    showHint: qrRaw.showHint !== undefined ? sanitizedQr.showHint : tenantCfg.showHint,
+    qrRevealStyle: qrRaw.qrRevealStyle !== undefined ? sanitizedQr.qrRevealStyle : (tenantCfg.qrRevealStyle || sanitizedQr.qrRevealStyle)
   };
 }

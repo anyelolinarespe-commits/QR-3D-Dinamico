@@ -134,7 +134,8 @@ export async function findActiveSession(rawToken) {
             t.website_url AS tenant_website_url,
             t.is_active AS tenant_is_active,
             t.rate_limit_rpm AS tenant_rate_limit_rpm,
-            t.api_key_prefix AS tenant_api_key_prefix
+            t.api_key_prefix AS tenant_api_key_prefix,
+            t.default_viewer_config AS tenant_default_viewer_config
      FROM user_sessions s
      INNER JOIN users u ON u.id = s.user_id
      LEFT JOIN tenants t ON t.id = u.tenant_id
@@ -189,7 +190,18 @@ export async function findActiveSession(rawToken) {
           website_url: row.tenant_website_url || '',
           rate_limit_rpm: Number(row.tenant_rate_limit_rpm || 120),
           is_active: Boolean(row.tenant_is_active),
-          api_key_prefix: row.tenant_api_key_prefix || ''
+          api_key_prefix: row.tenant_api_key_prefix || '',
+          default_viewer_config: (() => {
+            if (!row.tenant_default_viewer_config) return {};
+            try {
+              const parsed = typeof row.tenant_default_viewer_config === 'string'
+                ? JSON.parse(row.tenant_default_viewer_config)
+                : row.tenant_default_viewer_config;
+              return parsed && typeof parsed === 'object' ? parsed : {};
+            } catch {
+              return {};
+            }
+          })()
         }
   };
 }

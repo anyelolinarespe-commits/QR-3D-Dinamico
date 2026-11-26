@@ -1246,6 +1246,62 @@
               <label for="adm-site-url">URL de tu Sitio Web</label>
               <input type="text" id="adm-site-url" class="form-control" placeholder="https://tusitio.com" />
             </div>
+
+            <div style="background: rgba(15, 23, 42, 0.72); border: 1px solid #1e293b; border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                <span style="font-size: 12px; font-weight: 700; color: #bae6fd;">🎨 Tema Visual por Defecto del Sitio (opcional)</span>
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-adm-reset-theme" style="padding: 3px 8px; font-size: 11px;">↺ Restablecer</button>
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <div>
+                  <label for="adm-theme-preset" style="font-size: 11px; color: #94a3b8;">Estilo de Escenario</label>
+                  <select id="adm-theme-preset" class="form-control" style="padding: 6px 8px; font-size: 12px;">
+                    <option value="">✨ Por defecto de la API</option>
+                    <option value="warm_sand">🏜️ Arena Cálida (Claro)</option>
+                    <option value="transparent">🪟 Transparente (Hereda fondo)</option>
+                    <option value="studio">📸 Estudio Claro</option>
+                    <option value="outdoor">☀️ Exterior Día</option>
+                    <option value="archaeological">🏺 Arqueológico</option>
+                    <option value="museum_night">🏛️ Museo Oscuro</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="adm-ui-theme" style="font-size: 11px; color: #94a3b8;">Tema de Interfaz / Botones</label>
+                  <select id="adm-ui-theme" class="form-control" style="padding: 6px 8px; font-size: 12px;">
+                    <option value="auto">Automático</option>
+                    <option value="light">Claro (Tarjetas blancas)</option>
+                    <option value="dark">Oscuro</option>
+                  </select>
+                </div>
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: center;">
+                <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #cbd5e1; cursor: pointer;">
+                  <input type="checkbox" id="adm-use-accent" />
+                  <span>Color de acento:</span>
+                  <input type="color" id="adm-accent-color" value="#0f3d2e" style="width: 28px; height: 22px; border: 1px solid #334155; border-radius: 4px; background: transparent; cursor: pointer;" />
+                </label>
+                <div>
+                  <label for="adm-qr-reveal" style="font-size: 11px; color: #94a3b8;">Animación QR 90°</label>
+                  <select id="adm-qr-reveal" class="form-control" style="padding: 5px 8px; font-size: 12px;">
+                    <option value="blocks">🧱 Bloques 3D (Desarmar)</option>
+                    <option value="fade">Suave (Fade)</option>
+                  </select>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
+                <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #cbd5e1; cursor: pointer;">
+                  <input type="checkbox" id="adm-use-qr-colors" />
+                  <span>Colores fijos del QR:</span>
+                  <input type="color" id="adm-qr-primary" value="#0f3d2e" title="Color módulos QR" style="width: 26px; height: 22px; border: 1px solid #334155; border-radius: 4px; background: transparent;" />
+                  <input type="color" id="adm-qr-secondary" value="#ffffff" title="Fondo QR" style="width: 26px; height: 22px; border: 1px solid #334155; border-radius: 4px; background: transparent;" />
+                </label>
+              </div>
+              <div style="display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: #cbd5e1;">
+                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;"><input type="checkbox" id="adm-show-toolbar" checked /> Mostrar barra de controles</label>
+                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;"><input type="checkbox" id="adm-show-hint" checked /> Mostrar hint inferior</label>
+              </div>
+            </div>
+
             <div style="display: flex; gap: 8px; flex-wrap: wrap;">
               <button type="submit" class="btn btn-sm" id="btn-adm-save-site">💾 Guardar Sitio</button>
               <button type="button" class="btn btn-secondary btn-sm" id="btn-adm-rotate-key">🔑 Regenerar API Key</button>
@@ -1464,6 +1520,16 @@
               <div id="image-label">📎 <strong>Haz clic aquí</strong> o arrastra una imagen/logo (PNG, JPG, WebP)</div>
               <button type="button" id="btn-clear-image" class="btn btn-secondary btn-sm" style="display:none; margin:8px auto 0 auto; width:auto;">✖ Quitar imagen</button>
             </label>
+            <div style="display: flex; align-items: center; gap: 10px; margin-top: 8px; flex-wrap: wrap; font-size: 12px; color: #cbd5e1;">
+              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                <input type="checkbox" id="create-use-custom-colors" />
+                <span>Personalizar colores del QR manualmente:</span>
+              </label>
+              <div id="create-custom-colors-wrap" style="display: none; align-items: center; gap: 6px;">
+                <input type="color" id="create-color-primary" value="#0f3d2e" title="Color principal del QR" style="width: 30px; height: 24px; border: 1px solid #334155; border-radius: 4px; background: transparent; cursor: pointer;" />
+                <input type="color" id="create-color-secondary" value="#ffffff" title="Color de fondo del QR" style="width: 30px; height: 24px; border: 1px solid #334155; border-radius: 4px; background: transparent; cursor: pointer;" />
+              </div>
+            </div>
           </div>
 
           <!-- Archivo Modelo 3D -->
@@ -1490,7 +1556,9 @@
               <span style="font-size: 11px; color: #94a3b8;">Sin código · Editable después</span>
             </label>
             <div class="mode-pills" id="create-mode-pills">
-              <button type="button" class="mode-pill active" data-create-preset="auto">✨ Automático</button>
+              <button type="button" class="mode-pill active" data-create-preset="auto">✨ Auto / Sitio</button>
+              <button type="button" class="mode-pill" data-create-preset="warm_sand">🏜️ Arena Cálida</button>
+              <button type="button" class="mode-pill" data-create-preset="transparent">🪟 Transparente</button>
               <button type="button" class="mode-pill" data-create-preset="archaeological">🏺 Arqueológico</button>
               <button type="button" class="mode-pill" data-create-preset="museum_night">🏛️ Museo Oscuro</button>
               <button type="button" class="mode-pill" data-create-preset="studio">📸 Estudio Claro</button>
@@ -1727,6 +1795,8 @@
           <div id="studio-manual-pane" style="display: none; flex-direction: column; gap: 11px;">
             <div class="studio-section-label">Estilos Rápidos (1 clic)</div>
             <div class="preset-grid">
+              <button type="button" class="preset-chip" data-preset="warm_sand">🏜️ Arena Cálida</button>
+              <button type="button" class="preset-chip" data-preset="transparent">🪟 Transparente</button>
               <button type="button" class="preset-chip" data-preset="archaeological">🏺 Arqueológico</button>
               <button type="button" class="preset-chip" data-preset="museum_night">🏛️ Museo Oscuro</button>
               <button type="button" class="preset-chip" data-preset="studio">📸 Estudio Claro</button>
@@ -1789,10 +1859,46 @@
               <button type="button" class="bg-swatch" data-bg="warm_dark" title="Carbón Cálido" style="background: linear-gradient(135deg, #26201b, #12100e);"></button>
               <button type="button" class="bg-swatch" data-bg="slate" title="Azul Pizarra" style="background: linear-gradient(135deg, #1e293b, #0f172a);"></button>
               <button type="button" class="bg-swatch" data-bg="night" title="Museo Noche" style="background: linear-gradient(135deg, #161822, #07080d);"></button>
+              <button type="button" class="bg-swatch" data-bg="warm_sand" title="Arena Cálida" style="background: linear-gradient(135deg, #f5efe4, #dfd4c1);"></button>
               <button type="button" class="bg-swatch" data-bg="light_studio" title="Estudio Claro" style="background: linear-gradient(135deg, #f8fafc, #cbd5e1);"></button>
               <button type="button" class="bg-swatch" data-bg="outdoor" title="Cielo Día" style="background: linear-gradient(135deg, #bae6fd, #e0f2fe);"></button>
+              <button type="button" class="bg-swatch" data-bg="transparent" title="Fondo Transparente" style="background: repeating-conic-gradient(#cbd5e1 0% 25%, #fff 0% 50%) 50% / 10px 10px;"></button>
               <input type="color" id="ctrl-bg-color" value="#1a1612" title="Color de fondo personalizado" style="width: 30px; height: 26px; border: 1px solid #334155; border-radius: 6px; background: transparent; cursor: pointer;" />
             </div>
+
+            <div class="studio-section-label">Interfaz Embebible & Animación QR</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+              <div>
+                <div class="slider-head" style="margin-bottom: 4px;"><span>Tema UI</span></div>
+                <select id="ctrl-ui-theme" class="studio-select">
+                  <option value="auto">Automático</option>
+                  <option value="light">Claro</option>
+                  <option value="dark">Oscuro</option>
+                </select>
+              </div>
+              <div>
+                <div class="slider-head" style="margin-bottom: 4px;"><span>Animación QR 90°</span></div>
+                <select id="ctrl-qr-reveal" class="studio-select">
+                  <option value="blocks">🧱 Bloques 3D</option>
+                  <option value="fade">Suave (Fade)</option>
+                </select>
+              </div>
+            </div>
+            <label class="switch-row">
+              <span>🎨 Color de acento propio</span>
+              <span style="display: flex; align-items: center; gap: 6px;">
+                <input type="checkbox" id="ctrl-use-accent" />
+                <input type="color" id="ctrl-accent-color" value="#0f3d2e" style="width: 28px; height: 22px; border: 1px solid #334155; border-radius: 4px; background: transparent;" />
+              </span>
+            </label>
+            <label class="switch-row">
+              <span>🧰 Mostrar barra de herramientas</span>
+              <input type="checkbox" id="ctrl-show-toolbar" checked />
+            </label>
+            <label class="switch-row">
+              <span>💬 Mostrar hint inferior</span>
+              <input type="checkbox" id="ctrl-show-hint" checked />
+            </label>
 
             <div class="studio-section-label">Escena y Encuadre</div>
             <div>
@@ -1819,6 +1925,7 @@
           </div>
 
           <button type="button" class="btn" id="btn-save-viewer-config">💾 Guardar Estilo Visual</button>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-inherit-tenant-theme">↩️ Heredar tema del sitio</button>
           <div class="studio-save-status" id="studio-save-status"></div>
         </div>
       </div>
@@ -1921,6 +2028,17 @@
           <input type="file" id="edit-image-file" class="form-control" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="padding: 8px;" />
         </div>
 
+        <div style="background: #0f172a; padding: 10px 12px; border-radius: 8px; border: 1px solid #1e293b; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
+          <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer;">
+            <input type="checkbox" id="edit-use-custom-colors" />
+            <span>🎨 Personalizar colores del QR</span>
+          </label>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="color" id="edit-color-primary" value="#1e293b" title="Color principal del QR" style="width: 30px; height: 24px; border: 1px solid #334155; border-radius: 4px; background: transparent;" />
+            <input type="color" id="edit-color-secondary" value="#ffffff" title="Color secundario del QR" style="width: 30px; height: 24px; border: 1px solid #334155; border-radius: 4px; background: transparent;" />
+          </div>
+        </div>
+
         <label class="switch-row" style="background: #0f172a; padding: 10px 12px; border-radius: 8px; border: 1px solid #1e293b;">
           <span>🔄 Regenerar / rotar código QR al guardar</span>
           <input type="checkbox" id="edit-rotate-now" />
@@ -2015,7 +2133,9 @@
     import { VIEWER_PRESETS } from '/widget/3dqr-viewer.js';
 
     const CREATE_MODE_DESCRIPTIONS = {
-      auto: 'Calibra automáticamente luz lateral cálida, colores reales y aristas limpias para tu modelo.',
+      auto: 'Hereda el tema configurado para tu sitio o calibra automáticamente luz lateral cálida y aristas limpias.',
+      warm_sand: 'Fondo claro arena cálida y botones claros, ideal para sitios turísticos, museos y tarjetas blancas.',
+      transparent: 'Lienzo 3D transparente para integrarse sobre cualquier fondo o foto de tu sitio web.',
       archaeological: 'Estilo boceto: sol lateral a -108°, sombras marcadas en relieves y fondo carbón cálido.',
       museum_night: 'Fondo museo oscuro con foco dorado dramático para piezas y arquitectura.',
       studio: 'Fondo claro luminoso y luz suave uniforme para productos y logotipos.',
@@ -2641,6 +2761,14 @@
     qrStrategySelect.addEventListener('change', syncCreateIntervalVisibility);
     syncCreateIntervalVisibility();
 
+    const createUseCustomColorsEl = document.getElementById('create-use-custom-colors');
+    const createCustomColorsWrapEl = document.getElementById('create-custom-colors-wrap');
+    if (createUseCustomColorsEl && createCustomColorsWrapEl) {
+      createUseCustomColorsEl.addEventListener('change', () => {
+        createCustomColorsWrapEl.style.display = createUseCustomColorsEl.checked ? 'flex' : 'none';
+      });
+    }
+
     function resetCreateForm() {
       document.getElementById('create-qr-form').reset();
       imageInput.value = '';
@@ -2652,6 +2780,7 @@
       modelLabel.innerHTML = '📦 <strong>Haz clic aquí</strong> o arrastra un modelo (.glb, .gltf, .obj, .fbx, .stl)';
       btnClearImage.style.display = 'none';
       btnClearModel.style.display = 'none';
+      if (createCustomColorsWrapEl) createCustomColorsWrapEl.style.display = 'none';
       state.createVisualChoice = 'auto';
       createModePills.forEach((p) => p.classList.toggle('active', p.dataset.createPreset === 'auto'));
       createModeDesc.textContent = CREATE_MODE_DESCRIPTIONS.auto;
@@ -2814,7 +2943,14 @@
         formData.append('model_preset', modelPreset);
       }
 
-      formData.append('viewer_config', JSON.stringify(initialPreset));
+      if (createUseCustomColorsEl && createUseCustomColorsEl.checked) {
+        formData.append('color_primary', document.getElementById('create-color-primary').value);
+        formData.append('color_secondary', document.getElementById('create-color-secondary').value);
+      }
+
+      if (state.createVisualChoice !== 'auto' && !openManualAfter) {
+        formData.append('viewer_config', JSON.stringify(initialPreset));
+      }
 
       try {
         const res = await apiFetch('/api/qr', {
@@ -3300,6 +3436,9 @@
       document.getElementById('edit-qr-active').value = item.is_active === false ? 'false' : 'true';
       document.getElementById('edit-view-enabled').checked = item.viewEnabled !== false;
       document.getElementById('edit-current-model-label').textContent = item.model_filename ? `Actual: ${item.model_filename}` : '';
+      document.getElementById('edit-use-custom-colors').checked = false;
+      document.getElementById('edit-color-primary').value = /^#[0-9a-fA-F]{6}$/.test(item.color_primary || '') ? item.color_primary : '#1e293b';
+      document.getElementById('edit-color-secondary').value = /^#[0-9a-fA-F]{6}$/.test(item.color_secondary || '') ? item.color_secondary : '#ffffff';
       syncEditIntervalVisibility();
     }
 
@@ -3368,6 +3507,9 @@
       const modelFile = editModelFileEl.files && editModelFileEl.files[0];
       const imageFile = editImageFileEl.files && editImageFileEl.files[0];
       const presetVal = editModelPresetEl.value || '';
+      const useCustomEditColors = document.getElementById('edit-use-custom-colors').checked;
+      const editColorPrimary = document.getElementById('edit-color-primary').value;
+      const editColorSecondary = document.getElementById('edit-color-secondary').value;
 
       try {
         let res;
@@ -3387,6 +3529,10 @@
           }
           fd.append('is_active', String(isActiveVal));
           fd.append('rotate_now', String(rotateNowVal));
+          if (useCustomEditColors) {
+            fd.append('color_primary', editColorPrimary);
+            fd.append('color_secondary', editColorSecondary);
+          }
           if (modelFile && modelFile.size > 0) {
             fd.append('model', modelFile);
           } else if (presetVal.startsWith('saved:')) {
@@ -3416,6 +3562,10 @@
             is_active: isActiveVal,
             rotate_now: rotateNowVal
           };
+          if (useCustomEditColors) {
+            payload.color_primary = editColorPrimary;
+            payload.color_secondary = editColorSecondary;
+          }
           if (presetVal.startsWith('saved:')) {
             payload.saved_model_id = presetVal.slice(6);
           } else if (presetVal) {
@@ -3501,12 +3651,48 @@
     const ctrlEdgeMode = document.getElementById('ctrl-edge-mode');
     const ctrlCameraMode = document.getElementById('ctrl-camera-mode');
     const ctrlBgColor = document.getElementById('ctrl-bg-color');
+    const ctrlUiTheme = document.getElementById('ctrl-ui-theme');
+    const ctrlQrReveal = document.getElementById('ctrl-qr-reveal');
+    const ctrlUseAccent = document.getElementById('ctrl-use-accent');
+    const ctrlAccentColor = document.getElementById('ctrl-accent-color');
+    const ctrlShowToolbar = document.getElementById('ctrl-show-toolbar');
+    const ctrlShowHint = document.getElementById('ctrl-show-hint');
     const ctrlAutoRotate = document.getElementById('ctrl-auto-rotate');
     const ctrlShowTotem = document.getElementById('ctrl-show-totem');
     const poseIndicator = document.getElementById('pose-indicator');
 
     function getActiveViewerEl() {
       return document.querySelector('#modal-viewer-container qr-3d-viewer');
+    }
+
+    function updateEmbedCodeArea() {
+      const embedArea = document.getElementById('embed-code-area');
+      if (!embedArea || !state.selectedQr) return;
+      const origin = window.location.origin;
+      const item = state.currentItems.find((i) => i.id === state.selectedQr);
+      const cfg = state.studioConfig || {};
+      const attrs = [];
+      if (item && item.viewToken) {
+        attrs.push(`view-token="${item.viewToken}"`);
+      } else {
+        attrs.push(`qr-id="${state.selectedQr}"`);
+      }
+      attrs.push(`api-url="${origin}"`);
+      if (cfg.backgroundPreset === 'transparent') {
+        attrs.push(`transparent="true"`);
+      } else if (cfg.backgroundPreset === 'custom' && cfg.backgroundColor) {
+        attrs.push(`bg-color="${cfg.backgroundColor}"`);
+      } else if (cfg.backgroundPreset && cfg.backgroundPreset !== 'warm_dark' && cfg.backgroundPreset !== 'auto') {
+        attrs.push(`bg-preset="${cfg.backgroundPreset}"`);
+      }
+      if (cfg.uiTheme && cfg.uiTheme !== 'auto') attrs.push(`ui-theme="${cfg.uiTheme}"`);
+      if (cfg.accentColor) attrs.push(`accent-color="${cfg.accentColor}"`);
+      if (cfg.showToolbar === false) attrs.push(`hide-toolbar="true"`);
+      if (cfg.showHint === false) attrs.push(`hide-hint="true"`);
+      if (cfg.qrRevealStyle === 'fade') attrs.push(`qr-reveal="fade"`);
+      else if (cfg.qrRevealStyle === 'blocks') attrs.push(`qr-reveal="blocks"`);
+      const styleAttr = cfg.accentColor ? ` style="--qr3d-accent:${cfg.accentColor};"` : '';
+      embedArea.value = `<script src="${origin}/widget/3dqr-viewer.js" type="module"><\/script>\n<qr-3d-viewer ${attrs.join(' ')}${styleAttr}></qr-3d-viewer>`;
     }
 
     function syncStudioUI() {
@@ -3539,6 +3725,12 @@
       ctrlEdgeMode.value = cfg.edgeMode || 'smart';
       ctrlCameraMode.value = cfg.cameraMode === 'direct' ? 'direct' : 'smooth';
       ctrlBgColor.value = cfg.backgroundColor || '#1a1612';
+      if (ctrlUiTheme) ctrlUiTheme.value = cfg.uiTheme || 'auto';
+      if (ctrlQrReveal) ctrlQrReveal.value = cfg.qrRevealStyle === 'fade' ? 'fade' : 'blocks';
+      if (ctrlUseAccent) ctrlUseAccent.checked = Boolean(cfg.accentColor);
+      if (ctrlAccentColor) ctrlAccentColor.value = cfg.accentColor || '#0f3d2e';
+      if (ctrlShowToolbar) ctrlShowToolbar.checked = cfg.showToolbar !== false;
+      if (ctrlShowHint) ctrlShowHint.checked = cfg.showHint !== false;
       ctrlAutoRotate.checked = cfg.autoRotate !== false;
       ctrlShowTotem.checked = cfg.showTotem !== false;
 
@@ -3549,6 +3741,7 @@
       poseIndicator.textContent = cfg.cameraPose
         ? 'Encuadre: vista personalizada fijada'
         : 'Encuadre: automático';
+      updateEmbedCodeArea();
     }
 
     function pushStudioToViewer({ applyCamera = false } = {}) {
@@ -3630,6 +3823,50 @@
     ctrlCameraMode.addEventListener('change', () => markManualCustom({ cameraMode: ctrlCameraMode.value }));
     ctrlAutoRotate.addEventListener('change', () => markManualCustom({ autoRotate: ctrlAutoRotate.checked }));
     ctrlShowTotem.addEventListener('change', () => markManualCustom({ showTotem: ctrlShowTotem.checked }));
+    if (ctrlUiTheme) ctrlUiTheme.addEventListener('change', () => markManualCustom({ uiTheme: ctrlUiTheme.value }));
+    if (ctrlQrReveal) ctrlQrReveal.addEventListener('change', () => markManualCustom({ qrRevealStyle: ctrlQrReveal.value }));
+    if (ctrlUseAccent) {
+      ctrlUseAccent.addEventListener('change', () => {
+        markManualCustom({ accentColor: ctrlUseAccent.checked ? ctrlAccentColor.value : null });
+      });
+    }
+    if (ctrlAccentColor) {
+      ctrlAccentColor.addEventListener('input', () => {
+        if (ctrlUseAccent) ctrlUseAccent.checked = true;
+        markManualCustom({ accentColor: ctrlAccentColor.value });
+      });
+    }
+    if (ctrlShowToolbar) ctrlShowToolbar.addEventListener('change', () => markManualCustom({ showToolbar: ctrlShowToolbar.checked }));
+    if (ctrlShowHint) ctrlShowHint.addEventListener('change', () => markManualCustom({ showHint: ctrlShowHint.checked }));
+
+    const btnInheritTenantTheme = document.getElementById('btn-inherit-tenant-theme');
+    if (btnInheritTenantTheme) {
+      btnInheritTenantTheme.addEventListener('click', async () => {
+        if (!state.selectedQr) return;
+        saveStatusEl.style.color = '#93c5fd';
+        saveStatusEl.textContent = 'Restaurando herencia del sitio...';
+        try {
+          const res = await apiFetch(`/api/qr/${state.selectedQr}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ viewer_config: { inheritTenant: true } })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'No se pudo restablecer');
+          if (data.viewerConfig) {
+            state.studioConfig = data.viewerConfig;
+            syncStudioUI();
+            pushStudioToViewer({ applyCamera: true });
+          }
+          saveStatusEl.style.color = '#34d399';
+          saveStatusEl.textContent = '✅ Heredando tema del sitio web';
+          loadQrs();
+        } catch (err) {
+          saveStatusEl.style.color = '#f87171';
+          saveStatusEl.textContent = `⚠️ ${err.message}`;
+        }
+      });
+    }
 
     document.querySelectorAll('.bg-swatch').forEach((sw) => {
       sw.addEventListener('click', () => {
@@ -3718,7 +3955,7 @@
       if (viewLinkArea) viewLinkArea.value = initialViewUrl;
       if (openViewBtn) openViewBtn.href = initialViewUrl || '#';
 
-      embedArea.value = `<script src="${origin}/widget/3dqr-viewer.js" type="module"><\/script>\n<qr-3d-viewer qr-id="${qrId}" api-url="${origin}"></qr-3d-viewer>`;
+      updateEmbedCodeArea();
 
       container.innerHTML = `
         <qr-3d-viewer qr-id="${qrId}" api-url="${origin}" width="100%" height="470px"></qr-3d-viewer>
@@ -4096,6 +4333,7 @@
               ? `${tData.tenant.api_key_prefix}...`
               : '—';
             document.getElementById('hdr-site-label').textContent = `Sitio: ${tData.tenant.name || ''}`;
+            applyTenantThemeForm(tData.tenant.default_viewer_config || {});
           }
         }
         if (uRes.ok) {
@@ -4305,7 +4543,65 @@
       await Promise.all([loadSuperadminData(), loadQrs(), loadSavedFiles()]);
     };
 
-    // Administrador de Sitio: editar sitio, rotar API Key y entregar usuarios 3D
+    function applyTenantThemeForm(cfg = {}) {
+      const hasCfg = cfg && typeof cfg === 'object' && Object.keys(cfg).length > 0;
+      const presetSel = document.getElementById('adm-theme-preset');
+      const uiSel = document.getElementById('adm-ui-theme');
+      const useAcc = document.getElementById('adm-use-accent');
+      const accCol = document.getElementById('adm-accent-color');
+      const useQrCol = document.getElementById('adm-use-qr-colors');
+      const qrPri = document.getElementById('adm-qr-primary');
+      const qrSec = document.getElementById('adm-qr-secondary');
+      const revealSel = document.getElementById('adm-qr-reveal');
+      const showTb = document.getElementById('adm-show-toolbar');
+      const showHint = document.getElementById('adm-show-hint');
+
+      if (!presetSel) return;
+      presetSel.value = hasCfg && cfg.preset && cfg.preset !== 'auto' && cfg.preset !== 'custom' ? cfg.preset : '';
+      if (uiSel) uiSel.value = cfg.uiTheme || 'auto';
+      if (useAcc) useAcc.checked = Boolean(cfg.accentColor);
+      if (accCol) accCol.value = cfg.accentColor || '#0f3d2e';
+      if (useQrCol) useQrCol.checked = Boolean(cfg.qrColorPrimary || cfg.qrColorSecondary);
+      if (qrPri) qrPri.value = cfg.qrColorPrimary || '#0f3d2e';
+      if (qrSec) qrSec.value = cfg.qrColorSecondary || '#ffffff';
+      if (revealSel) revealSel.value = cfg.qrRevealStyle === 'fade' ? 'fade' : 'blocks';
+      if (showTb) showTb.checked = cfg.showToolbar !== false;
+      if (showHint) showHint.checked = cfg.showHint !== false;
+    }
+
+    function readTenantThemeForm() {
+      const presetKey = document.getElementById('adm-theme-preset')?.value || '';
+      const uiTheme = document.getElementById('adm-ui-theme')?.value || 'auto';
+      const useAccent = document.getElementById('adm-use-accent')?.checked;
+      const accentColor = useAccent ? document.getElementById('adm-accent-color')?.value : null;
+      const useQrColors = document.getElementById('adm-use-qr-colors')?.checked;
+      const qrColorPrimary = useQrColors ? document.getElementById('adm-qr-primary')?.value : null;
+      const qrColorSecondary = useQrColors ? document.getElementById('adm-qr-secondary')?.value : null;
+      const qrRevealStyle = document.getElementById('adm-qr-reveal')?.value || 'blocks';
+      const showToolbar = document.getElementById('adm-show-toolbar')?.checked !== false;
+      const showHint = document.getElementById('adm-show-hint')?.checked !== false;
+
+      if (!presetKey && uiTheme === 'auto' && !useAccent && !useQrColors && qrRevealStyle === 'blocks' && showToolbar && showHint) {
+        return {};
+      }
+      const base = presetKey && VIEWER_PRESETS[presetKey] ? { ...VIEWER_PRESETS[presetKey] } : { ...VIEWER_PRESETS.auto };
+      return {
+        ...base,
+        uiTheme,
+        accentColor,
+        qrColorPrimary,
+        qrColorSecondary,
+        qrRevealStyle,
+        showToolbar,
+        showHint
+      };
+    }
+
+    document.getElementById('btn-adm-reset-theme')?.addEventListener('click', () => {
+      applyTenantThemeForm({});
+    });
+
+    // Administrador de Sitio: editar sitio, tema por defecto, rotar API Key y entregar usuarios 3D
     document.getElementById('adm-site-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const res = await apiFetch('/api/tenants/me', {
@@ -4313,13 +4609,14 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: document.getElementById('adm-site-name').value.trim(),
-          website_url: document.getElementById('adm-site-url').value.trim()
+          website_url: document.getElementById('adm-site-url').value.trim(),
+          default_viewer_config: readTenantThemeForm()
         })
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) return alert('Error: ' + (d.error || 'No se pudo actualizar el sitio'));
-      showAdminToast('✅ Datos del sitio actualizados');
-      await loadAdminSiteData();
+      showAdminToast('✅ Datos y tema visual del sitio actualizados');
+      await Promise.all([loadAdminSiteData(), loadQrs()]);
     });
 
     document.getElementById('btn-adm-rotate-key').addEventListener('click', async () => {

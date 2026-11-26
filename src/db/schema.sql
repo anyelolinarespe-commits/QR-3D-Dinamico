@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS tenants (
     api_key_prefix VARCHAR(16) NOT NULL,
     is_active BOOLEAN DEFAULT TRUE,
     rate_limit_rpm INT DEFAULT 120,
+    default_viewer_config JSONB DEFAULT '{}'::jsonb,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -99,6 +100,7 @@ CREATE TABLE IF NOT EXISTS saved_files (
 
 -- Migración segura para bases de datos existentes
 ALTER TABLE tenants ADD COLUMN IF NOT EXISTS website_url TEXT DEFAULT '';
+ALTER TABLE tenants ADD COLUMN IF NOT EXISTS default_viewer_config JSONB DEFAULT '{}'::jsonb;
 ALTER TABLE qr_items ADD COLUMN IF NOT EXISTS view_token VARCHAR(64);
 ALTER TABLE qr_items ADD COLUMN IF NOT EXISTS owner_user_id VARCHAR(64) REFERENCES users(id) ON DELETE SET NULL;
 ALTER TABLE saved_files ADD COLUMN IF NOT EXISTS owner_user_id VARCHAR(64) REFERENCES users(id) ON DELETE SET NULL;
