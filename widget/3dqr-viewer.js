@@ -677,12 +677,26 @@ class Qr3dViewer extends HTMLElement {
     this.updateCameraModeButtonLabel();
     this.updateSunModeButtonLabel();
     this.probeArCapabilities();
+    let pendingSceneViewerFallback = false;
+    try {
+      const curParams = new URLSearchParams(window.location.search);
+      if (curParams.get('ar_fb') === 'sv') {
+        pendingSceneViewerFallback = true;
+        curParams.delete('ar_fb');
+        const cleanQuery = curParams.toString();
+        const cleanUrl = `${window.location.pathname}${cleanQuery ? '?' + cleanQuery : ''}${window.location.hash}`;
+        window.history.replaceState({}, '', cleanUrl);
+      }
+    } catch {}
     this.loadDependencies().then(() => {
       if (!this.isConnected) return;
       this.initThree();
       this._hasInitializedScene = true;
       this.loadModel();
       this.initRealtimeSSE();
+      if (pendingSceneViewerFallback && this.showAr) {
+        this.openArModal({ modeHint: 'sceneviewer-fallback' });
+      }
     });
   }
 
@@ -3982,7 +3996,12 @@ class Qr3dViewer extends HTMLElement {
 
   buildAndroidSceneViewerIntent(absModelUrl) {
     const arTitle = this.getAttribute('ar-title') || 'Modelo 3D Interactivo';
-    const fallbackUrl = window.location.href;
+    let fallbackUrl = window.location.href;
+    try {
+      const fb = new URL(window.location.href);
+      fb.searchParams.set('ar_fb', 'sv');
+      fallbackUrl = fb.href;
+    } catch {}
     return (
       `intent://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(absModelUrl)}` +
       `&mode=ar_preferred&title=${encodeURIComponent(arTitle)}&resizable=true` +
@@ -4043,12 +4062,7 @@ class Qr3dViewer extends HTMLElement {
     const msg = 'Abriendo Google Scene Viewer en Android...';
     this.showToastMessage(msg, 4200, 'smartphone');
     this.dispatchEvent(new CustomEvent('ar-status', { detail: { platform: 'android', icon: 'smartphone', message: msg } }));
-    const anchor = document.createElement('a');
-    anchor.href = intentUrl;
-    anchor.style.display = 'none';
-    document.body.appendChild(anchor);
-    anchor.click();
-    setTimeout(() => anchor.remove(), 250);
+    window.location.href = intentUrl;
   }
 
   computeArUnitScale() {
@@ -4335,7 +4349,7 @@ class Qr3dViewer extends HTMLElement {
     this.syncSunTransform({ updateShadow: true });
   }
 
-  async startWebXrAR() {
+  startWebXrAR() {
     if (!navigator.xr || !this.renderer || !this.scene || !this.modelPivot) {
       this.openArModal({ modeHint: 'webxr-unavailable' });
       return;
@@ -4353,88 +4367,86 @@ class Qr3dViewer extends HTMLElement {
     const { overlay, statusPill, bar, btnPlaceSurface, btnFallbackPlace, btnRelocate } = ui;
     this._xrOverlayEl = overlay;
 
-    const handleXrFallback = () => {
+    const handleXrFallback = (err) => {
       if (this._xrOverlayEl) {
         this._xrOverlayEl.remove();
         this._xrOverlayEl = null;
       }
-      const env = this.getArEnvironmentInfo();
-      if (env.isAndroid && env.isHttpsOrigin && !env.isLocalHost && env.absArModelUrl) {
-        this.triggerAndroidSceneViewer(env.absArModelUrl);
-      } else {
-        this.openArModal({ modeHint: 'webxr-denied' });
-      }
+      const errDetail = err
+        ? [err.name, err.message].filter(Boolean).join(': ')
+        : '';
+      this.openArModal({ modeHint: 'webxr-denied', webXrError: errDetail });
     };
 
-    try {
-      const session = await navigator.xr.requestSession('immersive-ar', {
+    // Llamar requestSession síncronamente dentro del gesto de clic del usuario
+    navigator.xr
+      .requestSession('immersive-ar', {
         optionalFeatures: ['local-floor', 'hit-test', 'anchors', 'dom-overlay'],
         domOverlay: { root: overlay }
-      });
-
-      if (!this.isConnected) {
-        await session.end().catch(() => {});
-        return;
-      }
-
-      if (this.animationFrameId) {
-        cancelAnimationFrame(this.animationFrameId);
-        this.animationFrameId = null;
-      }
-
-      this._xrSession = session;
-      this._xrHitTestSource = null;
-      this._xrHitTestRequested = false;
-      this._xrHitTestResultLast = null;
-      this._xrAnchor = null;
-      this._xrPlaced = false;
-      this._xrLocked = false;
-      this._xrStartedAt = performance.now();
-      this._xrScaleFactor = 1;
-      this._xrRotYOffset = 0;
-      this._xrAnchorPos = null;
-
-      const arBaseScale = this.computeArUnitScale();
-      const unscaledMinY = this.computeVisiblePivotBottomMinY();
-      this._xrSavedState = {
-        pivotPos: this.modelPivot.position.clone(),
-        pivotScale: this.modelPivot.scale.clone(),
-        pivotRotY: this.modelPivot.rotation.y,
-        pivotVisible: this.modelPivot.visible,
-        autoRotate: this.autoRotate,
-        controlsEnabled: this.controls ? this.controls.enabled : true,
-        cameraPos: this.camera.position.clone(),
-        cameraTarget: this.controls ? this.controls.target.clone() : new window.THREE.Vector3(),
-        cameraNear: this.camera.near,
-        cameraFar: this.camera.far,
-        arBaseScale,
-        unscaledMinY
-      };
-
-      session.addEventListener('end', () => {
-        this.cleanupWebXrState();
-      });
-
-      this.renderer.xr.enabled = true;
-      let attached = false;
-      for (const refType of ['local-floor', 'local']) {
-        try {
-          this.renderer.xr.setReferenceSpaceType(refType);
-          await this.renderer.xr.setSession(session);
-          attached = true;
-          break;
-        } catch {
-          // Intentar con 'local' si 'local-floor' no está disponible
+      })
+      .then(async (session) => {
+        if (!this.isConnected) {
+          await session.end().catch(() => {});
+          return;
         }
-      }
-      if (!attached || !this.isConnected) {
-        await session.end().catch(() => {});
-        this.cleanupWebXrState();
-        handleXrFallback();
-        return;
-      }
 
-      this.autoRotate = false;
+        if (this.animationFrameId) {
+          cancelAnimationFrame(this.animationFrameId);
+          this.animationFrameId = null;
+        }
+
+        this._xrSession = session;
+        this._xrHitTestSource = null;
+        this._xrHitTestRequested = false;
+        this._xrHitTestResultLast = null;
+        this._xrAnchor = null;
+        this._xrPlaced = false;
+        this._xrLocked = false;
+        this._xrStartedAt = performance.now();
+        this._xrScaleFactor = 1;
+        this._xrRotYOffset = 0;
+        this._xrAnchorPos = null;
+
+        const arBaseScale = this.computeArUnitScale();
+        const unscaledMinY = this.computeVisiblePivotBottomMinY();
+        this._xrSavedState = {
+          pivotPos: this.modelPivot.position.clone(),
+          pivotScale: this.modelPivot.scale.clone(),
+          pivotRotY: this.modelPivot.rotation.y,
+          pivotVisible: this.modelPivot.visible,
+          autoRotate: this.autoRotate,
+          controlsEnabled: this.controls ? this.controls.enabled : true,
+          cameraPos: this.camera.position.clone(),
+          cameraTarget: this.controls ? this.controls.target.clone() : new window.THREE.Vector3(),
+          cameraNear: this.camera.near,
+          cameraFar: this.camera.far,
+          arBaseScale,
+          unscaledMinY
+        };
+
+        session.addEventListener('end', () => {
+          this.cleanupWebXrState();
+        });
+
+        let chosenSpace = 'local';
+        try {
+          await session.requestReferenceSpace('local-floor');
+          chosenSpace = 'local-floor';
+        } catch {
+          chosenSpace = 'local';
+        }
+
+        this.renderer.xr.enabled = true;
+        this.renderer.xr.setReferenceSpaceType(chosenSpace);
+        await this.renderer.xr.setSession(session);
+
+        if (!this.isConnected) {
+          await session.end().catch(() => {});
+          this.cleanupWebXrState();
+          return;
+        }
+
+        this.autoRotate = false;
       if (this.controls) this.controls.enabled = false;
 
       this.camera.near = 0.02;
@@ -4656,10 +4668,11 @@ class Qr3dViewer extends HTMLElement {
         this.renderer.render(this.scene, this.camera);
         this.renderer.shadowMap.needsUpdate = false;
       });
-    } catch {
-      this.cleanupWebXrState();
-      handleXrFallback();
-    }
+      })
+      .catch((err) => {
+        this.cleanupWebXrState();
+        handleXrFallback(err);
+      });
   }
 
   stopWebXrAR() {
@@ -4766,6 +4779,22 @@ class Qr3dViewer extends HTMLElement {
     return out;
   }
 
+  extractYawPitchFromQuat(rawQuat) {
+    const THREE = window.THREE;
+    if (!rawQuat || !THREE) return null;
+    const look = new THREE.Vector3(0, 0, -1).applyQuaternion(rawQuat);
+    const horizLen = Math.hypot(look.x, look.z);
+    let yaw = 0;
+    if (horizLen > 0.08) {
+      yaw = Math.atan2(-look.x, -look.z);
+      this._camArLastValidYaw = yaw;
+    } else if (Number.isFinite(this._camArLastValidYaw)) {
+      yaw = this._camArLastValidYaw;
+    }
+    const pitch = Math.asin(THREE.MathUtils.clamp(look.y, -0.94, 0.94));
+    return { yaw, pitch };
+  }
+
   getCameraArAnchorCenter(distance = 1.6) {
     const THREE = window.THREE;
     const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
@@ -4803,7 +4832,7 @@ class Qr3dViewer extends HTMLElement {
     }
     const pill = this.shadowRoot && this.shadowRoot.getElementById('ar-camera-pill');
     if (pill) {
-      pill.textContent = 'Anclado en tu entorno · Gira el celular para mirar; arrastra/pellizca para acercar y girar el modelo';
+      pill.textContent = 'Cámara 3DoF (sin WebXR 6DoF) · Gira para mirar alrededor; arrastra para rotar el edificio y pellizca para acercar';
     }
     this.updateCameraArPose();
   }
@@ -4834,10 +4863,29 @@ class Qr3dViewer extends HTMLElement {
 
   updateCameraArPose() {
     if (!this._isCameraArActive || !this._camArHasGyro || !this.camera || !this.modelPivot || !window.THREE) return;
-    if (this._camArOrientation) {
+    let rawQuat = null;
+    if (this._camArSensorQuat) {
+      rawQuat = this._camArSensorQuat;
+    } else if (this._camArOrientation) {
       const { alpha, beta, gamma } = this._camArOrientation;
-      const q = this.computeQuaternionFromDeviceOrientation(alpha, beta, gamma, this._camArScreenAngle);
-      this.camera.quaternion.copy(q);
+      rawQuat = this.computeQuaternionFromDeviceOrientation(alpha, beta, gamma, this._camArScreenAngle);
+    }
+    const targetYawPitch = rawQuat ? this.extractYawPitchFromQuat(rawQuat) : null;
+    if (targetYawPitch) {
+      if (!this._camArAnchored || !Number.isFinite(this._camArSmoothYaw)) {
+        this._camArSmoothYaw = targetYawPitch.yaw;
+        this._camArSmoothPitch = targetYawPitch.pitch;
+      } else {
+        const dyaw = Math.atan2(
+          Math.sin(targetYawPitch.yaw - this._camArSmoothYaw),
+          Math.cos(targetYawPitch.yaw - this._camArSmoothYaw)
+        );
+        this._camArSmoothYaw += dyaw * 0.55;
+        this._camArSmoothPitch += (targetYawPitch.pitch - this._camArSmoothPitch) * 0.55;
+      }
+      this.camera.quaternion.setFromEuler(
+        new window.THREE.Euler(this._camArSmoothPitch, this._camArSmoothYaw, 0, 'YXZ')
+      );
       this.camera.position.set(0, 0, 0);
     }
 
@@ -4941,6 +4989,10 @@ class Qr3dViewer extends HTMLElement {
         this._camArHasGyro = false;
         this._camArAnchored = false;
         this._camArOrientation = null;
+        this._camArSensorQuat = null;
+        this._camArLastValidYaw = 0;
+        this._camArSmoothYaw = null;
+        this._camArSmoothPitch = 0;
       }
 
       this._camArScreenAngle = (window.screen && window.screen.orientation && Number(window.screen.orientation.angle)) || Number(window.orientation) || 0;
@@ -4969,10 +5021,11 @@ class Qr3dViewer extends HTMLElement {
       }
 
       if (!keepScale) {
-        const onDeviceOrient = (e) => {
-          if (!this._isCameraArActive) return;
-          if (!Number.isFinite(e.alpha) || !Number.isFinite(e.beta) || !Number.isFinite(e.gamma)) return;
-          this._camArOrientation = { alpha: e.alpha, beta: e.beta, gamma: e.gamma };
+        let orientationSensor = null;
+        const THREE = window.THREE;
+        const w3cToThreeQuat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
+
+        const activateGyroUi = () => {
           if (!this._camArHasGyro) {
             this._camArHasGyro = true;
             if (this.controls) this.controls.enabled = false;
@@ -4980,6 +5033,34 @@ class Qr3dViewer extends HTMLElement {
             this.anchorCameraArInFront({ resetScale: false });
           }
           this.requestRender({ durationMs: 300 });
+        };
+
+        // Intentar Generic Sensor API sin gimbal lock en Chrome Android
+        if (typeof window.RelativeOrientationSensor === 'function') {
+          try {
+            orientationSensor = new window.RelativeOrientationSensor({ frequency: 60, referenceFrame: 'screen' });
+            orientationSensor.addEventListener('reading', () => {
+              if (!this._isCameraArActive || !orientationSensor.quaternion) return;
+              const q = orientationSensor.quaternion;
+              const sensorThree = new THREE.Quaternion(q[0], q[1], q[2], q[3]);
+              this._camArSensorQuat = w3cToThreeQuat.clone().multiply(sensorThree);
+              activateGyroUi();
+            });
+            orientationSensor.addEventListener('error', () => {
+              this._camArSensorQuat = null;
+              orientationSensor = null;
+            });
+            orientationSensor.start();
+          } catch {
+            orientationSensor = null;
+          }
+        }
+
+        const onDeviceOrient = (e) => {
+          if (!this._isCameraArActive || this._camArSensorQuat) return;
+          if (!Number.isFinite(e.alpha) || !Number.isFinite(e.beta) || !Number.isFinite(e.gamma)) return;
+          this._camArOrientation = { alpha: e.alpha, beta: e.beta, gamma: e.gamma };
+          activateGyroUi();
         };
 
         const onScreenOrient = () => {
@@ -5030,6 +5111,10 @@ class Qr3dViewer extends HTMLElement {
         }
 
         this._camArCleanupFn = () => {
+          if (orientationSensor) {
+            try { orientationSensor.stop(); } catch {}
+            orientationSensor = null;
+          }
           window.removeEventListener('deviceorientation', onDeviceOrient);
           window.removeEventListener('orientationchange', onScreenOrient);
           if (canvas) {
@@ -5086,6 +5171,8 @@ class Qr3dViewer extends HTMLElement {
     this._camArHasGyro = false;
     this._camArAnchored = false;
     this._camArOrientation = null;
+    this._camArSensorQuat = null;
+    this._camArLastValidYaw = 0;
     this._camArAnchorDir = null;
 
     const host = this.shadowRoot && this.shadowRoot.host;
@@ -5124,7 +5211,7 @@ class Qr3dViewer extends HTMLElement {
     }
   }
 
-  openArModal({ modeHint = 'auto' } = {}) {
+  openArModal({ modeHint = 'auto', webXrError = '' } = {}) {
     const modal = this.shadowRoot && this.shadowRoot.getElementById('ar-modal');
     const descEl = this.shadowRoot && this.shadowRoot.getElementById('ar-modal-desc');
     const warnEl = this.shadowRoot && this.shadowRoot.getElementById('ar-modal-warn');
@@ -5153,7 +5240,7 @@ class Qr3dViewer extends HTMLElement {
     } else if (env.isAndroid) {
       descEl.textContent = env.isInAppWebView
         ? 'Estás dentro de una app (WhatsApp/Instagram/escáner). Para fijar el objeto en tu mesa y recorrerlo en 360°, ábrelo en Google Chrome o Google Scene Viewer.'
-        : 'Elige WebXR (en este navegador) o Google Scene Viewer para fijar el objeto en tu mesa y caminar alrededor 360°.';
+        : 'Para caminar alrededor en 360° sobre tu mesa usa WebXR (ARCore) o Google Scene Viewer. Si tu celular no tiene ARCore, la vista con cámara solo rota (3DoF).';
     } else {
       descEl.textContent = 'Para fijar el modelo en una mesa real y recorrerlo moviendo y acercando la cámara (ARCore / ARKit 6DoF), escanea este QR con tu celular Android o iPhone.';
     }
@@ -5162,7 +5249,11 @@ class Qr3dViewer extends HTMLElement {
     if (env.isLocalHost || !env.isHttpsOrigin) {
       warningText = 'Estás en entorno local/HTTP. La Realidad Aumentada espacial en mesa (WebXR / Scene Viewer / cámara móvil) exige abrir una URL pública HTTPS.';
     } else if (modeHint === 'webxr-denied') {
-      warningText = 'No se pudo iniciar WebXR en este navegador. Usa Google Scene Viewer o abre en Google Chrome actualizado con Play Services for AR.';
+      warningText = `WebXR no pudo iniciar (${webXrError || 'ARCore no disponible en este navegador'}). Toca "Abrir en Google Scene Viewer" abajo o verifica Google Play Services for AR.`;
+    } else if (modeHint === 'sceneviewer-fallback') {
+      warningText = 'Google Scene Viewer no se abrió en este teléfono. Verifica tener instalada la app "Google" o "Google Play Services for AR (ARCore)".';
+    } else if (env.isAndroid && !env.webXrSupported && !env.isInAppWebView) {
+      warningText = 'Este navegador no reporta soporte WebXR 6DoF. Prueba "Abrir en Google Scene Viewer" o instala/actualiza "Google Play Services for AR".';
     }
     warnEl.textContent = warningText;
     warnEl.style.display = warningText ? 'block' : 'none';
@@ -5189,24 +5280,34 @@ class Qr3dViewer extends HTMLElement {
       const xrBtn = document.createElement('button');
       xrBtn.type = 'button';
       xrBtn.className = env.isInAppWebView ? 'ar-btn-secondary' : 'ar-btn-primary';
-      xrBtn.innerHTML = `${renderIcon('scan', { size: 15 })}<span>Iniciar AR Espacial en Mesa (WebXR)</span>`;
+      xrBtn.innerHTML = `${renderIcon('scan', { size: 15 })}<span>Iniciar AR Espacial en Mesa (WebXR 6DoF)</span>`;
       xrBtn.addEventListener('click', () => this.startWebXrAR());
       actionsEl.appendChild(xrBtn);
     }
 
     if (env.isAndroid && env.absArModelUrl && env.isHttpsOrigin && !env.isLocalHost) {
       const svBtn = document.createElement('a');
-      svBtn.className = (!env.webXrSupported && !env.isInAppWebView) ? 'ar-btn-primary' : 'ar-btn-secondary';
+      svBtn.className = (!env.webXrSupported && !env.isInAppWebView) || modeHint === 'webxr-denied' ? 'ar-btn-primary' : 'ar-btn-secondary';
       svBtn.href = this.buildAndroidSceneViewerIntent(env.absArModelUrl);
-      svBtn.innerHTML = `${renderIcon('smartphone', { size: 15 })}<span>Abrir en Google Scene Viewer</span>`;
+      svBtn.innerHTML = `${renderIcon('smartphone', { size: 15 })}<span>Abrir en Google Scene Viewer (6DoF)</span>`;
       actionsEl.appendChild(svBtn);
+    }
+
+    if (env.isAndroid && (!env.webXrSupported || modeHint === 'webxr-denied' || modeHint === 'sceneviewer-fallback')) {
+      const arCoreBtn = document.createElement('a');
+      arCoreBtn.className = 'ar-btn-secondary';
+      arCoreBtn.target = '_blank';
+      arCoreBtn.rel = 'noopener noreferrer';
+      arCoreBtn.href = 'https://play.google.com/store/apps/details?id=com.google.ar.core';
+      arCoreBtn.innerHTML = `${renderIcon('download', { size: 15 })}<span>Instalar / Actualizar Play Services for AR</span>`;
+      actionsEl.appendChild(arCoreBtn);
     }
 
     if (env.hasCameraApi) {
       const camBtn = document.createElement('button');
       camBtn.type = 'button';
       camBtn.className = (!env.isMobile) ? 'ar-btn-primary' : 'ar-btn-secondary';
-      const camLabel = env.isMobile ? 'Cámara con sensores (vista anclada)' : 'Vista previa con Cámara Web (PC)';
+      const camLabel = env.isMobile ? 'Cámara 3DoF (solo giro, sin caminar 6DoF)' : 'Vista previa con Cámara Web (PC)';
       camBtn.innerHTML = `${renderIcon('camera', { size: 15 })}<span>${camLabel}</span>`;
       camBtn.addEventListener('click', () => this.startCameraAR());
       actionsEl.appendChild(camBtn);
@@ -5229,14 +5330,13 @@ class Qr3dViewer extends HTMLElement {
     if (modal) modal.classList.remove('open');
   }
 
-  async launchAR() {
+  launchAR() {
     const modelEndpoint = this.getEndpoint('model');
     if (!modelEndpoint) {
       this.showToastMessage('Aún no hay un modelo 3D disponible para AR', 3500, 'alert-triangle');
       return;
     }
 
-    await this.ensureWebXrSupport();
     const env = this.getArEnvironmentInfo();
 
     if (env.isIOS && env.absUsdzUrl) {
@@ -5249,7 +5349,8 @@ class Qr3dViewer extends HTMLElement {
     }
 
     if (env.isAndroid) {
-      if (env.webXrSupported) {
+      const hasXrApi = typeof navigator !== 'undefined' && navigator.xr && typeof navigator.xr.requestSession === 'function';
+      if (this._webXrSupported === true || (this._webXrSupported === null && hasXrApi)) {
         this.startWebXrAR();
         return;
       }
