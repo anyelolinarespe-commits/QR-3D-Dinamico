@@ -614,6 +614,35 @@ function renderUnifiedViewPage(viewData, query = {}) {
       border: 1px solid ${isLightUi ? 'rgba(15, 61, 46, 0.2)' : 'rgba(16, 185, 129, 0.3)'};
       color: ${isLightUi ? '#065f46' : '#a7f3d0'};
     }
+    .qr-kind-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      padding: 4px;
+      border-radius: 11px;
+      background: ${isLightUi ? 'rgba(15, 23, 42, 0.05)' : 'rgba(255, 255, 255, 0.05)'};
+      border: 1px solid ${isLightUi ? 'rgba(15, 23, 42, 0.1)' : 'rgba(255, 255, 255, 0.1)'};
+      width: 100%;
+    }
+    .qr-kind-btn {
+      border: none;
+      border-radius: 8px;
+      padding: 7px 8px;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      color: var(--muted);
+      background: transparent;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .qr-kind-btn.active {
+      background: var(--accent);
+      color: #ffffff;
+    }
     .qr-dock-head h2 {
       font-size: 16px;
       font-weight: 800;
@@ -918,6 +947,15 @@ function renderUnifiedViewPage(viewData, query = {}) {
             </div>
           </div>
 
+          <div class="qr-kind-tabs" role="tablist" aria-label="Tipo de código QR a mostrar">
+            <button type="button" id="btn-qr-kind-scan" class="qr-kind-btn active" role="tab" aria-selected="true" title="QR principal configurado para este enlace">
+              ${renderIcon('qr-code', { size: 13 })}<span>QR Enlace</span>
+            </button>
+            <button type="button" id="btn-qr-kind-ar" class="qr-kind-btn" role="tab" aria-selected="false" title="QR directo para abrir el modelo 3D y Realidad Aumentada en tu celular">
+              ${renderIcon('smartphone', { size: 13 })}<span>QR Ver 3D + AR</span>
+            </button>
+          </div>
+
           <div class="qr-frame-wrap">
             <div class="qr-frame" id="qr-frame-box">
               <img id="dock-qr-img" src="/view/${safeToken}/image?t=${Date.now()}" alt="Código QR activo" />
@@ -1021,9 +1059,46 @@ function renderUnifiedViewPage(viewData, query = {}) {
     const metaDailyScans = document.getElementById('meta-daily-scans');
     const metaTotalScans = document.getElementById('meta-total-scans');
     const btnAerial = document.getElementById('btn-toggle-aerial');
+    const btnQrKindScan = document.getElementById('btn-qr-kind-scan');
+    const btnQrKindAr = document.getElementById('btn-qr-kind-ar');
     const toastEl = document.getElementById('view-toast');
     const pausedOverlay = document.getElementById('paused-overlay');
     let toastTimer = null;
+    let activeQrKind = 'scan';
+    let latestScanQrUrl = '/view/' + encodeURIComponent(state.viewToken) + '/image?t=' + Date.now();
+    const arDirectQrUrl = '/view/' + encodeURIComponent(state.viewToken) + '/view-qr';
+
+    function setQrDisplayKind(kind) {
+      activeQrKind = kind === 'ar' ? 'ar' : 'scan';
+      if (btnQrKindScan) {
+        btnQrKindScan.classList.toggle('active', activeQrKind === 'scan');
+        btnQrKindScan.setAttribute('aria-selected', String(activeQrKind === 'scan'));
+      }
+      if (btnQrKindAr) {
+        btnQrKindAr.classList.toggle('active', activeQrKind === 'ar');
+        btnQrKindAr.setAttribute('aria-selected', String(activeQrKind === 'ar'));
+      }
+      const nextSrc = activeQrKind === 'ar' ? (arDirectQrUrl + '?t=' + Date.now()) : latestScanQrUrl;
+      if (dockImg) dockImg.src = nextSrc;
+      if (dockMiniImg) dockMiniImg.src = nextSrc;
+      if (scannerArNoteText) {
+        if (activeQrKind === 'ar') {
+          scannerArNoteText.textContent = 'Escanea este QR con tu celular para abrir directamente el modelo 3D y ver en Realidad Aumentada (AR).';
+        } else {
+          scannerArNoteText.textContent = state.scanMode === 'ar'
+            ? 'La Realidad Aumentada (AR) se abre en el celular de quien escanee este código QR.'
+            : 'Al escanear este QR, el visitante irá al enlace configurado.';
+        }
+      }
+      syncCountdownUI();
+    }
+
+    if (btnQrKindScan) {
+      btnQrKindScan.addEventListener('click', () => setQrDisplayKind('scan'));
+    }
+    if (btnQrKindAr) {
+      btnQrKindAr.addEventListener('click', () => setQrDisplayKind('ar'));
+    }
 
     const dockStorageKey = 'qr3d_dock_collapsed_' + (state.viewToken || 'default');
     function setQrDockCollapsed(collapsed, persist = true) {
@@ -1115,7 +1190,7 @@ function renderUnifiedViewPage(viewData, query = {}) {
 
     function syncCountdownUI() {
       const intervalSec = Number(state.rotationIntervalSeconds || 0);
-      if (state.linkMode === 'static' || intervalSec <= 0 || !state.nextRotationAt) {
+      if (activeQrKind === 'ar' || state.linkMode === 'static' || intervalSec <= 0 || !state.nextRotationAt) {
         countdownBox.style.display = 'none';
         return;
       }
@@ -1148,8 +1223,11 @@ function renderUnifiedViewPage(viewData, query = {}) {
     viewerEl.addEventListener('qr-visual-update', (e) => {
       const detail = e.detail || {};
       if (detail.src) {
-        dockImg.src = detail.src;
-        if (dockMiniImg) dockMiniImg.src = detail.src;
+        if (!detail.isAerial) latestScanQrUrl = detail.src;
+        if (activeQrKind === 'scan') {
+          dockImg.src = detail.src;
+          if (dockMiniImg) dockMiniImg.src = detail.src;
+        }
       }
       if (typeof detail.isAerial === 'boolean') {
         btnAerial.classList.toggle('active', detail.isAerial);
@@ -1167,7 +1245,7 @@ function renderUnifiedViewPage(viewData, query = {}) {
       if (detail.linkMode) state.linkMode = detail.linkMode;
       if (detail.scanMode) {
         state.scanMode = detail.scanMode;
-        if (scannerArNoteText) {
+        if (scannerArNoteText && activeQrKind === 'scan') {
           scannerArNoteText.textContent = detail.scanMode === 'ar'
             ? 'La Realidad Aumentada (AR) se abre en el celular de quien escanee este código QR.'
             : 'Al escanear este QR, el visitante irá al enlace configurado.';
@@ -1229,16 +1307,21 @@ function renderUnifiedViewPage(viewData, query = {}) {
         state.rotationCount = detail.rotationCount;
         metaRotations.textContent = String(detail.rotationCount);
       }
-      if (detail.newQrImageUrl && !viewerEl.isAerialMode) {
-        dockImg.classList.add('updating');
-        setTimeout(() => {
-          dockImg.src = detail.newQrImageUrl;
-          if (dockMiniImg) dockMiniImg.src = detail.newQrImageUrl;
-          dockImg.onload = () => dockImg.classList.remove('updating');
-        }, 160);
+      if (detail.newQrImageUrl) {
+        latestScanQrUrl = detail.newQrImageUrl;
+        if (!viewerEl.isAerialMode && activeQrKind === 'scan') {
+          dockImg.classList.add('updating');
+          setTimeout(() => {
+            dockImg.src = detail.newQrImageUrl;
+            if (dockMiniImg) dockMiniImg.src = detail.newQrImageUrl;
+            dockImg.onload = () => dockImg.classList.remove('updating');
+          }, 160);
+        }
       }
-      flashQrCard();
-      showUpdateToast('Código QR actualizado en vivo', 'refresh');
+      if (activeQrKind === 'scan') {
+        flashQrCard();
+        showUpdateToast('Código QR actualizado en vivo', 'refresh');
+      }
     });
 
     viewerEl.addEventListener('qr-status-change', (e) => {

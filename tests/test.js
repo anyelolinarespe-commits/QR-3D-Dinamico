@@ -1015,6 +1015,8 @@ async function runTests() {
   const resArViewHtml = await app.inject({ method: 'GET', url: `/view/${viewToken}` });
   assert.ok(resArViewHtml.body.includes('id="btn-toggle-qr-dock"'), 'La vista del expositor debe permitir comprimir el panel QR derecho');
   assert.ok(resArViewHtml.body.includes('id="qr-dock-rail"'), 'Debe incluir la barra lateral comprimida del QR');
+  assert.ok(resArViewHtml.body.includes('id="btn-qr-kind-scan"'), 'La vista del expositor debe permitir elegir QR Enlace');
+  assert.ok(resArViewHtml.body.includes('id="btn-qr-kind-ar"'), 'La vista del expositor debe permitir elegir QR Ver 3D + AR para celular');
   assert.ok(resArViewHtml.body.includes('show-ar="false"'), 'La vista de quien comparte el QR no debe activar AR para el expositor');
   assert.ok(!resArViewHtml.body.includes('id="btn-view-ar"'), 'El botón AR no debe aparecer en el dock de quien comparte el QR');
 

@@ -1411,9 +1411,15 @@
 
       <div class="share-hub-body" id="share-hub-body">
         <div class="share-hub-grid">
-          <div class="share-qr-thumb-box" id="share-qr-thumb-box">
-            <img id="share-hub-qr-img" src="" alt="Vista previa QR" style="display: none;" />
-            <span id="share-hub-qr-empty" class="share-qr-empty">Sin QR seleccionado</span>
+          <div style="display: flex; flex-direction: column; gap: 8px; align-items: stretch;">
+            <div class="share-qr-thumb-box" id="share-qr-thumb-box">
+              <img id="share-hub-qr-img" src="" alt="Vista previa QR" style="display: none;" />
+              <span id="share-hub-qr-empty" class="share-qr-empty">Sin QR seleccionado</span>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+              <button type="button" class="btn btn-secondary btn-sm active" id="btn-share-qr-scan" title="Mostrar QR del enlace dinámico configurado" style="padding: 5px 6px; font-size: 11px; justify-content: center; border-color: rgba(56, 189, 248, 0.55); background: rgba(14, 165, 233, 0.18); color: #bae6fd;">QR Enlace</button>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-share-qr-ar" title="Mostrar QR directo para ver el modelo 3D y AR en celular" style="padding: 5px 6px; font-size: 11px; justify-content: center;">QR 3D + AR</button>
+            </div>
           </div>
 
           <div class="share-controls-col">
@@ -1448,6 +1454,7 @@
               <span class="ui-inline" style="font-size: 12px; font-weight: 700; color: #86efac; padding-left: 6px; white-space: nowrap;"><span class="ui-icon" data-icon="target" data-size="14"></span><span>Destino del QR:</span></span>
               <input type="text" id="share-target-url" list="target-url-suggestions" class="share-link-input" placeholder="https://otra-pagina.com o /example/sipan-nuevo.html" style="color: #e2e8f0;" />
               <button type="button" class="btn-copy-primary" id="btn-share-save-target" style="background: linear-gradient(135deg, #059669, #10b981); padding: 7px 12px; font-size: 12px;"><span class="ui-icon" data-icon="save" data-size="13"></span><span>Cambiar Destino</span></button>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-share-toggle-scan-mode" style="white-space: nowrap;" title="Cambiar si al escanear el QR se abre el Visor 3D + AR o redirige al link configurado"><span class="ui-icon" data-icon="smartphone" data-size="13"></span><span>Escáner: 3D + AR</span></button>
             </div>
 
             <datalist id="target-url-suggestions">
@@ -3243,6 +3250,54 @@
     const btnShareCancelSlug = document.getElementById('btn-share-cancel-slug');
     const shareTargetUrlInput = document.getElementById('share-target-url');
     const btnShareSaveTarget = document.getElementById('btn-share-save-target');
+    const btnShareToggleScanMode = document.getElementById('btn-share-toggle-scan-mode');
+    const btnShareQrScan = document.getElementById('btn-share-qr-scan');
+    const btnShareQrAr = document.getElementById('btn-share-qr-ar');
+    let shareQrPreviewKind = 'scan';
+
+    if (btnShareQrScan) {
+      btnShareQrScan.addEventListener('click', () => {
+        shareQrPreviewKind = 'scan';
+        renderShareHubSelected();
+      });
+    }
+    if (btnShareQrAr) {
+      btnShareQrAr.addEventListener('click', () => {
+        shareQrPreviewKind = 'ar';
+        renderShareHubSelected();
+      });
+    }
+    if (btnShareToggleScanMode) {
+      btnShareToggleScanMode.addEventListener('click', async () => {
+        const item = (state.currentItems || []).find((q) => q.id === state.shareSelectedQrId);
+        if (!item) return;
+        const nextScanMode = btnShareToggleScanMode.dataset.nextScanMode || ((item.scanMode || item.metadata?.scanMode) === 'ar' ? 'redirect' : 'ar');
+        btnShareToggleScanMode.disabled = true;
+        try {
+          const res = await apiFetch('/api/qr/' + encodeURIComponent(item.id) + '/link', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ scan_mode: nextScanMode })
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            throw new Error(data.error || 'No se pudo actualizar el modo de escaneo');
+          }
+          await loadQrs();
+          showAdminToast(
+            nextScanMode === 'ar'
+              ? 'Escáner actualizado: ahora abre Visor 3D + AR en celular'
+              : 'Escáner actualizado: ahora redirige directo al enlace',
+            nextScanMode === 'ar' ? 'smartphone' : 'link'
+          );
+        } catch (err) {
+          showAdminToast(err.message || 'Error cambiando modo de escaneo', 'x');
+        } finally {
+          btnShareToggleScanMode.disabled = false;
+          renderShareHubSelected();
+        }
+      });
+    }
 
     shareHubToggle.addEventListener('click', () => {
       const collapsed = shareHubCard.classList.toggle('collapsed');
@@ -3304,12 +3359,17 @@
       if (document.activeElement !== shareSlugInput) {
         shareSlugInput.value = item.viewToken || '';
       }
-      const qrImgKey = `${item.id}:${item.rotationCount || 0}:${item.viewToken || ''}:${item.target_url || ''}`;
+      const effectivePreviewKind = (shareQrPreviewKind === 'ar' && item.viewToken) ? 'ar' : 'scan';
+      const qrImgKey = `${effectivePreviewKind}:${item.id}:${item.rotationCount || 0}:${item.viewToken || ''}:${item.target_url || ''}`;
       if (shareHubQrImg.dataset.qrKey !== qrImgKey) {
         shareHubQrImg.dataset.qrKey = qrImgKey;
-        shareHubQrImg.src = item.viewToken
-          ? `/view/${encodeURIComponent(item.viewToken)}/image?t=${Date.now()}`
-          : `${item.imageUrl}?t=${Date.now()}`;
+        if (effectivePreviewKind === 'ar' && item.viewToken) {
+          shareHubQrImg.src = `/view/${encodeURIComponent(item.viewToken)}/view-qr?t=${Date.now()}`;
+        } else {
+          shareHubQrImg.src = item.viewToken
+            ? `/view/${encodeURIComponent(item.viewToken)}/image?t=${Date.now()}`
+            : `${item.imageUrl}?t=${Date.now()}`;
+        }
       }
       shareHubQrImg.style.display = 'block';
       shareHubQrEmpty.style.display = 'none';
@@ -3320,6 +3380,28 @@
         <span class="badge ${isEnabled ? 'badge-success' : 'badge-paused'}">${isEnabled ? `${icon('dot-active', 11)}<span>Vista Activa</span>` : `${icon('pause', 11)}<span>Pausada / Oculta</span>`}</span>
         <span class="badge badge-info">${icon('calendar', 11)}<span>Hoy: ${Number(item.dailyScans || 0)} ingreso(s) · ${Number(item.dailyUniqueVisitors || 0)} pers.</span></span>
       `;
+      if (btnShareQrScan && btnShareQrAr) {
+        btnShareQrScan.style.borderColor = effectivePreviewKind === 'scan' ? 'rgba(56, 189, 248, 0.55)' : '';
+        btnShareQrScan.style.background = effectivePreviewKind === 'scan' ? 'rgba(14, 165, 233, 0.18)' : '';
+        btnShareQrScan.style.color = effectivePreviewKind === 'scan' ? '#bae6fd' : '';
+        btnShareQrAr.disabled = !item.viewToken;
+        btnShareQrAr.style.borderColor = effectivePreviewKind === 'ar' ? 'rgba(16, 185, 129, 0.55)' : '';
+        btnShareQrAr.style.background = effectivePreviewKind === 'ar' ? 'rgba(16, 185, 129, 0.18)' : '';
+        btnShareQrAr.style.color = effectivePreviewKind === 'ar' ? '#86efac' : '';
+      }
+      if (btnShareToggleScanMode) {
+        btnShareToggleScanMode.disabled = false;
+        btnShareToggleScanMode.dataset.nextScanMode = isArScan ? 'redirect' : 'ar';
+        btnShareToggleScanMode.innerHTML = isArScan
+          ? `${icon('smartphone', 13)}<span>Escáner: 3D + AR</span>`
+          : `${icon('link', 13)}<span>Cambiar QR a 3D + AR</span>`;
+        btnShareToggleScanMode.style.borderColor = isArScan ? 'rgba(16, 185, 129, 0.5)' : 'rgba(245, 158, 11, 0.55)';
+        btnShareToggleScanMode.style.background = isArScan ? 'rgba(16, 185, 129, 0.16)' : 'rgba(245, 158, 11, 0.18)';
+        btnShareToggleScanMode.style.color = isArScan ? '#86efac' : '#fde68a';
+        btnShareToggleScanMode.title = isArScan
+          ? 'Al escanear este QR desde celular abre 3D + AR. Clic para cambiar a Redirección directa.'
+          : 'Ahora este QR redirige al link configurado. Clic para cambiarlo a Visor 3D + AR en celular.';
+      }
 
       btnShareCopy.disabled = !resolvedUrl;
       btnShareIframe.disabled = !resolvedUrl;

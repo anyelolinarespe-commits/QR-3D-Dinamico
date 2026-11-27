@@ -103,9 +103,9 @@ export function resolveRequestBaseUrl(request) {
   const isLocalConfigured = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(fallback);
   if (!isLocalConfigured) return fallback;
 
-  const rawHost = request.headers['x-forwarded-host'] || request.headers.host;
+  const rawHost = String(request.headers['x-forwarded-host'] || request.headers.host || '').split(',')[0].trim();
   if (!rawHost || rawHost === 'localhost:80') return fallback;
-  const proto = request.headers['x-forwarded-proto'] || request.protocol || 'http';
+  const proto = String(request.headers['x-forwarded-proto'] || request.protocol || 'http').split(',')[0].trim();
   return `${proto}://${rawHost}`;
 }
 
