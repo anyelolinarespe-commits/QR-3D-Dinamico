@@ -15,7 +15,13 @@ import {
  * @returns {Promise<{ redirectUrl?: string, expired: boolean, reason?: string, badgeLabel?: string }>}
  */
 export async function processQrScan(qrId, token, reqInfo = {}) {
-  const result = await db.query('SELECT * FROM qr_items WHERE id = $1', [qrId]);
+  const result = await db.query(
+    `SELECT q.*, t.default_viewer_config AS tenant_default_viewer_config
+     FROM qr_items q
+     LEFT JOIN tenants t ON t.id = q.tenant_id
+     WHERE q.id = $1`,
+    [qrId]
+  );
   if (result.rows.length === 0) {
     return {
       expired: true,
@@ -104,7 +110,13 @@ export async function processQrScan(qrId, token, reqInfo = {}) {
 
   return {
     expired: false,
+    scanMode: metadata.scanMode === 'ar' ? 'ar' : 'redirect',
     redirectUrl: item.target_url,
+    item: {
+      ...item,
+      scan_count: newScanCount,
+      metadata: rotRes?.metadata || metadata
+    },
     scanCount: newScanCount,
     ...dailyStats,
     rotated

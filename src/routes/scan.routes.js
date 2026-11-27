@@ -1,4 +1,6 @@
 import { processQrScan } from '../services/scan.service.js';
+import { resolveRequestBaseUrl, serializePublicViewData } from '../services/qrLink.service.js';
+import { renderScannerArPage } from './view.routes.js';
 import { renderIcon } from '../../widget/icons.js';
 
 function escapeHtml(str) {
@@ -54,6 +56,21 @@ export async function scanRoutes(fastify, options) {
 </body>
 </html>`);
       return;
+    }
+
+    // Si el QR está configurado para abrir la experiencia 3D + AR al escanear, renderizarla directo para el visitante
+    if (result.scanMode === 'ar' && result.item && request.query?.redirect !== '1') {
+      const baseUrl = resolveRequestBaseUrl(request);
+      const viewData = serializePublicViewData(result.item, baseUrl, result);
+      return reply
+        .header('Cache-Control', 'no-cache, no-store, must-revalidate')
+        .type('text/html')
+        .send(
+          renderScannerArPage(viewData, {
+            targetUrl: result.redirectUrl,
+            query: request.query || {}
+          })
+        );
     }
 
     // Redirección inmediata al destino real

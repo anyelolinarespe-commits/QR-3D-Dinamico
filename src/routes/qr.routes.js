@@ -429,6 +429,7 @@ export async function qrRoutes(fastify, options) {
       currentToken: initialToken,
       qrBaseUrl: baseUrl,
       linkMode: linkSettings.linkMode,
+      scanMode: linkSettings.scanMode,
       rotationIntervalSeconds: linkSettings.rotationIntervalSeconds,
       nextRotationAt: linkSettings.nextRotationAt,
       rotatingUrls: linkSettings.rotatingUrls,
@@ -484,6 +485,8 @@ export async function qrRoutes(fastify, options) {
         owner_user_id: ownerUserId,
         viewToken,
         viewUrl,
+        arViewUrl: `${baseUrl}/view/${viewToken}/ar`,
+        scanMode: linkSettings.scanMode,
         viewEnabled: linkSettings.viewEnabled,
         title: fields.title,
         description: metadata.description,
@@ -788,7 +791,7 @@ export async function qrRoutes(fastify, options) {
     }
 
     const baseUrl = resolveRequestBaseUrl(request);
-    const viewUrl = buildViewUrl(viewToken, baseUrl);
+    const viewUrl = `${buildViewUrl(viewToken, baseUrl)}/ar`;
     const pngBuffer = await generateQrPngBuffer(viewUrl, {
       primary: item.color_primary || '#0f172a',
       secondary: item.color_secondary || '#ffffff',
@@ -947,6 +950,7 @@ export async function qrRoutes(fastify, options) {
     metadata.viewToken = viewToken;
     metadata.viewEnabled = linkSettings.viewEnabled;
     metadata.linkMode = linkSettings.linkMode;
+    metadata.scanMode = linkSettings.scanMode;
     metadata.rotationIntervalSeconds = linkSettings.rotationIntervalSeconds;
     metadata.nextRotationAt = linkSettings.nextRotationAt;
     metadata.rotatingUrls = linkSettings.rotatingUrls;
@@ -1241,6 +1245,7 @@ export async function qrRoutes(fastify, options) {
 
     const shouldRotate = parseBooleanFlag(body.rotate_now, false);
     const meta = parseMetadata(item.metadata);
+    const prevScanMode = meta.scanMode === 'ar' ? 'ar' : 'redirect';
     const prevViewEnabled = meta.viewEnabled !== false;
     const rawCustomSlug = body.view_slug !== undefined ? body.view_slug : body.view_token;
     let viewToken = item.view_token || meta.viewToken || generateViewToken();
@@ -1255,6 +1260,7 @@ export async function qrRoutes(fastify, options) {
     meta.viewToken = viewToken;
     meta.viewEnabled = linkSettings.viewEnabled;
     meta.linkMode = linkSettings.linkMode;
+    meta.scanMode = linkSettings.scanMode;
     meta.rotationIntervalSeconds = linkSettings.rotationIntervalSeconds;
     meta.nextRotationAt = linkSettings.nextRotationAt;
     meta.rotatingUrls = linkSettings.rotatingUrls;
@@ -1288,6 +1294,20 @@ export async function qrRoutes(fastify, options) {
         type: 'link_config_updated',
         qrId,
         linkMode: linkSettings.linkMode,
+        scanMode: linkSettings.scanMode,
+        rotationStrategy: linkSettings.rotationStrategy,
+        rotationIntervalSeconds: linkSettings.rotationIntervalSeconds,
+        nextRotationAt: linkSettings.nextRotationAt,
+        timestamp: Date.now()
+      });
+    }
+
+    if (linkSettings.scanMode !== prevScanMode && (shouldRotate || urlChanged)) {
+      await eventBus.publish(`qr_events:${qrId}`, {
+        type: 'link_config_updated',
+        qrId,
+        linkMode: linkSettings.linkMode,
+        scanMode: linkSettings.scanMode,
         rotationStrategy: linkSettings.rotationStrategy,
         rotationIntervalSeconds: linkSettings.rotationIntervalSeconds,
         nextRotationAt: linkSettings.nextRotationAt,

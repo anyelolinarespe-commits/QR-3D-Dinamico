@@ -13,6 +13,8 @@ export const ALLOWED_ROTATION_STRATEGIES = new Set([
   'dynamic'
 ]);
 
+export const ALLOWED_SCAN_MODES = new Set(['ar', 'redirect']);
+
 export const STATIC_STRATEGIES = new Set(['static', 'continuous']);
 export const MIN_ROTATION_INTERVAL_SEC = 2;
 export const MAX_ROTATION_INTERVAL_SEC = 86400;
@@ -325,6 +327,13 @@ export function resolveLinkSettings(fields = {}, existing = null) {
     existingMeta.viewEnabled !== undefined ? Boolean(existingMeta.viewEnabled) : true
   );
 
+  const rawScanMode = typeof (fields.scan_mode ?? fields.scanMode) === 'string'
+    ? String(fields.scan_mode ?? fields.scanMode).trim().toLowerCase()
+    : '';
+  const scanMode = ALLOWED_SCAN_MODES.has(rawScanMode)
+    ? rawScanMode
+    : (existingMeta.scanMode === 'ar' ? 'ar' : 'redirect');
+
   let nextRotationAt = null;
   if (rotationIntervalSeconds >= MIN_ROTATION_INTERVAL_SEC) {
     const existingNext = existingMeta.nextRotationAt;
@@ -340,6 +349,7 @@ export function resolveLinkSettings(fields = {}, existing = null) {
   return {
     rotationStrategy,
     linkMode,
+    scanMode,
     rotationIntervalSeconds,
     nextRotationAt,
     rotatingUrls,
@@ -687,6 +697,8 @@ export function serializePublicViewData(item, baseUrl = config.publicBaseUrl, da
   return {
     viewToken,
     viewUrl: buildViewUrl(viewToken, baseUrl),
+    arViewUrl: `${baseUrl}/view/${viewToken}/ar`,
+    scanMode: meta.scanMode === 'ar' ? 'ar' : 'redirect',
     title: item.title || 'Modelo 3D + QR',
     description: meta.description || '',
     isActive: Boolean(item.is_active),
@@ -757,6 +769,8 @@ export function serializeQrItem(item, baseUrl = config.publicBaseUrl, dailyStats
     is_active: item.is_active,
     viewToken,
     viewUrl: buildViewUrl(viewToken, baseUrl),
+    arViewUrl: `${baseUrl}/view/${viewToken}/ar`,
+    scanMode: meta.scanMode === 'ar' ? 'ar' : 'redirect',
     viewEnabled,
     color_primary: item.color_primary,
     color_secondary: item.color_secondary,

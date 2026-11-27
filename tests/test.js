@@ -1013,7 +1013,20 @@ async function runTests() {
   assert.strictEqual(resApiModel304.statusCode, 304);
 
   const resArViewHtml = await app.inject({ method: 'GET', url: `/view/${viewToken}` });
-  assert.ok(resArViewHtml.body.includes('id="btn-view-ar"'), 'La vista pública debe incluir botón de Realidad Aumentada');
+  assert.ok(resArViewHtml.body.includes('id="btn-toggle-qr-dock"'), 'La vista del expositor debe permitir comprimir el panel QR derecho');
+  assert.ok(resArViewHtml.body.includes('id="qr-dock-rail"'), 'Debe incluir la barra lateral comprimida del QR');
+  assert.ok(resArViewHtml.body.includes('show-ar="false"'), 'La vista de quien comparte el QR no debe activar AR para el expositor');
+  assert.ok(!resArViewHtml.body.includes('id="btn-view-ar"'), 'El botón AR no debe aparecer en el dock de quien comparte el QR');
+
+  const resCollapsedViewHtml = await app.inject({ method: 'GET', url: `/view/${viewToken}?qr=collapsed` });
+  assert.strictEqual(resCollapsedViewHtml.statusCode, 200);
+  assert.ok(resCollapsedViewHtml.body.includes('unified-stage qr-collapsed'));
+
+  const resScannerArHtml = await app.inject({ method: 'GET', url: `/view/${viewToken}/ar` });
+  assert.strictEqual(resScannerArHtml.statusCode, 200);
+  assert.ok(resScannerArHtml.body.includes('id="btn-view-ar"'), 'La vista /ar para el visitante debe incluir botón de Realidad Aumentada');
+  assert.ok(resScannerArHtml.body.includes('show-ar="true"'), 'La vista /ar debe habilitar show-ar="true" en el visor');
+  assert.ok(!resScannerArHtml.body.includes('id="dock-qr-img"'), 'La vista /ar del escáner no debe mostrar el dock QR de exhibición');
 
   // Verificar modelo GLB normalizado para AR (?ar=1 y ?totem=0) en vista pública Sipán
   const sipanViewToken = JSON.parse(resSipanUpload.body).qr.viewToken;
@@ -1497,8 +1510,66 @@ async function runTests() {
   assert.ok(!resEmbedView.body.includes('/admin'), 'Modo ?embed=1 no debe enlazar a /admin');
   console.log('[PASS] Modo ?embed=1, parámetros de paleta y presets nuevos verificados.');
 
-  // Test 29: Respuesta explícita 503 cuando el servicio / base de datos no se activó
-  console.log('\nTest 29: Verificando bloqueo y mensaje de error 503 si el servicio no se activó...');
+  // Test 29: Flujo AR exclusivo para quien escanea el QR (scan_mode='ar' vs 'redirect')
+  console.log('\nTest 29: Verificando flujo AR para quien escanea (/scan/:qrId con scan_mode=ar)...');
+  const resCreateScanAr = await app.inject({
+    method: 'POST',
+    url: '/api/qr',
+    headers: { 'x-api-key': validKey, 'content-type': 'application/json' },
+    payload: JSON.stringify({
+      title: 'Pieza Moche AR',
+      target_url: 'https://example.com/pieza-moche-info',
+      rotation_strategy: 'one_time',
+      scan_mode: 'ar'
+    })
+  });
+  assert.strictEqual(resCreateScanAr.statusCode, 201, resCreateScanAr.body);
+  const scanArCreated = JSON.parse(resCreateScanAr.body).qr;
+  assert.strictEqual(scanArCreated.scanMode, 'ar');
+  const scanArToken = new URL(scanArCreated.scan_url).searchParams.get('token');
+
+  // El primer escaneo abre directamente la experiencia 3D + AR para el visitante (HTTP 200) y rota el token
+  const resScanArPage = await app.inject({
+    method: 'GET',
+    url: `/scan/${scanArCreated.id}?token=${scanArToken}`
+  });
+  assert.strictEqual(resScanArPage.statusCode, 200);
+  assert.ok(String(resScanArPage.headers['content-type'] || '').includes('text/html'));
+  assert.ok(resScanArPage.body.includes('id="btn-view-ar"'), 'Quien escanea debe recibir el botón de Realidad Aumentada');
+  assert.ok(resScanArPage.body.includes('show-ar="true"'));
+  assert.ok(resScanArPage.body.includes('https://example.com/pieza-moche-info'), 'Debe incluir botón opcional al enlace web');
+  assert.ok(!resScanArPage.body.includes('id="dock-qr-img"'), 'Quien escanea no debe ver el dock del QR');
+
+  // Re-escanear el mismo token descartado debe seguir bloqueándose (protección one_time intacta)
+  const resScanArExpired = await app.inject({
+    method: 'GET',
+    url: `/scan/${scanArCreated.id}?token=${scanArToken}`
+  });
+  assert.strictEqual(resScanArExpired.statusCode, 200);
+  assert.ok(resScanArExpired.body.includes('QR Ya Utilizado o Expirado'));
+
+  // Cambiar scan_mode a 'redirect' vía PATCH /link vuelve a redirigir 302
+  const resSwitchRedirect = await app.inject({
+    method: 'PATCH',
+    url: `/api/qr/${scanArCreated.id}/link`,
+    headers: { 'x-api-key': validKey, 'content-type': 'application/json' },
+    payload: JSON.stringify({ scan_mode: 'redirect' })
+  });
+  assert.strictEqual(resSwitchRedirect.statusCode, 200);
+  assert.strictEqual(JSON.parse(resSwitchRedirect.body).qr.scanMode, 'redirect');
+
+  const matAfterSwitch = JSON.parse((await app.inject({ method: 'GET', url: `/api/qr/${scanArCreated.id}/matrix` })).body);
+  const tokAfterSwitch = new URL(matAfterSwitch.scanUrl).searchParams.get('token');
+  const resScanAfterSwitch = await app.inject({
+    method: 'GET',
+    url: `/scan/${scanArCreated.id}?token=${tokAfterSwitch}`
+  });
+  assert.strictEqual(resScanAfterSwitch.statusCode, 302);
+  assert.strictEqual(resScanAfterSwitch.headers.location, 'https://example.com/pieza-moche-info');
+  console.log('[PASS] Experiencia AR al escanear (scan_mode=ar/redirect) verificada correctamente.');
+
+  // Test 30: Respuesta explícita 503 cuando el servicio / base de datos no se activó
+  console.log('\nTest 30: Verificando bloqueo y mensaje de error 503 si el servicio no se activó...');
   setDbErrorForTest('Fallo simulado de base de datos');
 
   const resHealthDown = await app.inject({ method: 'GET', url: '/health' });
@@ -1522,7 +1593,7 @@ async function runTests() {
   assert.strictEqual(resViewDown.statusCode, 503);
   console.log('[PASS] Estado inactivo (503 SERVICE_INACTIVE) verificado correctamente.');
 
-  console.log('\n[DONE] ¡TODAS LAS PRUEBAS (29/29) PASARON SATISFACTORIAMENTE!\n');
+  console.log('\n[DONE] ¡TODAS LAS PRUEBAS (30/30) PASARON SATISFACTORIAMENTE!\n');
   } finally {
     stopQrRotationScheduler();
     if (app) await app.close().catch(() => {});

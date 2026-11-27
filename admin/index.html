@@ -1432,6 +1432,7 @@
               <button type="button" class="btn-copy-primary" id="btn-share-copy"><span class="ui-icon" data-icon="copy" data-size="14"></span><span>Copiar Link</span></button>
               <button type="button" class="btn btn-secondary btn-sm" id="btn-share-iframe" title="Copia código iframe listo para incrustar"><span class="ui-icon" data-icon="code" data-size="13"></span><span>Iframe</span></button>
               <a id="btn-share-open" href="#" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" style="text-decoration: none;"><span class="ui-icon" data-icon="globe" data-size="13"></span><span>Abrir Vista</span></a>
+              <a id="btn-share-open-ar" href="#" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" style="text-decoration: none;" title="Previsualizar lo que ve quien escanea en celular"><span class="ui-icon" data-icon="smartphone" data-size="13"></span><span>Vista Escáner (AR)</span></a>
               <button type="button" class="btn btn-secondary btn-sm" id="btn-share-edit-slug" title="Editar la ruta personalizada de la vista pública"><span class="ui-icon" data-icon="pencil" data-size="13"></span><span>Editar Ruta</span></button>
               <button type="button" class="btn btn-secondary btn-sm" id="btn-share-rotate-link" title="Revoca el enlace actual y genera uno nuevo"><span class="ui-icon" data-icon="repeat" data-size="13"></span><span>Nuevo Link</span></button>
             </div>
@@ -1507,6 +1508,14 @@
               <option value="dynamic">Dinámico total — Por tiempo y por cada escaneo</option>
               <option value="static">Estático — Enlace fijo permanente</option>
               <option value="continuous">Continuo — Estático sin descarte</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="qr-scan-mode"><span class="ui-inline"><span class="ui-icon" data-icon="smartphone" data-size="14"></span><span>Qué abre quien escanea el QR en su celular</span></span></label>
+            <select id="qr-scan-mode" class="form-control">
+              <option value="ar" selected>Experiencia 3D + Realidad Aumentada (AR) (+ botón al enlace web)</option>
+              <option value="redirect">Redirección directa al enlace destino (302)</option>
             </select>
           </div>
 
@@ -2013,6 +2022,14 @@
           </div>
         </div>
 
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="edit-qr-scan-mode"><span class="ui-inline"><span class="ui-icon" data-icon="smartphone" data-size="14"></span><span>Qué abre quien escanea el QR</span></span></label>
+          <select id="edit-qr-scan-mode" class="form-control">
+            <option value="ar">Experiencia 3D + Realidad Aumentada (AR) (+ botón al enlace web)</option>
+            <option value="redirect">Redirección directa al enlace destino (302)</option>
+          </select>
+        </div>
+
         <div id="edit-rotation-interval-group" style="display: none; background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 10px 12px;">
           <div class="form-group" style="margin-bottom: 8px;">
             <label for="edit-qr-interval"><span class="ui-inline"><span class="ui-icon" data-icon="clock" data-size="14"></span><span>Intervalo de rotación automática (segundos)</span></span></label>
@@ -2408,6 +2425,7 @@
             fd.append('title', job.title || 'QR 3D Interactivo');
             fd.append('target_url', job.targetUrl || 'https://google.com');
             fd.append('rotation_strategy', job.rotationStrategy || 'one_time');
+            fd.append('scan_mode', job.scanMode || 'ar');
             if (job.tenantId) fd.append('tenant_id', job.tenantId);
             if (job.ownerUserId) fd.append('owner_user_id', job.ownerUserId);
             if (job.rotationIntervalSeconds) fd.append('rotation_interval_seconds', String(job.rotationIntervalSeconds));
@@ -2885,6 +2903,7 @@
       const titleVal = document.getElementById('qr-title').value;
       const targetUrlVal = document.getElementById('qr-target-url').value;
       const strategyVal = document.getElementById('qr-strategy').value;
+      const scanModeVal = document.getElementById('qr-scan-mode')?.value || 'ar';
       const intervalVal = document.getElementById('qr-rotation-interval').value;
       const rotatingUrlsVal = document.getElementById('qr-rotating-urls').value.trim();
 
@@ -2914,6 +2933,7 @@
           title: titleVal,
           targetUrl: targetUrlVal,
           rotationStrategy: strategyVal,
+          scanMode: scanModeVal,
           rotationIntervalSeconds: (strategyVal === 'timed' || strategyVal === 'dynamic') ? Number(intervalVal || 30) : 0,
           rotatingUrls: (strategyVal === 'timed' || strategyVal === 'dynamic') ? rotatingUrlsVal : '',
           viewerConfig: initialPreset,
@@ -2947,6 +2967,7 @@
         formData.append('view_slug', viewSlugVal);
       }
       formData.append('rotation_strategy', strategyVal);
+      formData.append('scan_mode', scanModeVal);
       if (strategyVal === 'timed' || strategyVal === 'dynamic') {
         formData.append('rotation_interval_seconds', String(Math.max(2, parseInt(intervalVal || '30', 10) || 30)));
         if (rotatingUrlsVal) {
@@ -3214,6 +3235,7 @@
     const btnShareOpen = document.getElementById('btn-share-open');
     const btnShareEditSlug = document.getElementById('btn-share-edit-slug');
     const btnShareRotate = document.getElementById('btn-share-rotate-link');
+    const btnShareOpenAr = document.getElementById('btn-share-open-ar');
     const shareSlugEditor = document.getElementById('share-slug-editor');
     const shareSlugPrefix = document.getElementById('share-slug-prefix');
     const shareSlugInput = document.getElementById('share-slug-input');
@@ -3263,11 +3285,17 @@
         btnShareOpen.href = '#';
         btnShareOpen.style.pointerEvents = 'none';
         btnShareOpen.style.opacity = '0.5';
+        if (btnShareOpenAr) {
+          btnShareOpenAr.href = '#';
+          btnShareOpenAr.style.pointerEvents = 'none';
+          btnShareOpenAr.style.opacity = '0.5';
+        }
         return;
       }
 
       const meta = getStrategyBadgeMeta(item);
       const isEnabled = item.is_active !== false && item.viewEnabled !== false;
+      const isArScan = item.scanMode === 'ar';
       const resolvedUrl = resolveItemViewUrl(item);
       shareHubUrl.value = resolvedUrl;
       if (document.activeElement !== shareTargetUrlInput) {
@@ -3288,6 +3316,7 @@
 
       shareHubPills.innerHTML = `
         <span class="badge ${meta.cls}">${meta.labelHtml}</span>
+        <span class="badge ${isArScan ? 'badge-success' : 'badge-info'}">${icon(isArScan ? 'smartphone' : 'link', 11)}<span>${isArScan ? 'Escáner: 3D + AR' : 'Escáner: Redirección'}</span></span>
         <span class="badge ${isEnabled ? 'badge-success' : 'badge-paused'}">${isEnabled ? `${icon('dot-active', 11)}<span>Vista Activa</span>` : `${icon('pause', 11)}<span>Pausada / Oculta</span>`}</span>
         <span class="badge badge-info">${icon('calendar', 11)}<span>Hoy: ${Number(item.dailyScans || 0)} ingreso(s) · ${Number(item.dailyUniqueVisitors || 0)} pers.</span></span>
       `;
@@ -3301,6 +3330,12 @@
       btnShareOpen.href = resolvedUrl || '#';
       btnShareOpen.style.pointerEvents = resolvedUrl ? 'auto' : 'none';
       btnShareOpen.style.opacity = resolvedUrl ? '1' : '0.5';
+      if (btnShareOpenAr) {
+        const arUrl = resolvedUrl ? `${resolvedUrl}/ar` : '#';
+        btnShareOpenAr.href = arUrl;
+        btnShareOpenAr.style.pointerEvents = resolvedUrl ? 'auto' : 'none';
+        btnShareOpenAr.style.opacity = resolvedUrl ? '1' : '0.5';
+      }
     }
 
     function syncShareHub() {
@@ -3469,6 +3504,10 @@
         ? item.rotatingUrls.join('\n')
         : '';
       document.getElementById('edit-qr-active').value = item.is_active === false ? 'false' : 'true';
+      const editScanModeEl = document.getElementById('edit-qr-scan-mode');
+      if (editScanModeEl) {
+        editScanModeEl.value = item.scanMode === 'ar' ? 'ar' : 'redirect';
+      }
       document.getElementById('edit-view-enabled').checked = item.viewEnabled !== false;
       document.getElementById('edit-current-model-label').textContent = item.model_filename ? `Actual: ${item.model_filename}` : '';
       document.getElementById('edit-use-custom-colors').checked = false;
@@ -3533,6 +3572,7 @@
       const targetUrlVal = document.getElementById('edit-qr-target-url').value.trim();
       const viewSlugVal = document.getElementById('edit-qr-view-slug').value.trim();
       const strategyVal = document.getElementById('edit-qr-strategy').value;
+      const scanModeVal = document.getElementById('edit-qr-scan-mode')?.value || 'redirect';
       const intervalVal = document.getElementById('edit-qr-interval').value;
       const rotatingUrlsVal = document.getElementById('edit-qr-rotating-urls').value.trim();
       const viewEnabledVal = document.getElementById('edit-view-enabled').checked;
@@ -3555,6 +3595,7 @@
           fd.append('target_url', targetUrlVal);
           if (viewSlugVal) fd.append('view_slug', viewSlugVal);
           fd.append('rotation_strategy', strategyVal);
+          fd.append('scan_mode', scanModeVal);
           fd.append('view_enabled', String(viewEnabledVal));
           if (strategyVal === 'timed' || strategyVal === 'dynamic') {
             fd.append('rotation_interval_seconds', String(Math.max(2, parseInt(intervalVal || '30', 10) || 30)));
@@ -3589,6 +3630,7 @@
             target_url: targetUrlVal,
             view_slug: viewSlugVal || undefined,
             rotation_strategy: strategyVal,
+            scan_mode: scanModeVal,
             rotation_interval_seconds: (strategyVal === 'timed' || strategyVal === 'dynamic')
               ? Math.max(2, parseInt(intervalVal || '30', 10) || 30)
               : 0,

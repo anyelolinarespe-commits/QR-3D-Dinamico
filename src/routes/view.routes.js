@@ -219,6 +219,7 @@ function renderEmbedOnlyPage(viewData, options) {
     `id="unified-viewer"`,
     `view-token="${safeToken}"`,
     `ar-title="${safeTitle}"`,
+    `show-ar="${parseQueryBool(options.showArParam) === true ? 'true' : 'false'}"`,
     `flat="true"`,
     `hide-badge="${options.hideBadge ? 'true' : 'false'}"`,
     `viewer-config="${escapeHtml(JSON.stringify(cfg))}"`,
@@ -269,10 +270,14 @@ function renderEmbedOnlyPage(viewData, options) {
 
 function renderUnifiedViewPage(viewData, query = {}) {
   const options = resolveViewOptions(viewData.viewerConfig, query);
+  options.showArParam = query?.ar_btn ?? query?.show_ar ?? null;
   if (options.embed) {
     return renderEmbedOnlyPage(viewData, options);
   }
 
+  const startCollapsed =
+    parseQueryBool(query?.qr) === false ||
+    String(query?.qr || '').trim().toLowerCase() === 'collapsed';
   const effectiveCfg = options.viewerConfig;
   const isLightUi = isLightUiConfig(effectiveCfg);
   const accentHex = effectiveCfg.accentColor || (isLightUi ? '#0f3d2e' : '#0284c7');
@@ -290,12 +295,14 @@ function renderUnifiedViewPage(viewData, query = {}) {
   const safeDesc = escapeHtml(viewData.description);
   const safeToken = escapeHtml(viewData.viewToken);
   const isStatic = viewData.linkMode === 'static';
+  const isArScanMode = viewData.scanMode === 'ar';
   const extraViewerAttrs = Object.entries(options.attrs)
     .map(([k, v]) => `${escapeHtml(k)}="${escapeHtml(v)}"`)
     .join(' ');
   const initialDataJson = JSON.stringify({
     viewToken: viewData.viewToken,
     linkMode: viewData.linkMode,
+    scanMode: viewData.scanMode || 'redirect',
     rotationStrategy: viewData.rotationStrategy,
     rotationIntervalSeconds: viewData.rotationIntervalSeconds,
     nextRotationAt: viewData.nextRotationAt,
@@ -325,7 +332,7 @@ function renderUnifiedViewPage(viewData, query = {}) {
   }
 
   const viewIconsJson = JSON.stringify(
-    getIconMap(['lock', 'refresh', 'zap', 'scan', 'smartphone', 'undo', 'user', 'pause', 'alert-triangle'], { size: 15 })
+    getIconMap(['lock', 'refresh', 'zap', 'scan', 'smartphone', 'undo', 'user', 'pause', 'alert-triangle', 'chevron-left', 'chevron-right', 'qr-code'], { size: 15 })
   ).replace(/</g, '\\u003c');
 
   return `<!DOCTYPE html>
@@ -439,6 +446,11 @@ function renderUnifiedViewPage(viewData, query = {}) {
       gap: 16px;
       align-items: stretch;
       min-height: 560px;
+      transition: grid-template-columns 0.25s ease;
+    }
+
+    .unified-stage.qr-collapsed {
+      grid-template-columns: minmax(0, 1fr) 64px;
     }
 
     .model-card {
@@ -452,13 +464,17 @@ function renderUnifiedViewPage(viewData, query = {}) {
     }
 
     @media (max-width: 960px) {
-      .unified-stage {
+      .unified-stage,
+      .unified-stage.qr-collapsed {
         grid-template-columns: 1fr;
         min-height: auto;
       }
       .model-card {
         min-height: 340px;
         height: 46vh;
+      }
+      .unified-stage.qr-collapsed .model-card {
+        height: 66vh;
       }
     }
 
@@ -475,11 +491,128 @@ function renderUnifiedViewPage(viewData, query = {}) {
       position: relative;
       overflow: hidden;
     }
+    .qr-dock-full {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 16px;
+      flex: 1;
+    }
+    .qr-dock-rail {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      height: 100%;
+    }
+    .qr-dock.collapsed {
+      padding: 14px 10px;
+      align-items: center;
+      justify-content: flex-start;
+    }
+    .qr-dock.collapsed .qr-dock-full {
+      display: none;
+    }
+    .qr-dock.collapsed .qr-dock-rail {
+      display: flex;
+    }
     .qr-dock-head {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 8px;
+    }
+    .qr-dock-head-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .btn-dock-collapse {
+      background: ${isLightUi ? 'rgba(15, 23, 42, 0.06)' : 'rgba(255, 255, 255, 0.08)'};
+      border: 1px solid ${isLightUi ? 'rgba(15, 23, 42, 0.12)' : 'rgba(255, 255, 255, 0.14)'};
+      color: var(--text);
+      border-radius: 9px;
+      padding: 5px 8px;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: background 0.15s ease, transform 0.12s ease;
+    }
+    .btn-dock-collapse:hover {
+      background: ${isLightUi ? 'rgba(15, 23, 42, 0.12)' : 'rgba(255, 255, 255, 0.15)'};
+    }
+    .qr-mini-thumb-btn {
+      width: 44px;
+      height: 44px;
+      padding: 4px;
+      border-radius: 10px;
+      background: #ffffff;
+      border: 2px solid var(--accent);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
+    }
+    .qr-mini-thumb-btn img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+    .qr-rail-stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .qr-rail-stat strong {
+      font-size: 15px;
+      color: var(--text);
+      font-weight: 800;
+    }
+    .qr-rail-vertical-label {
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    @media (max-width: 960px) {
+      .qr-dock.collapsed {
+        padding: 12px 16px;
+      }
+      .qr-dock.collapsed .qr-dock-rail {
+        flex-direction: row;
+        width: 100%;
+        height: auto;
+      }
+      .qr-rail-vertical-label {
+        writing-mode: horizontal-tb;
+        transform: none;
+      }
+    }
+    .scanner-ar-note {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 11px;
+      font-size: 12px;
+      line-height: 1.45;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      background: ${isLightUi ? 'rgba(15, 61, 46, 0.07)' : 'rgba(16, 185, 129, 0.12)'};
+      border: 1px solid ${isLightUi ? 'rgba(15, 61, 46, 0.2)' : 'rgba(16, 185, 129, 0.3)'};
+      color: ${isLightUi ? '#065f46' : '#a7f3d0'};
     }
     .qr-dock-head h2 {
       font-size: 16px;
@@ -741,12 +874,13 @@ function renderUnifiedViewPage(viewData, query = {}) {
       </div>
     </header>
 
-    <main class="unified-stage">
+    <main class="unified-stage${startCollapsed ? ' qr-collapsed' : ''}" id="unified-stage">
       <section class="model-card" aria-label="Visor de Modelo 3D">
         <qr-3d-viewer
           id="unified-viewer"
           view-token="${safeToken}"
           ar-title="${safeTitle}"
+          show-ar="false"
           viewer-config="${escapeHtml(JSON.stringify(effectiveCfg))}"
           hide-badge="${options.hideBadge ? 'true' : 'false'}"
           ${extraViewerAttrs}
@@ -755,70 +889,97 @@ function renderUnifiedViewPage(viewData, query = {}) {
         </qr-3d-viewer>
       </section>
 
-      <aside class="qr-dock" aria-label="Código QR vinculado al modelo 3D">
-        <div class="qr-dock-head">
-          <h2>Escanea el Código QR</h2>
-          <span class="qr-tag" id="qr-tag-mode">${isStatic ? 'Estático' : 'Dinámico'}</span>
+      <aside class="qr-dock${startCollapsed ? ' collapsed' : ''}" id="qr-dock" aria-label="Código QR vinculado al modelo 3D">
+        <div class="qr-dock-rail" id="qr-dock-rail">
+          <button type="button" id="btn-expand-qr-dock" class="btn-dock-collapse" title="Expandir panel del código QR" aria-label="Expandir panel del código QR">
+            ${renderIcon('chevron-left', { size: 15 })}
+          </button>
+          <button type="button" id="btn-mini-qr-thumb" class="qr-mini-thumb-btn" title="Clic para expandir código QR" aria-label="Expandir código QR">
+            <img id="dock-qr-mini-img" src="/view/${safeToken}/image?t=${Date.now()}" alt="QR mini" />
+          </button>
+          <span class="qr-rail-vertical-label">QR en vivo</span>
+          <div class="qr-rail-stat" title="Ingresos de hoy">
+            <strong id="meta-daily-scans-mini">${Number(viewData.dailyScans || 0)}</strong>
+            <span>hoy</span>
+          </div>
+          <button type="button" id="btn-mini-aerial" class="btn-dock-collapse" title="Ver QR sobre el Modelo (90°)" aria-label="Ver QR sobre el Modelo (90°)">
+            ${renderIcon('scan', { size: 15 })}
+          </button>
         </div>
 
-        <div class="qr-frame-wrap">
-          <div class="qr-frame" id="qr-frame-box">
-            <img id="dock-qr-img" src="/view/${safeToken}/image?t=${Date.now()}" alt="Código QR activo" />
-          </div>
-
-          <div class="countdown-box" id="countdown-box" style="${viewData.rotationIntervalSeconds > 0 ? '' : 'display:none;'}">
-            <div class="countdown-row">
-              <span>Próximo enlace automático</span>
-              <span class="countdown-timer" id="countdown-timer">--s</span>
-            </div>
-            <div class="progress-track">
-              <div class="progress-bar" id="countdown-progress"></div>
+        <div class="qr-dock-full" id="qr-dock-full">
+          <div class="qr-dock-head">
+            <h2>Escanea el Código QR</h2>
+            <div class="qr-dock-head-actions">
+              <span class="qr-tag" id="qr-tag-mode">${isStatic ? 'Estático' : 'Dinámico'}</span>
+              <button type="button" id="btn-toggle-qr-dock" class="btn-dock-collapse" title="Comprimir panel derecho del QR" aria-expanded="${startCollapsed ? 'false' : 'true'}">
+                ${renderIcon('chevron-right', { size: 14 })}<span>Comprimir</span>
+              </button>
             </div>
           </div>
-        </div>
 
-        <div>
-          <div class="daily-counter-card" id="daily-counter-card">
-            <div class="daily-counter-head">
-              <span style="display:inline-flex;align-items:center;gap:6px;">${renderIcon('bar-chart', { size: 14 })}<span>Ingresos de hoy</span></span>
-              <span class="daily-date-chip" id="meta-today-date">${escapeHtml(viewData.todayDate || '')}</span>
+          <div class="qr-frame-wrap">
+            <div class="qr-frame" id="qr-frame-box">
+              <img id="dock-qr-img" src="/view/${safeToken}/image?t=${Date.now()}" alt="Código QR activo" />
             </div>
-            <div class="daily-counter-grid">
-              <div class="daily-metric">
-                <span class="daily-metric-value" id="meta-daily-visitors">${Number(viewData.dailyUniqueVisitors || 0)}</span>
-                <span class="daily-metric-label">Personas únicas</span>
+
+            <div class="countdown-box" id="countdown-box" style="${viewData.rotationIntervalSeconds > 0 ? '' : 'display:none;'}">
+              <div class="countdown-row">
+                <span>Próximo enlace automático</span>
+                <span class="countdown-timer" id="countdown-timer">--s</span>
               </div>
-              <div class="daily-metric">
-                <span class="daily-metric-value" id="meta-daily-scans">${Number(viewData.dailyScans || 0)}</span>
-                <span class="daily-metric-label">Ingresos al link</span>
+              <div class="progress-track">
+                <div class="progress-bar" id="countdown-progress"></div>
               </div>
             </div>
           </div>
 
-          <div class="info-panel">
-            <div id="mode-help-text">${escapeHtml(modeHelpText)}</div>
-            <div class="meta-rows">
-              <div class="meta-row">
-                <span>Total acumulado</span>
-                <strong id="meta-total-scans">${Number(viewData.scanCount || 0)}</strong>
+          <div>
+            <div class="daily-counter-card" id="daily-counter-card">
+              <div class="daily-counter-head">
+                <span style="display:inline-flex;align-items:center;gap:6px;">${renderIcon('bar-chart', { size: 14 })}<span>Ingresos de hoy</span></span>
+                <span class="daily-date-chip" id="meta-today-date">${escapeHtml(viewData.todayDate || '')}</span>
               </div>
-              <div class="meta-row">
-                <span>Último enlace activo</span>
-                <strong id="meta-last-rotated">—</strong>
-              </div>
-              <div class="meta-row" id="meta-rotations-row" style="${isStatic ? 'display:none;' : ''}">
-                <span>Rotaciones de enlace</span>
-                <strong id="meta-rotations">${Number(viewData.rotationCount || 0)}</strong>
+              <div class="daily-counter-grid">
+                <div class="daily-metric">
+                  <span class="daily-metric-value" id="meta-daily-visitors">${Number(viewData.dailyUniqueVisitors || 0)}</span>
+                  <span class="daily-metric-label">Personas únicas</span>
+                </div>
+                <div class="daily-metric">
+                  <span class="daily-metric-value" id="meta-daily-scans">${Number(viewData.dailyScans || 0)}</span>
+                  <span class="daily-metric-label">Ingresos al link</span>
+                </div>
               </div>
             </div>
-          </div>
 
-          <button type="button" id="btn-toggle-aerial" class="btn-aerial-toggle" style="margin-top: 12px;">
-            ${renderIcon('scan', { size: 16 })}<span>Ver QR sobre el Modelo (90°)</span>
-          </button>
-          <button type="button" id="btn-view-ar" class="btn-aerial-toggle" style="margin-top: 8px; background: linear-gradient(135deg, #059669, #10b981);">
-            ${renderIcon('smartphone', { size: 16 })}<span>Ver en Realidad Aumentada (AR)</span>
-          </button>
+            <div class="info-panel">
+              <div id="mode-help-text">${escapeHtml(modeHelpText)}</div>
+              <div class="meta-rows">
+                <div class="meta-row">
+                  <span>Total acumulado</span>
+                  <strong id="meta-total-scans">${Number(viewData.scanCount || 0)}</strong>
+                </div>
+                <div class="meta-row">
+                  <span>Último enlace activo</span>
+                  <strong id="meta-last-rotated">—</strong>
+                </div>
+                <div class="meta-row" id="meta-rotations-row" style="${isStatic ? 'display:none;' : ''}">
+                  <span>Rotaciones de enlace</span>
+                  <strong id="meta-rotations">${Number(viewData.rotationCount || 0)}</strong>
+                </div>
+              </div>
+            </div>
+
+            <button type="button" id="btn-toggle-aerial" class="btn-aerial-toggle" style="margin-top: 12px;">
+              ${renderIcon('scan', { size: 16 })}<span>Ver QR sobre el Modelo (90°)</span>
+            </button>
+            <div class="scanner-ar-note" id="scanner-ar-note">
+              <span style="flex-shrink:0;margin-top:1px;">${renderIcon('smartphone', { size: 15 })}</span>
+              <span id="scanner-ar-note-text">${isArScanMode
+                ? 'La Realidad Aumentada (AR) se abre en el celular de quien escanee este código QR.'
+                : 'Al escanear este QR, el visitante irá al enlace configurado.'}</span>
+            </div>
+          </div>
         </div>
       </aside>
     </main>
@@ -837,6 +998,15 @@ function renderUnifiedViewPage(viewData, query = {}) {
   <script>
     const state = ${initialDataJson};
     const VIEW_ICONS = ${viewIconsJson};
+    const unifiedStage = document.getElementById('unified-stage');
+    const qrDock = document.getElementById('qr-dock');
+    const btnToggleQrDock = document.getElementById('btn-toggle-qr-dock');
+    const btnExpandQrDock = document.getElementById('btn-expand-qr-dock');
+    const btnMiniQrThumb = document.getElementById('btn-mini-qr-thumb');
+    const btnMiniAerial = document.getElementById('btn-mini-aerial');
+    const dockMiniImg = document.getElementById('dock-qr-mini-img');
+    const metaDailyScansMini = document.getElementById('meta-daily-scans-mini');
+    const scannerArNoteText = document.getElementById('scanner-ar-note-text');
     const viewerEl = document.getElementById('unified-viewer');
     const dockImg = document.getElementById('dock-qr-img');
     const qrFrameBox = document.getElementById('qr-frame-box');
@@ -851,10 +1021,45 @@ function renderUnifiedViewPage(viewData, query = {}) {
     const metaDailyScans = document.getElementById('meta-daily-scans');
     const metaTotalScans = document.getElementById('meta-total-scans');
     const btnAerial = document.getElementById('btn-toggle-aerial');
-    const btnViewAr = document.getElementById('btn-view-ar');
     const toastEl = document.getElementById('view-toast');
     const pausedOverlay = document.getElementById('paused-overlay');
     let toastTimer = null;
+
+    const dockStorageKey = 'qr3d_dock_collapsed_' + (state.viewToken || 'default');
+    function setQrDockCollapsed(collapsed, persist = true) {
+      if (!unifiedStage || !qrDock) return;
+      const isCol = Boolean(collapsed);
+      unifiedStage.classList.toggle('qr-collapsed', isCol);
+      qrDock.classList.toggle('collapsed', isCol);
+      if (btnToggleQrDock) btnToggleQrDock.setAttribute('aria-expanded', String(!isCol));
+      if (persist) {
+        try { localStorage.setItem(dockStorageKey, isCol ? '1' : '0'); } catch {}
+      }
+      setTimeout(() => window.dispatchEvent(new Event('resize')), 260);
+    }
+
+    if (!${startCollapsed ? 'true' : 'false'}) {
+      try {
+        if (localStorage.getItem(dockStorageKey) === '1') {
+          setQrDockCollapsed(true, false);
+        }
+      } catch {}
+    }
+
+    if (btnToggleQrDock) {
+      btnToggleQrDock.addEventListener('click', () => setQrDockCollapsed(true));
+    }
+    if (btnExpandQrDock) {
+      btnExpandQrDock.addEventListener('click', () => setQrDockCollapsed(false));
+    }
+    if (btnMiniQrThumb) {
+      btnMiniQrThumb.addEventListener('click', () => setQrDockCollapsed(false));
+    }
+    if (btnMiniAerial) {
+      btnMiniAerial.addEventListener('click', () => {
+        if (btnAerial) btnAerial.click();
+      });
+    }
 
     function formatTime(iso) {
       if (!iso) return 'Actual';
@@ -940,24 +1145,11 @@ function renderUnifiedViewPage(viewData, query = {}) {
       }
     });
 
-    if (btnViewAr) {
-      btnViewAr.addEventListener('click', () => {
-        if (viewerEl && typeof viewerEl.launchAR === 'function') {
-          viewerEl.launchAR();
-        }
-      });
-    }
-
-    viewerEl.addEventListener('ar-status', (e) => {
-      const msg = e?.detail?.message;
-      const iconName = e?.detail?.icon || 'smartphone';
-      if (msg) showUpdateToast(msg, iconName);
-    });
-
     viewerEl.addEventListener('qr-visual-update', (e) => {
       const detail = e.detail || {};
       if (detail.src) {
         dockImg.src = detail.src;
+        if (dockMiniImg) dockMiniImg.src = detail.src;
       }
       if (typeof detail.isAerial === 'boolean') {
         btnAerial.classList.toggle('active', detail.isAerial);
@@ -973,6 +1165,14 @@ function renderUnifiedViewPage(viewData, query = {}) {
       }
       if (detail.rotationStrategy) state.rotationStrategy = detail.rotationStrategy;
       if (detail.linkMode) state.linkMode = detail.linkMode;
+      if (detail.scanMode) {
+        state.scanMode = detail.scanMode;
+        if (scannerArNoteText) {
+          scannerArNoteText.textContent = detail.scanMode === 'ar'
+            ? 'La Realidad Aumentada (AR) se abre en el celular de quien escanee este código QR.'
+            : 'Al escanear este QR, el visitante irá al enlace configurado.';
+        }
+      }
       if (detail.nextRotationAt !== undefined) state.nextRotationAt = detail.nextRotationAt;
       syncModeUI();
       syncCountdownUI();
@@ -993,6 +1193,7 @@ function renderUnifiedViewPage(viewData, query = {}) {
       if (detail.dailyScans !== undefined && metaDailyScans) {
         state.dailyScans = Number(detail.dailyScans || 0);
         metaDailyScans.textContent = String(state.dailyScans);
+        if (metaDailyScansMini) metaDailyScansMini.textContent = String(state.dailyScans);
         changed = true;
       }
       if (detail.scanCount !== undefined && metaTotalScans) {
@@ -1032,6 +1233,7 @@ function renderUnifiedViewPage(viewData, query = {}) {
         dockImg.classList.add('updating');
         setTimeout(() => {
           dockImg.src = detail.newQrImageUrl;
+          if (dockMiniImg) dockMiniImg.src = detail.newQrImageUrl;
           dockImg.onload = () => dockImg.classList.remove('updating');
         }, 160);
       }
@@ -1044,6 +1246,245 @@ function renderUnifiedViewPage(viewData, query = {}) {
       const active = detail.isActive !== false && detail.viewEnabled !== false;
       pausedOverlay.classList.toggle('active', !active);
     });
+  </script>
+</body>
+</html>`;
+}
+
+/**
+ * Vista dedicada exclusivamente para quien ESCANEA el QR en su celular:
+ * muestra el modelo 3D a pantalla completa y el botón directo de Realidad Aumentada (AR),
+ * sin panel lateral del QR de exhibición.
+ */
+export function renderScannerArPage(viewData, { targetUrl = null, query = {} } = {}) {
+  const options = resolveViewOptions(viewData.viewerConfig, query);
+  const cfg = options.viewerConfig;
+  const isLightUi = isLightUiConfig(cfg);
+  const accentHex = cfg.accentColor || (isLightUi ? '#0f3d2e' : '#10b981');
+  const bgCss = isLightUi
+    ? 'radial-gradient(circle at 30% 20%, #faf8f4 0%, #ebe3d5 80%)'
+    : 'radial-gradient(circle at 30% 20%, #141c2f 0%, #070a11 72%)';
+  const surfaceCss = escapeHtml(cfg.surfaceColor || (isLightUi ? 'rgba(255, 255, 255, 0.94)' : 'rgba(16, 22, 36, 0.92)'));
+  const textCss = escapeHtml(cfg.textColor || (isLightUi ? '#0f172a' : '#f8fafc'));
+  const mutedCss = isLightUi ? '#475569' : '#94a3b8';
+  const borderCss = isLightUi ? 'rgba(15, 23, 42, 0.12)' : 'rgba(148, 163, 184, 0.18)';
+  const safeTitle = escapeHtml(viewData.title || 'Modelo 3D AR');
+  const safeDesc = escapeHtml(viewData.description || '');
+  const safeToken = escapeHtml(viewData.viewToken);
+  const hasTargetLink = typeof targetUrl === 'string' && /^(https?:\/\/|\/)/i.test(targetUrl.trim());
+  const safeTargetUrl = hasTargetLink ? escapeHtml(targetUrl.trim()) : '';
+
+  const iconsJson = JSON.stringify(
+    getIconMap(['smartphone', 'alert-triangle', 'camera', 'scan', 'undo'], { size: 15 })
+  ).replace(/</g, '\\u003c');
+
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>${safeTitle} — Experiencia AR</title>
+  <script src="/widget/3dqr-viewer.js" type="module"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      background: ${bgCss};
+      color: ${textCss};
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    .scanner-shell {
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 12px;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+    .scanner-header {
+      background: ${surfaceCss};
+      border: 1px solid ${borderCss};
+      border-radius: 14px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      backdrop-filter: blur(10px);
+    }
+    .scanner-header h1 {
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+    .scanner-header p {
+      font-size: 12px;
+      color: ${mutedCss};
+      margin-top: 2px;
+    }
+    .scanner-pill {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 9999px;
+      font-size: 11.5px;
+      font-weight: 700;
+      background: ${isLightUi ? 'rgba(15, 61, 46, 0.10)' : 'rgba(16, 185, 129, 0.16)'};
+      color: ${isLightUi ? '#065f46' : '#6ee7b7'};
+      border: 1px solid ${isLightUi ? 'rgba(15, 61, 46, 0.25)' : 'rgba(16, 185, 129, 0.35)'};
+    }
+    .scanner-stage {
+      flex: 1;
+      min-height: 280px;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1px solid ${borderCss};
+      box-shadow: 0 18px 36px rgba(0, 0, 0, 0.32);
+    }
+    .scanner-actions {
+      background: ${surfaceCss};
+      border: 1px solid ${borderCss};
+      border-radius: 16px;
+      padding: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      backdrop-filter: blur(10px);
+    }
+    .btn-ar-hero {
+      flex: 1 1 230px;
+      border: none;
+      border-radius: 12px;
+      padding: 13px 18px;
+      font-size: 14.5px;
+      font-weight: 800;
+      cursor: pointer;
+      color: #ffffff;
+      background: ${escapeHtml(accentHex)};
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 10px 22px rgba(16, 185, 129, 0.28);
+    }
+    .btn-ar-hero:hover { filter: brightness(1.08); }
+    .btn-ar-hero:active { transform: scale(0.98); }
+    .btn-scanner-sec {
+      border: 1px solid ${borderCss};
+      background: transparent;
+      color: ${textCss};
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .toast-banner {
+      position: fixed;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-16px);
+      background: #059669;
+      color: #fff;
+      padding: 9px 16px;
+      border-radius: 9999px;
+      font-size: 12.5px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+      z-index: 60;
+    }
+    .toast-banner.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+  <div class="scanner-shell">
+    <header class="scanner-header">
+      <div>
+        <h1>${safeTitle}</h1>
+        ${safeDesc ? `<p>${safeDesc}</p>` : '<p>Explora el modelo en 3D o proyéctalo en tu espacio con Realidad Aumentada.</p>'}
+      </div>
+      <span class="scanner-pill">${renderIcon('smartphone', { size: 14 })}<span>Vista 3D + AR</span></span>
+    </header>
+
+    <main class="scanner-stage">
+      <qr-3d-viewer
+        id="unified-viewer"
+        view-token="${safeToken}"
+        ar-title="${safeTitle}"
+        show-ar="true"
+        hide-badge="true"
+        flat="true"
+        viewer-config="${escapeHtml(JSON.stringify(cfg))}"
+        width="100%"
+        height="100%">
+      </qr-3d-viewer>
+    </main>
+
+    <footer class="scanner-actions">
+      <button type="button" id="btn-view-ar" class="btn-ar-hero">
+        ${renderIcon('smartphone', { size: 17 })}<span>Ver en Realidad Aumentada (AR)</span>
+      </button>
+      ${hasTargetLink ? `<a id="btn-scanner-target-link" href="${safeTargetUrl}" class="btn-scanner-sec" rel="noopener noreferrer">${renderIcon('globe', { size: 15 })}<span>Abrir enlace web</span></a>` : ''}
+    </footer>
+  </div>
+
+  <div class="toast-banner" id="scanner-toast"></div>
+
+  <script>
+    const SCANNER_ICONS = ${iconsJson};
+    const viewerEl = document.getElementById('unified-viewer');
+    const btnViewAr = document.getElementById('btn-view-ar');
+    const toastEl = document.getElementById('scanner-toast');
+    let toastTimer = null;
+
+    function showToast(msg, iconName = 'smartphone') {
+      if (!toastEl || !msg) return;
+      toastEl.innerHTML = '';
+      if (SCANNER_ICONS[iconName]) {
+        const s = document.createElement('span');
+        s.style.display = 'inline-flex';
+        s.innerHTML = SCANNER_ICONS[iconName];
+        toastEl.appendChild(s);
+      }
+      toastEl.appendChild(document.createTextNode(msg));
+      toastEl.classList.add('show');
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.classList.remove('show'), 3400);
+    }
+
+    if (btnViewAr) {
+      btnViewAr.addEventListener('click', () => {
+        if (viewerEl && typeof viewerEl.launchAR === 'function') {
+          viewerEl.launchAR();
+        }
+      });
+    }
+
+    if (viewerEl) {
+      viewerEl.addEventListener('ar-status', (e) => {
+        const msg = e?.detail?.message;
+        const iconName = e?.detail?.icon || 'smartphone';
+        if (msg) showToast(msg, iconName);
+      });
+    }
   </script>
 </body>
 </html>`;
@@ -1106,6 +1547,42 @@ export async function viewRoutes(fastify) {
     const dailyStats = await getDailyStatsForQr(item.id);
     const viewData = serializePublicViewData(item, resolveRequestBaseUrl(request), dailyStats);
     return reply.type('text/html').send(renderUnifiedViewPage(viewData, request.query || {}));
+  });
+
+  // 1b. Vista Móvil AR para el visitante que escanea (sin panel QR de exhibición)
+  fastify.get('/view/:viewToken/ar', async (request, reply) => {
+    const { viewToken } = request.params;
+    const { status, item } = await findActiveViewItem(viewToken);
+
+    reply.removeHeader('X-Frame-Options');
+    reply.header('Cache-Control', 'no-cache, no-store, must-revalidate');
+    reply.header('X-Robots-Tag', 'noindex, nofollow');
+
+    if (status === 'not_found') {
+      return reply.status(404).type('text/html').send(
+        renderStatusPage({
+          statusTitle: 'Vista 3D-AR No Encontrada',
+          badgeText: 'Enlace inválido',
+          message: 'El enlace de visualización solicitado no existe o fue reemplazado.',
+          iconName: 'search'
+        })
+      );
+    }
+
+    if (status === 'disabled') {
+      return reply.status(410).type('text/html').send(
+        renderStatusPage({
+          statusTitle: 'Vista Temporalmente Desactivada',
+          badgeText: 'Vista Pausada',
+          message: 'Esta vista pública de modelo 3D y AR fue desactivada por su propietario.',
+          iconName: 'pause'
+        })
+      );
+    }
+
+    const dailyStats = await getDailyStatsForQr(item.id);
+    const viewData = serializePublicViewData(item, resolveRequestBaseUrl(request), dailyStats);
+    return reply.type('text/html').send(renderScannerArPage(viewData, { query: request.query || {} }));
   });
 
   // 2. Metadatos públicos seguros para la vista (sin target_url, ni tenant_id, ni currentToken)
@@ -1199,7 +1676,7 @@ export async function viewRoutes(fastify) {
     }
 
     const baseUrl = resolveRequestBaseUrl(request);
-    const viewUrl = buildViewUrl(item.view_token || viewToken, baseUrl);
+    const viewUrl = `${buildViewUrl(item.view_token || viewToken, baseUrl)}/ar`;
     const pngBuffer = await generateQrPngBuffer(viewUrl, {
       primary: item.color_primary || '#0f172a',
       secondary: item.color_secondary || '#ffffff',

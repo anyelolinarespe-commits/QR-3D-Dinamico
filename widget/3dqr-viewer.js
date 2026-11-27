@@ -263,6 +263,7 @@ class Qr3dViewer extends HTMLElement {
     this.qrId = this.getAttribute('qr-id');
     this.viewToken = this.getAttribute('view-token') || null;
     this.hideBadge = this.readBoolAttr('hide-badge') === true;
+    this.showAr = this.readBoolAttr('show-ar') === true;
     this.eventSource = null;
     this.scene = null;
     this.camera = null;
@@ -455,6 +456,7 @@ class Qr3dViewer extends HTMLElement {
       'auto-rotate',
       'aerial-scan',
       'hide-badge',
+      'show-ar',
       'hide-toolbar',
       'hide-hint',
       'flat',
@@ -539,6 +541,13 @@ class Qr3dViewer extends HTMLElement {
       this.hideBadge = this.readBoolAttr('hide-badge') === true;
       return;
     }
+    if (name === 'show-ar') {
+      this.showAr = this.readBoolAttr('show-ar') === true;
+      if (this.shadowRoot && this.shadowRoot.host) {
+        this.shadowRoot.host.classList.toggle('ar-enabled', this.showAr);
+      }
+      return;
+    }
     if (name === 'viewer-config' && newValue) {
       try {
         const parsed = JSON.parse(newValue);
@@ -604,13 +613,14 @@ class Qr3dViewer extends HTMLElement {
 
   getPublicViewUrl() {
     if (this.viewToken) {
-      return new URL(`${this.apiUrl}/view/${this.viewToken}`, window.location.origin).href;
+      return new URL(`${this.apiUrl}/view/${this.viewToken}/ar`, window.location.origin).href;
     }
     return window.location.href;
   }
 
   connectedCallback() {
     this.hideBadge = this.readBoolAttr('hide-badge') === true;
+    this.showAr = this.readBoolAttr('show-ar') === true;
     this.aerialRequested = this.readBoolAttr('aerial-scan') === true;
     const rawCfgAttr = this.getAttribute('viewer-config');
     if (rawCfgAttr) {
@@ -637,6 +647,9 @@ class Qr3dViewer extends HTMLElement {
       this.autoRotate = attrOverrides.autoRotate;
     }
     this.render();
+    if (this.shadowRoot && this.shadowRoot.host) {
+      this.shadowRoot.host.classList.toggle('ar-enabled', this.showAr);
+    }
     this.applyBackgroundStyle();
     this.updateRotateButtonLabel();
     this.updateEdgesButtonLabel();
@@ -774,6 +787,9 @@ class Qr3dViewer extends HTMLElement {
         :host(.toolbar-hidden) .controls-toolbar {
           display: none;
         }
+        :host(:not(.ar-enabled)) #btn-ar {
+          display: none;
+        }
         :host(.hint-hidden) .hint-3d {
           display: none;
         }
@@ -843,10 +859,38 @@ class Qr3dViewer extends HTMLElement {
           box-shadow: 0 0 20px rgba(15, 61, 46, 0.25);
         }
 
+        .qr-badge-container.badge-collapsed {
+          padding: 7px 10px;
+          gap: 0;
+        }
+        .qr-badge-container.badge-collapsed .qr-image-wrapper,
+        .qr-badge-container.badge-collapsed #qr-badge-sub {
+          display: none;
+        }
+        .qr-badge-collapse-btn {
+          background: transparent;
+          border: 1px solid var(--_qr3d-border);
+          color: var(--_qr3d-text);
+          border-radius: 6px;
+          width: 20px;
+          height: 20px;
+          padding: 0;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          opacity: 0.8;
+        }
+        .qr-badge-collapse-btn:hover {
+          opacity: 1;
+          border-color: var(--_qr3d-accent);
+        }
+
         .qr-badge-header {
           display: flex;
           align-items: center;
           justify-content: space-between;
+          gap: 8px;
           width: 100%;
           font-size: 11px;
           color: var(--_qr3d-text);
@@ -1218,7 +1262,10 @@ class Qr3dViewer extends HTMLElement {
       <div class="qr-badge-container" id="qr-badge" title="Clic para activar Vista Aérea 90° y QR con colores del modelo">
         <div class="qr-badge-header">
           <span id="qr-badge-title">QR Dinámico</span>
-          <span class="live-dot" title="En vivo"></span>
+          <span style="display:inline-flex;align-items:center;gap:6px;">
+            <span class="live-dot" title="En vivo"></span>
+            <button type="button" id="btn-collapse-badge" class="qr-badge-collapse-btn" title="Comprimir o expandir tarjeta QR" aria-label="Comprimir o expandir tarjeta QR">${renderIcon('minus', { size: 12 })}</button>
+          </span>
         </div>
         <div class="qr-image-wrapper">
           <img id="qr-preview-img" src="" alt="QR Activo" />
@@ -1265,7 +1312,22 @@ class Qr3dViewer extends HTMLElement {
       }
     });
 
-    this.shadowRoot.getElementById('qr-badge').addEventListener('click', () => {
+    const qrBadgeEl = this.shadowRoot.getElementById('qr-badge');
+    const collapseBadgeBtn = this.shadowRoot.getElementById('btn-collapse-badge');
+    if (collapseBadgeBtn && qrBadgeEl) {
+      collapseBadgeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isCollapsed = qrBadgeEl.classList.toggle('badge-collapsed');
+        collapseBadgeBtn.innerHTML = renderIcon(isCollapsed ? 'plus' : 'minus', { size: 12 });
+      });
+    }
+
+    qrBadgeEl.addEventListener('click', () => {
+      if (qrBadgeEl.classList.contains('badge-collapsed')) {
+        qrBadgeEl.classList.remove('badge-collapsed');
+        if (collapseBadgeBtn) collapseBadgeBtn.innerHTML = renderIcon('minus', { size: 12 });
+        return;
+      }
       if (this.isAerialMode) {
         this.exitAerialScanMode();
       } else {
