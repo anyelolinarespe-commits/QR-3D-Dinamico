@@ -80,12 +80,14 @@ export function sendCachedGlbModel(
   request,
   reply,
   buffer,
-  cacheControl = 'public, max-age=60, must-revalidate'
+  cacheControl = 'public, max-age=60, must-revalidate',
+  options = {}
 ) {
   return sendCachedBinaryAsset(request, reply, buffer, {
     contentType: 'model/gltf-binary',
     etagPrefix: 'glb',
-    cacheControl
+    cacheControl,
+    contentDisposition: options?.contentDisposition || null
   });
 }
 

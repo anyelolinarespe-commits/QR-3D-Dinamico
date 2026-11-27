@@ -1035,6 +1035,15 @@ async function runTests() {
   const resArGlb = await app.inject({ method: 'GET', url: `/view/${sipanViewToken}/model?ar=1` });
   assert.strictEqual(resArGlb.statusCode, 200);
   assert.strictEqual(resArGlb.headers['content-type'], 'model/gltf-binary');
+
+  const resArGlbExt = await app.inject({ method: 'GET', url: `/view/${sipanViewToken}/model.glb?ar=1` });
+  assert.strictEqual(resArGlbExt.statusCode, 200, 'Alias /view/:token/model.glb?ar=1 para Scene Viewer debe responder 200');
+  assert.strictEqual(resArGlbExt.headers['content-type'], 'model/gltf-binary');
+  assert.ok(String(resArGlbExt.headers['content-disposition'] || '').includes('modelo-3d-ar.glb'));
+
+  const resApiArGlbExt = await app.inject({ method: 'GET', url: `/api/qr/${sipanQrId}/model.glb?ar=1` });
+  assert.strictEqual(resApiArGlbExt.statusCode, 200, 'Alias /api/qr/:id/model.glb?ar=1 debe responder 200');
+  assert.strictEqual(resApiArGlbExt.headers['content-type'], 'model/gltf-binary');
   const arDoc = await io.readBinary(new Uint8Array(resArGlb.rawPayload));
   const arBounds = computeSceneBounds(arDoc);
   const arSpan = Math.max(

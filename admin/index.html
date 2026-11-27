@@ -3214,7 +3214,7 @@
     }
 
     function buildIframeSnippet(viewUrl) {
-      return `<iframe src="${viewUrl}" width="100%" height="620" style="border:0;border-radius:16px;" allowfullscreen loading="lazy"></iframe>`;
+      return `<iframe src="${viewUrl}" width="100%" height="620" style="border:0;border-radius:16px;" allow="camera; xr-spatial-tracking; gyroscope; accelerometer; fullscreen" allowfullscreen loading="lazy"></iframe>`;
     }
 
     function resolveItemViewUrl(item) {

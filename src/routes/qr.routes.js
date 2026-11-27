@@ -709,8 +709,8 @@ export async function qrRoutes(fastify, options) {
   fastify.patch('/api/qr/:qrId/view-link', { preHandler: [requireAuth] }, handleUpdateViewLink);
   fastify.put('/api/qr/:qrId/view-link', { preHandler: [requireAuth] }, handleUpdateViewLink);
 
-  // 4. Descargar / Servir modelo 3D GLB (soporta ?ar=1 para escala AR normalizada)
-  fastify.get('/api/qr/:qrId/model', async (request, reply) => {
+  // 4. Descargar / Servir modelo 3D GLB (soporta ?ar=1 para escala AR normalizada y alias .glb para Scene Viewer)
+  async function handleQrGlbModel(request, reply) {
     const { qrId } = request.params;
     const result = await db.query(
       `SELECT q.*, t.default_viewer_config AS tenant_default_viewer_config
@@ -739,9 +739,13 @@ export async function qrRoutes(fastify, options) {
       request,
       reply,
       payload,
-      'public, max-age=300, must-revalidate'
+      'public, max-age=300, must-revalidate',
+      { contentDisposition: useAr ? 'inline; filename="modelo-3d-ar.glb"' : undefined }
     );
-  });
+  }
+
+  fastify.get('/api/qr/:qrId/model', handleQrGlbModel);
+  fastify.get('/api/qr/:qrId/model.glb', handleQrGlbModel);
 
   // 4b. Descargar / Servir modelo 3D USDZ para Apple AR Quick Look
   fastify.get('/api/qr/:qrId/model.usdz', async (request, reply) => {

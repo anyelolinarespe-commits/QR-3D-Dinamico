@@ -1502,7 +1502,7 @@ export function renderScannerArPage(viewData, { targetUrl = null, query = {} } =
     <header class="scanner-header">
       <div>
         <h1>${safeTitle}</h1>
-        ${safeDesc ? `<p>${safeDesc}</p>` : '<p>Explora el modelo en 3D o proyéctalo en tu espacio con Realidad Aumentada.</p>'}
+        ${safeDesc ? `<p>${safeDesc}</p>` : '<p>Fija el modelo en tu mesa y recórrelo en 360° moviendo y acercando tu celular.</p>'}
       </div>
       <span class="scanner-pill">${renderIcon('smartphone', { size: 14 })}<span>Vista 3D + AR</span></span>
     </header>
@@ -1685,8 +1685,8 @@ export async function viewRoutes(fastify) {
     return reply.send(serializePublicViewData(item, resolveRequestBaseUrl(request), dailyStats));
   });
 
-  // 3. Modelo 3D GLB de la vista (soporta ?ar=1 para escala normalizada de Realidad Aumentada)
-  fastify.get('/view/:viewToken/model', async (request, reply) => {
+  // 3. Modelo 3D GLB de la vista (soporta ?ar=1 para escala AR normalizada y alias .glb para Scene Viewer)
+  async function handleViewGlbModel(request, reply) {
     const { viewToken } = request.params;
     const { status, item } = await findActiveViewItem(viewToken);
 
@@ -1713,9 +1713,13 @@ export async function viewRoutes(fastify) {
       request,
       reply,
       payload,
-      'public, max-age=60, must-revalidate'
+      'public, max-age=60, must-revalidate',
+      { contentDisposition: useAr ? 'inline; filename="modelo-3d-ar.glb"' : undefined }
     );
-  });
+  }
+
+  fastify.get('/view/:viewToken/model', handleViewGlbModel);
+  fastify.get('/view/:viewToken/model.glb', handleViewGlbModel);
 
   // 3b. Modelo 3D USDZ de la vista (para Apple AR Quick Look en iPhone/iPad)
   fastify.get('/view/:viewToken/model.usdz', async (request, reply) => {

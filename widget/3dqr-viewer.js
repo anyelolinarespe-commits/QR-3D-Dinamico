@@ -330,21 +330,42 @@ class Qr3dViewer extends HTMLElement {
     this._lastHeight = 0;
     this.intersectionObserver = null;
     this._arToastTimer = null;
-    this._webXrSupported = false;
+    this._webXrSupported = null;
     this._xrSession = null;
     this._xrOverlayEl = null;
     this._xrHitTestSource = null;
     this._xrHitTestRequested = false;
+    this._xrHitTestResultLast = null;
+    this._xrAnchor = null;
+    this._xrAnchorPromise = null;
     this._xrReticle = null;
+    this._xrGroundShadow = null;
     this._xrController = null;
     this._xrPlaced = false;
+    this._xrLocked = false;
+    this._xrStartedAt = 0;
     this._xrScaleFactor = 1;
     this._xrRotYOffset = 0;
+    this._xrBaseFloorLift = 0;
+    this._xrAnchorPos = null;
     this._xrSavedState = null;
     this._arCameraStream = null;
     this._isCameraArActive = false;
     this._arCameraFacing = 'environment';
     this._arCameraBaseScale = 1;
+    this._arCameraSavedState = null;
+    this._camArHasGyro = false;
+    this._camArAnchored = false;
+    this._camArOrientation = null;
+    this._camArScreenAngle = 0;
+    this._camArBaseYaw = 0;
+    this._camArAnchorDir = null;
+    this._camArAnchorDistance = 1.8;
+    this._camArElevOffset = 0;
+    this._camArRotYOffset = 0;
+    this._camArScaleFactor = 1;
+    this._camArTouchState = null;
+    this._camArCleanupFn = null;
     this._arModalOpen = false;
     this._onVisibilityChange = () => {
       this._isPageVisible = !document.hidden;
@@ -590,7 +611,7 @@ class Qr3dViewer extends HTMLElement {
       const base = `${this.apiUrl}/view/${this.viewToken}`;
       if (kind === 'meta') return `${base}/meta`;
       if (kind === 'model') return `${base}/model`;
-      if (kind === 'arModel') return `${base}/model?ar=1${totemHidden ? '&totem=0' : ''}`;
+      if (kind === 'arModel') return `${base}/model.glb?ar=1${totemHidden ? '&totem=0' : ''}`;
       if (kind === 'usdz') return `${base}/model.usdz${totemHidden ? '?totem=0' : ''}`;
       if (kind === 'viewQr') return `${base}/view-qr`;
       if (kind === 'image') return `${base}/image`;
@@ -601,7 +622,7 @@ class Qr3dViewer extends HTMLElement {
       const base = `${this.apiUrl}/api/qr/${this.qrId}`;
       if (kind === 'meta') return base;
       if (kind === 'model') return `${base}/model`;
-      if (kind === 'arModel') return `${base}/model?ar=1${totemHidden ? '&totem=0' : ''}`;
+      if (kind === 'arModel') return `${base}/model.glb?ar=1${totemHidden ? '&totem=0' : ''}`;
       if (kind === 'usdz') return `${base}/model.usdz${totemHidden ? '?totem=0' : ''}`;
       if (kind === 'viewQr') return `${base}/view-qr`;
       if (kind === 'image') return `${base}/image`;
@@ -1093,6 +1114,41 @@ class Qr3dViewer extends HTMLElement {
         .ar-hud-btn-danger:hover {
           background: rgba(220, 38, 38, 0.95);
         }
+        .ar-hud-btn-primary {
+          background: linear-gradient(135deg, #059669, #10b981);
+          border-color: rgba(52, 211, 153, 0.65);
+          color: #ffffff;
+        }
+        .ar-hud-btn-primary:hover {
+          filter: brightness(1.08);
+        }
+        .ar-camera-pill {
+          position: absolute;
+          top: 16px;
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 25;
+          display: none;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          max-width: calc(100% - 28px);
+          padding: 7px 14px;
+          border-radius: 9999px;
+          background: rgba(15, 23, 42, 0.86);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          color: #f8fafc;
+          font-size: 12px;
+          font-weight: 600;
+          backdrop-filter: blur(8px);
+          pointer-events: none;
+        }
+        :host(.ar-camera-active) .ar-camera-pill {
+          display: inline-flex;
+        }
+        :host(.ar-camera-active) .controls-toolbar {
+          display: none !important;
+        }
 
         .ar-modal-backdrop {
           position: absolute;
@@ -1273,10 +1329,12 @@ class Qr3dViewer extends HTMLElement {
         <div id="qr-badge-sub" style="font-size: 10px; color: #94a3b8; text-align: center;">Clic para escanear 90°</div>
       </div>
 
+      <div class="ar-camera-pill" id="ar-camera-pill">Apunta hacia tu mesa y toca Fijar aquí</div>
       <video id="ar-camera-video" autoplay playsinline muted></video>
       <canvas id="viewport"></canvas>
 
       <div class="ar-camera-hud" id="ar-camera-hud">
+        <button id="ar-cam-anchor" type="button" class="ar-hud-btn ar-hud-btn-primary" title="Fijar o reubicar el objeto en tu entorno">${renderIcon('pin', { size: 14 })}<span>Fijar aquí</span></button>
         <button id="ar-cam-smaller" type="button" class="ar-hud-btn" title="Reducir modelo">${renderIcon('minus', { size: 14 })}</button>
         <button id="ar-cam-bigger" type="button" class="ar-hud-btn" title="Agrandar modelo">${renderIcon('plus', { size: 14 })}</button>
         <button id="ar-cam-flip" type="button" class="ar-hud-btn" title="Cambiar cámara frontal/trasera">${renderIcon('refresh', { size: 14 })}<span>Cámara</span></button>
@@ -1367,20 +1425,16 @@ class Qr3dViewer extends HTMLElement {
       }
     });
 
+    this.shadowRoot.getElementById('ar-cam-anchor').addEventListener('click', () => {
+      this.toggleCameraArAnchor();
+    });
+
     this.shadowRoot.getElementById('ar-cam-smaller').addEventListener('click', () => {
-      if (this.modelPivot) {
-        const next = Math.max(0.2, this.modelPivot.scale.x * 0.8);
-        this.modelPivot.scale.setScalar(next);
-        this.requestRender({ durationMs: 400 });
-      }
+      this.adjustCameraArScale(0.8);
     });
 
     this.shadowRoot.getElementById('ar-cam-bigger').addEventListener('click', () => {
-      if (this.modelPivot) {
-        const next = Math.min(3.5, this.modelPivot.scale.x * 1.25);
-        this.modelPivot.scale.setScalar(next);
-        this.requestRender({ durationMs: 400 });
-      }
+      this.adjustCameraArScale(1.25);
     });
 
     this.shadowRoot.getElementById('ar-cam-flip').addEventListener('click', () => {
@@ -1610,6 +1664,10 @@ class Qr3dViewer extends HTMLElement {
 
     // Detectar clic corto sobre el modelo 3D para activar/salir de Vista Aérea 90°
     canvas.addEventListener('pointerdown', (e) => {
+      if (this._xrSession || this._isCameraArActive) {
+        this.pointerDownInfo = null;
+        return;
+      }
       if (e.button === 0) {
         this.pointerDownInfo = { x: e.clientX, y: e.clientY, time: performance.now() };
       } else {
@@ -1618,6 +1676,10 @@ class Qr3dViewer extends HTMLElement {
     });
 
     canvas.addEventListener('pointerup', (e) => {
+      if (this._xrSession || this._isCameraArActive) {
+        this.pointerDownInfo = null;
+        return;
+      }
       if (!this.pointerDownInfo || e.button !== 0) return;
       const dist = Math.hypot(e.clientX - this.pointerDownInfo.x, e.clientY - this.pointerDownInfo.y);
       const elapsed = performance.now() - this.pointerDownInfo.time;
@@ -1718,6 +1780,7 @@ class Qr3dViewer extends HTMLElement {
           this.autoRotate &&
           this.modelPivot &&
           !this.isAerialMode &&
+          !this._isCameraArActive &&
           !this._isInteracting &&
           ts >= this._pauseAutoRotateUntil
         ) {
@@ -1726,7 +1789,11 @@ class Qr3dViewer extends HTMLElement {
           this.syncSunTransform({ updateShadow: true });
         }
 
-        this.controls.update();
+        if (this._isCameraArActive && this._camArHasGyro) {
+          this.updateCameraArPose();
+        } else {
+          this.controls.update();
+        }
         this.renderer.render(this.scene, this.camera);
         this.renderer.shadowMap.needsUpdate = false;
       } finally {
@@ -1735,7 +1802,8 @@ class Qr3dViewer extends HTMLElement {
 
       const shouldKeepAnimating =
         Boolean(this.cameraAnim) ||
-        Boolean(this.autoRotate && this.modelPivot && !this.isAerialMode) ||
+        Boolean(this.autoRotate && this.modelPivot && !this.isAerialMode && !this._isCameraArActive) ||
+        Boolean(this._isCameraArActive && this._camArHasGyro) ||
         this._isInteracting ||
         performance.now() < this._activeUntil;
 
@@ -3374,6 +3442,25 @@ class Qr3dViewer extends HTMLElement {
       worldFillOffset.applyAxisAngle(this._yAxis, rotY);
     }
 
+    if ((this._xrSession || this._isCameraArActive) && this.modelPivot) {
+      const pivotScale = Math.max(0.001, this.modelPivot.scale.x || 1);
+      worldTarget.multiplyScalar(pivotScale).add(this.modelPivot.position);
+      worldSunOffset.multiplyScalar(pivotScale);
+      worldFillOffset.multiplyScalar(pivotScale);
+      if (this.sunLight && this.sunLight.shadow && this.sunLight.shadow.camera) {
+        const scaledR = Math.max(0.35, (this.framingRadius || 2) * pivotScale * 1.25);
+        const scaledDist = Math.max(1.2, worldSunOffset.length());
+        const cam = this.sunLight.shadow.camera;
+        cam.left = -scaledR;
+        cam.right = scaledR;
+        cam.top = scaledR;
+        cam.bottom = -scaledR;
+        cam.near = Math.max(0.05, scaledDist - scaledR * 1.6);
+        cam.far = scaledDist + scaledR * 1.8;
+        cam.updateProjectionMatrix();
+      }
+    }
+
     if (this.sunLight) {
       this.sunLight.position.copy(worldTarget).add(worldSunOffset);
       this.sunLight.target.position.copy(worldTarget);
@@ -3828,13 +3915,27 @@ class Qr3dViewer extends HTMLElement {
     }
   }
 
+  async ensureWebXrSupport() {
+    if (this._webXrSupported !== null) return this._webXrSupported;
+    if (typeof navigator !== 'undefined' && navigator.xr && typeof navigator.xr.isSessionSupported === 'function') {
+      try {
+        this._webXrSupported = Boolean(await navigator.xr.isSessionSupported('immersive-ar'));
+      } catch {
+        this._webXrSupported = false;
+      }
+    } else {
+      this._webXrSupported = false;
+    }
+    return this._webXrSupported;
+  }
+
   getArEnvironmentInfo() {
     const ua = navigator.userAgent || '';
     const isIOS =
       /iPad|iPhone|iPod/i.test(ua) ||
       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     const isAndroid = /Android/i.test(ua);
-    const isInAppWebView = /Instagram|FBAN|FBAV|WhatsApp|Line|MicroMessenger|TikTok/i.test(ua);
+    const isInAppWebView = /Instagram|FBAN|FBAV|WhatsApp|Line|MicroMessenger|TikTok|Snapchat|LinkedIn/i.test(ua);
     const isNonSafariIos = isIOS && (/CriOS|FxiOS|EdgiOS|OPiOS/i.test(ua) || isInAppWebView);
     const arModelEndpoint = this.getEndpoint('arModel') || this.getEndpoint('model');
     const usdzEndpoint = this.getEndpoint('usdz');
@@ -3846,6 +3947,22 @@ class Qr3dViewer extends HTMLElement {
       : false;
     const isHttpsOrigin = parsedModel ? parsedModel.protocol === 'https:' : window.location.protocol === 'https:';
     const hasCameraApi = Boolean(navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function');
+    const hasGyroApi = typeof window !== 'undefined' && 'DeviceOrientationEvent' in window;
+    let androidChromeIntentUrl = null;
+    if (isAndroid && typeof window !== 'undefined') {
+      try {
+        const cur = new URL(window.location.href);
+        if (cur.protocol === 'https:' || cur.protocol === 'http:') {
+          const scheme = cur.protocol.replace(':', '');
+          androidChromeIntentUrl =
+            `intent://${cur.host}${cur.pathname}${cur.search}` +
+            `#Intent;scheme=${scheme};package=com.android.chrome;action=android.intent.action.VIEW;` +
+            `S.browser_fallback_url=${encodeURIComponent(cur.href)};end;`;
+        }
+      } catch {
+        androidChromeIntentUrl = null;
+      }
+    }
     return {
       isIOS,
       isAndroid,
@@ -3854,9 +3971,11 @@ class Qr3dViewer extends HTMLElement {
       isNonSafariIos,
       absArModelUrl,
       absUsdzUrl,
+      androidChromeIntentUrl,
       isLocalHost,
       isHttpsOrigin,
       hasCameraApi,
+      hasGyroApi,
       webXrSupported: Boolean(this._webXrSupported)
     };
   }
@@ -3943,8 +4062,115 @@ class Qr3dViewer extends HTMLElement {
       const s = box.getSize(new window.THREE.Vector3());
       maxSpan = Math.max(s.x, s.y, s.z, 0.01);
     }
-    const targetSpan = 0.78;
-    return maxSpan > 1.2 || maxSpan < 0.25 ? targetSpan / maxSpan : 1;
+    const targetSpan = 0.72;
+    return maxSpan > 1.05 || maxSpan < 0.25 ? targetSpan / maxSpan : 1;
+  }
+
+  computeVisiblePivotBottomMinY() {
+    if (!this.modelPivot || !window.THREE) return 0;
+    const prevPos = this.modelPivot.position.clone();
+    const prevScale = this.modelPivot.scale.clone();
+    const prevRot = this.modelPivot.rotation.clone();
+    const prevVis = this.modelPivot.visible;
+    this.modelPivot.position.set(0, 0, 0);
+    this.modelPivot.scale.setScalar(1);
+    this.modelPivot.rotation.set(0, 0, 0);
+    this.modelPivot.visible = true;
+    this.modelPivot.updateMatrixWorld(true);
+
+    const totemNode = this.currentModel ? this.currentModel.getObjectByName('QR_Totem_Integrated') : null;
+    const hideTotem = this.viewerConfig && this.viewerConfig.showTotem === false;
+    const box = new window.THREE.Box3();
+    if (this.currentModel) {
+      this.currentModel.traverse((child) => {
+        if (!child.isMesh || !child.visible) return;
+        if (hideTotem && totemNode && this.isDescendantOf(child, totemNode)) return;
+        if (child === this.aerialQrMesh || child === this.aerialQrBackingMesh || child === this.aerialBlocksMesh) return;
+        box.expandByObject(child);
+      });
+    }
+    if (box.isEmpty()) {
+      box.setFromObject(this.modelPivot);
+    }
+
+    this.modelPivot.position.copy(prevPos);
+    this.modelPivot.scale.copy(prevScale);
+    this.modelPivot.rotation.copy(prevRot);
+    this.modelPivot.visible = prevVis;
+    this.modelPivot.updateMatrixWorld(true);
+    return box.isEmpty() ? 0 : box.min.y;
+  }
+
+  createArReticleMesh() {
+    const THREE = window.THREE;
+    const group = new THREE.Group();
+    const ringGeo = new THREE.RingGeometry(0.085, 0.125, 48).rotateX(-Math.PI / 2);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0x22c55e,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.92
+    });
+    group.add(new THREE.Mesh(ringGeo, ringMat));
+
+    const dotGeo = new THREE.CircleGeometry(0.02, 24).rotateX(-Math.PI / 2);
+    const dotMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.95
+    });
+    group.add(new THREE.Mesh(dotGeo, dotMat));
+
+    group.matrixAutoUpdate = false;
+    group.visible = false;
+    return group;
+  }
+
+  createGroundedShadowDisc() {
+    const THREE = window.THREE;
+    const size = 128;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    const grad = ctx.createRadialGradient(size / 2, size / 2, size * 0.08, size / 2, size / 2, size * 0.48);
+    grad.addColorStop(0, 'rgba(0, 0, 0, 0.42)');
+    grad.addColorStop(0.55, 'rgba(0, 0, 0, 0.22)');
+    grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, size, size);
+
+    const tex = new THREE.CanvasTexture(canvas);
+    const geo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
+    const mat = new THREE.MeshBasicMaterial({
+      map: tex,
+      transparent: true,
+      depthWrite: false,
+      opacity: 0.9
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.visible = false;
+    return mesh;
+  }
+
+  disposeThreeHelperObject(obj) {
+    if (!obj) return;
+    if (obj.parent) obj.parent.remove(obj);
+    obj.traverse((child) => {
+      if (child.geometry) child.geometry.dispose();
+      if (child.material) {
+        if (Array.isArray(child.material)) {
+          child.material.forEach((m) => {
+            if (m.map) m.map.dispose();
+            m.dispose();
+          });
+        } else {
+          if (child.material.map) child.material.map.dispose();
+          child.material.dispose();
+        }
+      }
+    });
   }
 
   buildWebXrOverlayDom() {
@@ -3954,6 +4180,7 @@ class Qr3dViewer extends HTMLElement {
       'inset:0',
       'z-index:2147483647',
       'pointer-events:none',
+      'touch-action:none',
       'display:flex',
       'flex-direction:column',
       'justify-content:space-between',
@@ -3963,12 +4190,12 @@ class Qr3dViewer extends HTMLElement {
 
     const statusPill = document.createElement('div');
     statusPill.id = 'xr-status-pill';
-    statusPill.textContent = 'Apunta a una superficie y toca la pantalla para fijar el modelo';
+    statusPill.textContent = 'Apunta lento a tu mesa o piso para detectar superficie...';
     statusPill.style.cssText = [
       'align-self:center',
-      'background:rgba(15,23,42,0.84)',
+      'background:rgba(15,23,42,0.86)',
       'color:#f8fafc',
-      'border:1px solid rgba(255,255,255,0.2)',
+      'border:1px solid rgba(255,255,255,0.22)',
       'border-radius:9999px',
       'padding:8px 14px',
       'font-size:12.5px',
@@ -3976,6 +4203,16 @@ class Qr3dViewer extends HTMLElement {
       'text-align:center',
       'max-width:92vw',
       'backdrop-filter:blur(8px)',
+      'pointer-events:none'
+    ].join(';');
+
+    const ctaWrap = document.createElement('div');
+    ctaWrap.style.cssText = [
+      'align-self:center',
+      'display:flex',
+      'flex-direction:column',
+      'align-items:center',
+      'gap:8px',
       'pointer-events:none'
     ].join(';');
 
@@ -4002,37 +4239,57 @@ class Qr3dViewer extends HTMLElement {
       b.style.cssText = [
         `background:${bg}`,
         'color:#fff',
-        'border:1px solid rgba(255,255,255,0.2)',
-        'border-radius:9px',
+        'border:1px solid rgba(255,255,255,0.22)',
+        'border-radius:10px',
         'padding:7px 11px',
         'font-size:12.5px',
         'font-weight:700',
         'display:inline-flex',
         'align-items:center',
         'gap:5px',
-        'cursor:pointer'
+        'cursor:pointer',
+        'pointer-events:auto'
       ].join(';');
       return b;
     };
 
+    const btnPlaceSurface = makeBtn(
+      `${renderIcon('pin', { size: 15 })}<span>Fijar en esta mesa</span>`,
+      'Fijar modelo sobre el círculo detectado',
+      'linear-gradient(135deg, #059669, #10b981)'
+    );
+    btnPlaceSurface.style.display = 'none';
+    btnPlaceSurface.style.padding = '10px 18px';
+    btnPlaceSurface.style.fontSize = '13.5px';
+    btnPlaceSurface.style.boxShadow = '0 10px 24px rgba(16,185,129,0.35)';
+
+    const btnFallbackPlace = makeBtn(
+      `${renderIcon('target', { size: 15 })}<span>Fijar frente a mí</span>`,
+      'Fijar el objeto en el espacio a 1m frente a ti si la superficie es muy lisa',
+      'rgba(14,165,233,0.88)'
+    );
+    btnFallbackPlace.style.display = 'none';
+
+    const btnRelocate = makeBtn(`${renderIcon('target', { size: 14 })}<span>Reubicar</span>`, 'Elegir otra mesa o superficie');
+    btnRelocate.style.display = 'none';
     const btnSmaller = makeBtn(`${renderIcon('minus', { size: 14 })}<span>Achicar</span>`, 'Reducir escala');
     const btnBigger = makeBtn(`${renderIcon('plus', { size: 14 })}<span>Agrandar</span>`, 'Aumentar escala');
     const btnRotate = makeBtn(`${renderIcon('refresh', { size: 14 })}<span>Girar</span>`, 'Rotar modelo 45°');
     const btnExit = makeBtn(`${renderIcon('x', { size: 14 })}<span>Salir AR</span>`, 'Cerrar sesión AR', 'rgba(239,68,68,0.88)');
 
+    const blockBubble = (el) => {
+      el.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
+      el.addEventListener('pointerdown', (e) => e.stopPropagation());
+    };
+    [bar, btnPlaceSurface, btnFallbackPlace].forEach(blockBubble);
+
     btnSmaller.addEventListener('click', (e) => {
       e.stopPropagation();
-      this._xrScaleFactor = Math.max(0.25, this._xrScaleFactor * 0.78);
-      if (this.modelPivot && this._xrSavedState) {
-        this.modelPivot.scale.setScalar(this._xrSavedState.arBaseScale * this._xrScaleFactor);
-      }
+      this.applyXrScaleFactor(this._xrScaleFactor * 0.78);
     });
     btnBigger.addEventListener('click', (e) => {
       e.stopPropagation();
-      this._xrScaleFactor = Math.min(4.0, this._xrScaleFactor * 1.28);
-      if (this.modelPivot && this._xrSavedState) {
-        this.modelPivot.scale.setScalar(this._xrSavedState.arBaseScale * this._xrScaleFactor);
-      }
+      this.applyXrScaleFactor(this._xrScaleFactor * 1.28);
     });
     btnRotate.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -4047,13 +4304,38 @@ class Qr3dViewer extends HTMLElement {
       this.stopWebXrAR();
     });
 
-    bar.append(btnSmaller, btnBigger, btnRotate, btnExit);
-    overlay.append(statusPill, bar);
+    ctaWrap.append(btnPlaceSurface, btnFallbackPlace);
+    bar.append(btnRelocate, btnSmaller, btnBigger, btnRotate, btnExit);
+    overlay.append(statusPill, ctaWrap, bar);
     document.body.appendChild(overlay);
-    return { overlay, statusPill };
+    return {
+      overlay,
+      statusPill,
+      bar,
+      btnPlaceSurface,
+      btnFallbackPlace,
+      btnRelocate
+    };
   }
 
-  startWebXrAR() {
+  applyXrScaleFactor(nextFactor) {
+    this._xrScaleFactor = Math.max(0.18, Math.min(4.5, nextFactor));
+    if (!this.modelPivot || !this._xrSavedState) return;
+    const totalScale = this._xrSavedState.arBaseScale * this._xrScaleFactor;
+    this.modelPivot.scale.setScalar(totalScale);
+    if (this._xrAnchorPos) {
+      const lift = -(this._xrSavedState.unscaledMinY || 0) * totalScale;
+      this.modelPivot.position.set(this._xrAnchorPos.x, this._xrAnchorPos.y + lift, this._xrAnchorPos.z);
+      if (this._xrGroundShadow) {
+        const span = Math.max(0.45, (this.framingRadius || 1) * 2.1 * totalScale);
+        this._xrGroundShadow.position.set(this._xrAnchorPos.x, this._xrAnchorPos.y + 0.002, this._xrAnchorPos.z);
+        this._xrGroundShadow.scale.set(span, span, 1);
+      }
+    }
+    this.syncSunTransform({ updateShadow: true });
+  }
+
+  async startWebXrAR() {
     if (!navigator.xr || !this.renderer || !this.scene || !this.modelPivot) {
       this.openArModal({ modeHint: 'webxr-unavailable' });
       return;
@@ -4067,135 +4349,317 @@ class Qr3dViewer extends HTMLElement {
     }
     this.restoreModelRevealState();
 
-    const { overlay, statusPill } = this.buildWebXrOverlayDom();
+    const ui = this.buildWebXrOverlayDom();
+    const { overlay, statusPill, bar, btnPlaceSurface, btnFallbackPlace, btnRelocate } = ui;
     this._xrOverlayEl = overlay;
 
-    navigator.xr
-      .requestSession('immersive-ar', {
-        optionalFeatures: ['hit-test', 'dom-overlay', 'local-floor'],
+    const handleXrFallback = () => {
+      if (this._xrOverlayEl) {
+        this._xrOverlayEl.remove();
+        this._xrOverlayEl = null;
+      }
+      const env = this.getArEnvironmentInfo();
+      if (env.isAndroid && env.isHttpsOrigin && !env.isLocalHost && env.absArModelUrl) {
+        this.triggerAndroidSceneViewer(env.absArModelUrl);
+      } else {
+        this.openArModal({ modeHint: 'webxr-denied' });
+      }
+    };
+
+    try {
+      const session = await navigator.xr.requestSession('immersive-ar', {
+        optionalFeatures: ['local-floor', 'hit-test', 'anchors', 'dom-overlay'],
         domOverlay: { root: overlay }
-      })
-      .then((session) => {
-        if (!this.isConnected) {
-          session.end().catch(() => {});
-          return;
+      });
+
+      if (!this.isConnected) {
+        await session.end().catch(() => {});
+        return;
+      }
+
+      if (this.animationFrameId) {
+        cancelAnimationFrame(this.animationFrameId);
+        this.animationFrameId = null;
+      }
+
+      this._xrSession = session;
+      this._xrHitTestSource = null;
+      this._xrHitTestRequested = false;
+      this._xrHitTestResultLast = null;
+      this._xrAnchor = null;
+      this._xrPlaced = false;
+      this._xrLocked = false;
+      this._xrStartedAt = performance.now();
+      this._xrScaleFactor = 1;
+      this._xrRotYOffset = 0;
+      this._xrAnchorPos = null;
+
+      const arBaseScale = this.computeArUnitScale();
+      const unscaledMinY = this.computeVisiblePivotBottomMinY();
+      this._xrSavedState = {
+        pivotPos: this.modelPivot.position.clone(),
+        pivotScale: this.modelPivot.scale.clone(),
+        pivotRotY: this.modelPivot.rotation.y,
+        pivotVisible: this.modelPivot.visible,
+        autoRotate: this.autoRotate,
+        controlsEnabled: this.controls ? this.controls.enabled : true,
+        cameraPos: this.camera.position.clone(),
+        cameraTarget: this.controls ? this.controls.target.clone() : new window.THREE.Vector3(),
+        cameraNear: this.camera.near,
+        cameraFar: this.camera.far,
+        arBaseScale,
+        unscaledMinY
+      };
+
+      session.addEventListener('end', () => {
+        this.cleanupWebXrState();
+      });
+
+      this.renderer.xr.enabled = true;
+      let attached = false;
+      for (const refType of ['local-floor', 'local']) {
+        try {
+          this.renderer.xr.setReferenceSpaceType(refType);
+          await this.renderer.xr.setSession(session);
+          attached = true;
+          break;
+        } catch {
+          // Intentar con 'local' si 'local-floor' no está disponible
         }
-        this._xrSession = session;
-        this._xrHitTestSource = null;
-        this._xrHitTestRequested = false;
+      }
+      if (!attached || !this.isConnected) {
+        await session.end().catch(() => {});
+        this.cleanupWebXrState();
+        handleXrFallback();
+        return;
+      }
+
+      this.autoRotate = false;
+      if (this.controls) this.controls.enabled = false;
+
+      this.camera.near = 0.02;
+      this.camera.far = 60;
+      this.camera.updateProjectionMatrix();
+      try {
+        session.updateRenderState({ depthNear: 0.02, depthFar: 60 });
+      } catch {
+        // Algunos drivers XR mantienen sus propios límites
+      }
+
+      this.scene.background = null;
+      this.renderer.setClearColor(0x000000, 0);
+      this.modelPivot.visible = false;
+      this.modelPivot.scale.setScalar(arBaseScale);
+      this.modelPivot.rotation.set(0, 0, 0);
+
+      this._xrReticle = this.createArReticleMesh();
+      this.scene.add(this._xrReticle);
+      this._xrGroundShadow = this.createGroundedShadowDisc();
+      this.scene.add(this._xrGroundShadow);
+
+      const lockPlacedModel = async (worldPos, hitResult = null, refSpace = null) => {
+        if (!this.modelPivot || !this._xrSavedState) return;
+        this._xrPlaced = true;
+        this._xrLocked = true;
+        this._xrAnchorPos = worldPos.clone();
+
+        const xrCamPos = this.renderer.xr.getCamera(this.camera).position;
+        this._xrRotYOffset = Math.atan2(xrCamPos.x - worldPos.x, xrCamPos.z - worldPos.z);
+        this.modelPivot.rotation.y = this._xrRotYOffset;
+        this.modelPivot.visible = true;
+        if (this._xrReticle) this._xrReticle.visible = false;
+        if (this._xrGroundShadow) this._xrGroundShadow.visible = true;
+
+        this.applyXrScaleFactor(this._xrScaleFactor);
+
+        overlay.style.pointerEvents = 'auto';
+        btnPlaceSurface.style.display = 'none';
+        btnFallbackPlace.style.display = 'none';
+        btnRelocate.style.display = 'inline-flex';
+        if (statusPill) {
+          statusPill.textContent = 'Fijado en tu espacio · Camina alrededor 360°, acércate o mira arriba/abajo';
+        }
+
+        if (hitResult && typeof hitResult.createAnchor === 'function') {
+          try {
+            if (this._xrAnchor && typeof this._xrAnchor.delete === 'function') {
+              this._xrAnchor.delete();
+            }
+            this._xrAnchor = await hitResult.createAnchor();
+          } catch {
+            this._xrAnchor = null;
+          }
+        } else if (refSpace && typeof window.XRRigidTransform === 'function' && session.requestAnchor) {
+          // Algunos runtimes solo crean anchors sobre hitTestResult
+          this._xrAnchor = null;
+        }
+      };
+
+      const unlockToReposition = () => {
+        if (this._xrAnchor && typeof this._xrAnchor.delete === 'function') {
+          try { this._xrAnchor.delete(); } catch {}
+        }
+        this._xrAnchor = null;
         this._xrPlaced = false;
-        this._xrScaleFactor = 1;
-        this._xrRotYOffset = 0;
-
-        if (this.animationFrameId) {
-          cancelAnimationFrame(this.animationFrameId);
-          this.animationFrameId = null;
+        this._xrLocked = false;
+        this._xrAnchorPos = null;
+        this._xrStartedAt = performance.now();
+        if (this.modelPivot) this.modelPivot.visible = false;
+        if (this._xrGroundShadow) this._xrGroundShadow.visible = false;
+        overlay.style.pointerEvents = 'none';
+        btnRelocate.style.display = 'none';
+        if (statusPill) {
+          statusPill.textContent = 'Apunta a la nueva superficie para volver a fijarlo...';
         }
+      };
 
-        const arBaseScale = this.computeArUnitScale();
-        this._xrSavedState = {
-          pivotPos: this.modelPivot.position.clone(),
-          pivotScale: this.modelPivot.scale.clone(),
-          pivotRotY: this.modelPivot.rotation.y,
-          autoRotate: this.autoRotate,
-          controlsEnabled: this.controls ? this.controls.enabled : true,
-          cameraPos: this.camera.position.clone(),
-          cameraTarget: this.controls ? this.controls.target.clone() : new window.THREE.Vector3(),
-          arBaseScale
-        };
-
-        this.autoRotate = false;
-        if (this.controls) this.controls.enabled = false;
-
-        this.scene.background = null;
-        this.renderer.setClearColor(0x000000, 0);
-        this.modelPivot.scale.setScalar(arBaseScale);
-        this.modelPivot.rotation.set(0, 0, 0);
-        this.modelPivot.position.set(0, -0.35, -1.5);
-        this.syncSunTransform({ updateShadow: true });
-
-        const reticleGeo = new window.THREE.RingGeometry(0.09, 0.13, 32).rotateX(-Math.PI / 2);
-        const reticleMat = new window.THREE.MeshBasicMaterial({
-          color: 0x22c55e,
-          side: window.THREE.DoubleSide,
-          transparent: true,
-          opacity: 0.9
-        });
-        this._xrReticle = new window.THREE.Mesh(reticleGeo, reticleMat);
-        this._xrReticle.matrixAutoUpdate = false;
-        this._xrReticle.visible = false;
-        this.scene.add(this._xrReticle);
-
-        this._xrController = this.renderer.xr.getController(0);
-        this._onXrSelect = () => {
-          if (this._xrReticle && this._xrReticle.visible && this.modelPivot) {
-            this.modelPivot.position.setFromMatrixPosition(this._xrReticle.matrix);
-            this._xrPlaced = true;
-            this.syncSunTransform({ updateShadow: true });
-            if (statusPill) {
-              statusPill.textContent = 'Modelo colocado · Toca otra superficie para moverlo';
-            }
-          }
-        };
-        this._xrController.addEventListener('select', this._onXrSelect);
-        this.scene.add(this._xrController);
-
-        session.addEventListener('end', () => {
-          this.cleanupWebXrState();
-        });
-
-        this.renderer.xr.enabled = true;
-        this.renderer.xr.setReferenceSpaceType('local');
-        this.renderer.xr.setSession(session);
-
-        this.dispatchEvent(new CustomEvent('ar-status', {
-          detail: { platform: 'webxr', icon: 'smartphone', message: 'Sesión AR espacial iniciada (WebXR)' }
-        }));
-
-        this.renderer.setAnimationLoop((timestamp, frame) => {
-          if (frame) {
-            const refSpace = this.renderer.xr.getReferenceSpace();
-            const activeSession = this.renderer.xr.getSession();
-            if (!this._xrHitTestRequested && activeSession) {
-              this._xrHitTestRequested = true;
-              activeSession
-                .requestReferenceSpace('viewer')
-                .then((viewerSpace) => activeSession.requestHitTestSource({ space: viewerSpace }))
-                .then((source) => {
-                  this._xrHitTestSource = source;
-                })
-                .catch(() => {
-                  this._xrHitTestSource = null;
-                });
-            }
-            if (this._xrHitTestSource && refSpace && this._xrReticle) {
-              const results = frame.getHitTestResults(this._xrHitTestSource);
-              if (results.length > 0) {
-                const pose = results[0].getPose(refSpace);
-                if (pose) {
-                  this._xrReticle.visible = true;
-                  this._xrReticle.matrix.fromArray(pose.transform.matrix);
-                }
-              } else {
-                this._xrReticle.visible = false;
-              }
-            }
-          }
-          this.renderer.render(this.scene, this.camera);
-        });
-      })
-      .catch(() => {
-        if (this._xrOverlayEl) {
-          this._xrOverlayEl.remove();
-          this._xrOverlayEl = null;
-        }
-        const env = this.getArEnvironmentInfo();
-        if (env.isAndroid && env.isHttpsOrigin && !env.isLocalHost && env.absArModelUrl) {
-          this.triggerAndroidSceneViewer(env.absArModelUrl);
-        } else {
-          this.openArModal({ modeHint: 'webxr-denied' });
+      btnPlaceSurface.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (this._xrReticle && this._xrReticle.visible) {
+          const pos = new window.THREE.Vector3().setFromMatrixPosition(this._xrReticle.matrix);
+          lockPlacedModel(pos, this._xrHitTestResultLast, this.renderer.xr.getReferenceSpace());
         }
       });
+
+      btnFallbackPlace.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const xrCam = this.renderer.xr.getCamera(this.camera);
+        const dir = new window.THREE.Vector3(0, 0, -1).applyQuaternion(xrCam.quaternion);
+        dir.y = 0;
+        if (dir.lengthSq() < 1e-4) dir.set(0, 0, -1);
+        dir.normalize();
+        const dropPos = xrCam.position.clone().addScaledVector(dir, 1.05);
+        dropPos.y = xrCam.position.y - 0.35;
+        lockPlacedModel(dropPos, null, this.renderer.xr.getReferenceSpace());
+      });
+
+      btnRelocate.addEventListener('click', (e) => {
+        e.stopPropagation();
+        unlockToReposition();
+      });
+
+      // Gestos táctiles sobre el objeto fijado: 1 dedo rota sobre la mesa, 2 dedos escala sin mover anclaje
+      let gesture = null;
+      const getTouchDist = (t0, t1) => Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
+      const isInsideBar = (target) => Boolean(target && (bar.contains(target) || btnPlaceSurface.contains(target) || btnFallbackPlace.contains(target)));
+
+      const onOverlayTouchStart = (e) => {
+        if (!this._xrLocked || isInsideBar(e.target)) return;
+        if (e.touches.length === 1) {
+          gesture = { mode: 'rotate', lastX: e.touches[0].clientX };
+        } else if (e.touches.length >= 2) {
+          gesture = {
+            mode: 'pinch',
+            startDist: Math.max(10, getTouchDist(e.touches[0], e.touches[1])),
+            startScale: this._xrScaleFactor
+          };
+        }
+      };
+      const onOverlayTouchMove = (e) => {
+        if (!this._xrLocked || !gesture) return;
+        if (e.touches.length === 1 && gesture.mode === 'rotate') {
+          const dx = e.touches[0].clientX - gesture.lastX;
+          gesture.lastX = e.touches[0].clientX;
+          this._xrRotYOffset += dx * 0.011;
+          if (this.modelPivot) {
+            this.modelPivot.rotation.y = this._xrRotYOffset;
+            this.syncSunTransform({ updateShadow: true });
+          }
+        } else if (e.touches.length >= 2) {
+          const dist = getTouchDist(e.touches[0], e.touches[1]);
+          if (gesture.mode !== 'pinch') {
+            gesture = { mode: 'pinch', startDist: Math.max(10, dist), startScale: this._xrScaleFactor };
+          }
+          this.applyXrScaleFactor(gesture.startScale * (dist / gesture.startDist));
+        }
+      };
+      const onOverlayTouchEnd = (e) => {
+        if (e.touches.length === 0) gesture = null;
+        else if (e.touches.length === 1) gesture = { mode: 'rotate', lastX: e.touches[0].clientX };
+      };
+      overlay.addEventListener('touchstart', onOverlayTouchStart, { passive: true });
+      overlay.addEventListener('touchmove', onOverlayTouchMove, { passive: true });
+      overlay.addEventListener('touchend', onOverlayTouchEnd, { passive: true });
+      overlay.addEventListener('touchcancel', () => { gesture = null; }, { passive: true });
+
+      this._xrController = this.renderer.xr.getController(0);
+      this._onXrSelect = () => {
+        if (this._xrLocked) return;
+        if (this._xrReticle && this._xrReticle.visible) {
+          const pos = new window.THREE.Vector3().setFromMatrixPosition(this._xrReticle.matrix);
+          lockPlacedModel(pos, this._xrHitTestResultLast, this.renderer.xr.getReferenceSpace());
+        }
+      };
+      this._xrController.addEventListener('select', this._onXrSelect);
+      this.scene.add(this._xrController);
+
+      this.dispatchEvent(new CustomEvent('ar-status', {
+        detail: { platform: 'webxr', icon: 'smartphone', message: 'Escanea tu mesa y toca para fijar el modelo 3D' }
+      }));
+
+      this.renderer.setAnimationLoop((timestamp, frame) => {
+        if (frame) {
+          const refSpace = this.renderer.xr.getReferenceSpace();
+          const activeSession = this.renderer.xr.getSession();
+          if (!this._xrHitTestRequested && activeSession) {
+            this._xrHitTestRequested = true;
+            activeSession
+              .requestReferenceSpace('viewer')
+              .then((viewerSpace) => activeSession.requestHitTestSource({ space: viewerSpace }))
+              .then((source) => {
+                this._xrHitTestSource = source;
+              })
+              .catch(() => {
+                this._xrHitTestSource = null;
+              });
+          }
+
+          if (this._xrPlaced && this._xrAnchor && refSpace && frame.trackedAnchors && frame.trackedAnchors.has(this._xrAnchor)) {
+            const anchorPose = frame.getPose(this._xrAnchor.anchorSpace, refSpace);
+            if (anchorPose && this.modelPivot) {
+              const p = anchorPose.transform.position;
+              this._xrAnchorPos = new window.THREE.Vector3(p.x, p.y, p.z);
+              const totalScale = this._xrSavedState.arBaseScale * this._xrScaleFactor;
+              const lift = -(this._xrSavedState.unscaledMinY || 0) * totalScale;
+              this.modelPivot.position.set(p.x, p.y + lift, p.z);
+              if (this._xrGroundShadow) {
+                this._xrGroundShadow.position.set(p.x, p.y + 0.002, p.z);
+              }
+            }
+          } else if (!this._xrPlaced && this._xrHitTestSource && refSpace && this._xrReticle) {
+            const results = frame.getHitTestResults(this._xrHitTestSource);
+            if (results.length > 0) {
+              const hit = results[0];
+              const pose = hit.getPose(refSpace);
+              if (pose) {
+                this._xrHitTestResultLast = hit;
+                this._xrReticle.visible = true;
+                this._xrReticle.matrix.fromArray(pose.transform.matrix);
+                btnPlaceSurface.style.display = 'inline-flex';
+                btnFallbackPlace.style.display = 'none';
+                if (statusPill) {
+                  statusPill.textContent = 'Superficie detectada · Toca la pantalla o "Fijar en esta mesa"';
+                }
+              }
+            } else {
+              this._xrHitTestResultLast = null;
+              this._xrReticle.visible = false;
+              btnPlaceSurface.style.display = 'none';
+              if (performance.now() - this._xrStartedAt > 2200) {
+                btnFallbackPlace.style.display = 'inline-flex';
+              }
+            }
+          } else if (!this._xrPlaced && performance.now() - this._xrStartedAt > 1800) {
+            btnFallbackPlace.style.display = 'inline-flex';
+          }
+        }
+        this.renderer.render(this.scene, this.camera);
+        this.renderer.shadowMap.needsUpdate = false;
+      });
+    } catch {
+      this.cleanupWebXrState();
+      handleXrFallback();
+    }
   }
 
   stopWebXrAR() {
@@ -4214,16 +4678,31 @@ class Qr3dViewer extends HTMLElement {
     this._xrSession = null;
     this._xrHitTestSource = null;
     this._xrHitTestRequested = false;
+    this._xrHitTestResultLast = null;
+    this._xrPlaced = false;
+    this._xrLocked = false;
+    this._xrAnchorPos = null;
+
+    if (this._xrAnchor) {
+      try {
+        if (typeof this._xrAnchor.delete === 'function') this._xrAnchor.delete();
+      } catch {
+        // Ignorar si la sesión ya liberó el ancla
+      }
+      this._xrAnchor = null;
+    }
 
     if (this.renderer) {
       this.renderer.setAnimationLoop(null);
       this.renderer.xr.enabled = false;
     }
     if (this._xrReticle) {
-      if (this._xrReticle.parent) this._xrReticle.parent.remove(this._xrReticle);
-      if (this._xrReticle.geometry) this._xrReticle.geometry.dispose();
-      if (this._xrReticle.material) this._xrReticle.material.dispose();
+      this.disposeThreeHelperObject(this._xrReticle);
       this._xrReticle = null;
+    }
+    if (this._xrGroundShadow) {
+      this.disposeThreeHelperObject(this._xrGroundShadow);
+      this._xrGroundShadow = null;
     }
     if (this._xrController) {
       if (this._onXrSelect) {
@@ -4244,6 +4723,7 @@ class Qr3dViewer extends HTMLElement {
         this.modelPivot.position.copy(st.pivotPos);
         this.modelPivot.scale.copy(st.pivotScale);
         this.modelPivot.rotation.y = st.pivotRotY;
+        this.modelPivot.visible = st.pivotVisible !== false;
       }
       this.autoRotate = st.autoRotate;
       this.updateRotateButtonLabel();
@@ -4252,13 +4732,138 @@ class Qr3dViewer extends HTMLElement {
         this.controls.target.copy(st.cameraTarget);
       }
       if (this.camera) {
+        this.camera.matrixAutoUpdate = true;
         this.camera.position.copy(st.cameraPos);
+        if (Number.isFinite(st.cameraNear)) this.camera.near = st.cameraNear;
+        if (Number.isFinite(st.cameraFar)) this.camera.far = st.cameraFar;
+        this.camera.updateProjectionMatrix();
       }
       if (this.controls) this.controls.update();
       this.applyBackgroundStyle();
-      this.syncSunTransform({ updateShadow: true });
+      this.applyLightingConfig();
     }
     this.requestRender({ durationMs: 1000 });
+  }
+
+  computeQuaternionFromDeviceOrientation(alphaDeg, betaDeg, gammaDeg, screenAngleDeg) {
+    const THREE = window.THREE;
+    const degToRad = Math.PI / 180;
+    const alpha = (alphaDeg || 0) * degToRad;
+    const beta = (betaDeg || 0) * degToRad;
+    const gamma = (gammaDeg || 0) * degToRad;
+    const orient = (screenAngleDeg || 0) * degToRad;
+
+    const zee = new THREE.Vector3(0, 0, 1);
+    const euler = new THREE.Euler();
+    const q0 = new THREE.Quaternion();
+    const q1 = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5));
+    const out = new THREE.Quaternion();
+
+    euler.set(beta, alpha, -gamma, 'YXZ');
+    out.setFromEuler(euler);
+    out.multiply(q1);
+    out.multiply(q0.setFromAxisAngle(zee, -orient));
+    return out;
+  }
+
+  getCameraArAnchorCenter(distance = 1.6) {
+    const THREE = window.THREE;
+    const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
+    fwd.y = 0;
+    if (fwd.lengthSq() < 1e-4) fwd.set(0, 0, -1);
+    fwd.normalize();
+    return fwd.multiplyScalar(distance);
+  }
+
+  anchorCameraArInFront({ resetScale = false } = {}) {
+    if (!this.modelPivot || !this.camera || !window.THREE) return;
+    const st = this._arCameraSavedState;
+    if (!st) return;
+
+    if (resetScale) {
+      this._camArScaleFactor = 1;
+      this._camArElevOffset = -0.28;
+      this._camArRotYOffset = 0;
+    }
+    this._camArAnchorDir = this.getCameraArAnchorCenter(1).normalize();
+    this._camArAnchorDistance = 1.55;
+    this._camArAnchored = true;
+
+    const dirX = this._camArAnchorDir.x;
+    const dirZ = this._camArAnchorDir.z;
+    this._camArRotYOffset = Math.atan2(-dirX, -dirZ);
+
+    if (this._camArGroundShadow) {
+      this._camArGroundShadow.visible = true;
+    }
+
+    const anchorBtn = this.shadowRoot && this.shadowRoot.getElementById('ar-cam-anchor');
+    if (anchorBtn) {
+      anchorBtn.innerHTML = `${renderIcon('target', { size: 14 })}<span>Reubicar</span>`;
+    }
+    const pill = this.shadowRoot && this.shadowRoot.getElementById('ar-camera-pill');
+    if (pill) {
+      pill.textContent = 'Anclado en tu entorno · Gira el celular para mirar; arrastra/pellizca para acercar y girar el modelo';
+    }
+    this.updateCameraArPose();
+  }
+
+  toggleCameraArAnchor() {
+    if (!this._isCameraArActive) return;
+    if (this._camArHasGyro) {
+      this.anchorCameraArInFront({ resetScale: false });
+      this.showToastMessage('Modelo fijado frente a tu cámara', 2400, 'pin');
+    } else if (this.controls && this.defaultView) {
+      this.controls.reset();
+      this.requestRender({ durationMs: 400 });
+    }
+  }
+
+  adjustCameraArScale(mult) {
+    if (!this.modelPivot || !this._isCameraArActive) return;
+    if (this._camArHasGyro && this._arCameraSavedState) {
+      this._camArScaleFactor = Math.max(0.2, Math.min(4.0, this._camArScaleFactor * mult));
+      this.updateCameraArPose();
+    } else {
+      const next = Math.max(0.2, Math.min(4.0, this.modelPivot.scale.x * mult));
+      this.modelPivot.scale.setScalar(next);
+      this.syncSunTransform({ updateShadow: true });
+    }
+    this.requestRender({ durationMs: 400 });
+  }
+
+  updateCameraArPose() {
+    if (!this._isCameraArActive || !this._camArHasGyro || !this.camera || !this.modelPivot || !window.THREE) return;
+    if (this._camArOrientation) {
+      const { alpha, beta, gamma } = this._camArOrientation;
+      const q = this.computeQuaternionFromDeviceOrientation(alpha, beta, gamma, this._camArScreenAngle);
+      this.camera.quaternion.copy(q);
+      this.camera.position.set(0, 0, 0);
+    }
+
+    if (!this._camArAnchored || !this._camArAnchorDir) {
+      this.anchorCameraArInFront({ resetScale: true });
+      return;
+    }
+
+    const st = this._arCameraSavedState;
+    const totalScale = (st ? st.arBaseScale : 1) * this._camArScaleFactor;
+    const dist = Math.max(0.45, Math.min(4.5, this._camArAnchorDistance));
+    const lift = -(st ? st.unscaledMinY : 0) * totalScale;
+    const ax = this._camArAnchorDir.x * dist;
+    const ay = this._camArElevOffset;
+    const az = this._camArAnchorDir.z * dist;
+
+    this.modelPivot.scale.setScalar(totalScale);
+    this.modelPivot.rotation.y = this._camArRotYOffset;
+    this.modelPivot.position.set(ax, ay + lift, az);
+
+    if (this._camArGroundShadow) {
+      const span = Math.max(0.45, (this.framingRadius || 1) * 2.1 * totalScale);
+      this._camArGroundShadow.position.set(ax, ay + 0.002, az);
+      this._camArGroundShadow.scale.set(span, span, 1);
+    }
+    this.syncSunTransform({ updateShadow: false });
   }
 
   async startCameraAR({ keepScale = false } = {}) {
@@ -4275,10 +4880,27 @@ class Qr3dViewer extends HTMLElement {
       return;
     }
 
+    // Solicitar permiso de sensores de orientación dentro del gesto de clic (iOS 13+)
+    if (
+      typeof window !== 'undefined' &&
+      window.DeviceOrientationEvent &&
+      typeof window.DeviceOrientationEvent.requestPermission === 'function'
+    ) {
+      try {
+        await window.DeviceOrientationEvent.requestPermission();
+      } catch {
+        // Continuar aunque el usuario deniegue giroscopio
+      }
+    }
+
     try {
       this.stopCameraAR({ silent: true, keepUiState: keepScale });
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: this._arCameraFacing } },
+        video: {
+          facingMode: { ideal: this._arCameraFacing },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
         audio: false
       });
       if (!this.isConnected) {
@@ -4294,18 +4916,141 @@ class Qr3dViewer extends HTMLElement {
         this.exitAerialScanMode();
       }
       this.restoreModelRevealState();
-      if (!keepScale && this.modelPivot) {
+
+      if (!keepScale && this.modelPivot && this.camera) {
+        const arBaseScale = this.computeArUnitScale();
+        const unscaledMinY = this.computeVisiblePivotBottomMinY();
         this._arCameraBaseScale = this.modelPivot.scale.x || 1;
+        this._arCameraSavedState = {
+          pivotPos: this.modelPivot.position.clone(),
+          pivotScale: this.modelPivot.scale.clone(),
+          pivotRotY: this.modelPivot.rotation.y,
+          cameraPos: this.camera.position.clone(),
+          cameraTarget: this.controls ? this.controls.target.clone() : new window.THREE.Vector3(),
+          cameraNear: this.camera.near,
+          cameraFar: this.camera.far,
+          controlsEnabled: this.controls ? this.controls.enabled : true,
+          autoRotate: this.autoRotate,
+          arBaseScale,
+          unscaledMinY
+        };
+        this._camArScaleFactor = 1;
+        this._camArElevOffset = -0.28;
+        this._camArRotYOffset = 0;
+        this._camArAnchorDistance = 1.55;
+        this._camArHasGyro = false;
+        this._camArAnchored = false;
+        this._camArOrientation = null;
       }
+
+      this._camArScreenAngle = (window.screen && window.screen.orientation && Number(window.screen.orientation.angle)) || Number(window.orientation) || 0;
+
+      if (this.camera) {
+        this.camera.near = 0.02;
+        this.camera.far = 120;
+        this.camera.updateProjectionMatrix();
+      }
+      if (!this._camArGroundShadow && this.scene && window.THREE) {
+        this._camArGroundShadow = this.createGroundedShadowDisc();
+        this.scene.add(this._camArGroundShadow);
+      }
+
+      const canvas = this.shadowRoot && this.shadowRoot.getElementById('viewport');
+      const anchorBtn = this.shadowRoot && this.shadowRoot.getElementById('ar-cam-anchor');
+      const pill = this.shadowRoot && this.shadowRoot.getElementById('ar-camera-pill');
+      if (pill) {
+        pill.textContent = env.isMobile
+          ? 'Buscando sensores del celular... Arrastra o pellizca para inspeccionar'
+          : 'Vista previa con cámara web · Arrastra para rotar y usa rueda/pellizco para acercar';
+      }
+      if (anchorBtn) {
+        anchorBtn.style.display = env.isMobile ? 'inline-flex' : 'none';
+        anchorBtn.innerHTML = `${renderIcon('pin', { size: 14 })}<span>Fijar aquí</span>`;
+      }
+
+      if (!keepScale) {
+        const onDeviceOrient = (e) => {
+          if (!this._isCameraArActive) return;
+          if (!Number.isFinite(e.alpha) || !Number.isFinite(e.beta) || !Number.isFinite(e.gamma)) return;
+          this._camArOrientation = { alpha: e.alpha, beta: e.beta, gamma: e.gamma };
+          if (!this._camArHasGyro) {
+            this._camArHasGyro = true;
+            if (this.controls) this.controls.enabled = false;
+            if (anchorBtn) anchorBtn.style.display = 'inline-flex';
+            this.anchorCameraArInFront({ resetScale: false });
+          }
+          this.requestRender({ durationMs: 300 });
+        };
+
+        const onScreenOrient = () => {
+          this._camArScreenAngle = (window.screen && window.screen.orientation && Number(window.screen.orientation.angle)) || Number(window.orientation) || 0;
+        };
+
+        let touchInfo = null;
+        const getTouchDist = (t0, t1) => Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
+        const onTouchStart = (e) => {
+          if (!this._isCameraArActive || !this._camArHasGyro) return;
+          if (e.touches.length === 1) {
+            touchInfo = { mode: 'drag', lastX: e.touches[0].clientX, lastY: e.touches[0].clientY };
+          } else if (e.touches.length >= 2) {
+            touchInfo = {
+              mode: 'pinch',
+              startDist: Math.max(10, getTouchDist(e.touches[0], e.touches[1])),
+              startAnchorDist: this._camArAnchorDistance
+            };
+          }
+        };
+        const onTouchMove = (e) => {
+          if (!this._isCameraArActive || !this._camArHasGyro || !touchInfo) return;
+          if (e.touches.length === 1 && touchInfo.mode === 'drag') {
+            const dx = e.touches[0].clientX - touchInfo.lastX;
+            const dy = e.touches[0].clientY - touchInfo.lastY;
+            touchInfo.lastX = e.touches[0].clientX;
+            touchInfo.lastY = e.touches[0].clientY;
+            this._camArRotYOffset += dx * 0.011;
+            this._camArElevOffset = Math.max(-1.3, Math.min(0.85, this._camArElevOffset - dy * 0.0035));
+            this.requestRender({ durationMs: 300 });
+          } else if (e.touches.length >= 2) {
+            const d = getTouchDist(e.touches[0], e.touches[1]);
+            if (touchInfo.mode !== 'pinch') {
+              touchInfo = { mode: 'pinch', startDist: Math.max(10, d), startAnchorDist: this._camArAnchorDistance };
+            }
+            this._camArAnchorDistance = Math.max(0.45, Math.min(4.5, touchInfo.startAnchorDist * (touchInfo.startDist / d)));
+            this.requestRender({ durationMs: 300 });
+          }
+        };
+        const onTouchEnd = () => { touchInfo = null; };
+
+        window.addEventListener('deviceorientation', onDeviceOrient);
+        window.addEventListener('orientationchange', onScreenOrient);
+        if (canvas) {
+          canvas.addEventListener('touchstart', onTouchStart, { passive: true });
+          canvas.addEventListener('touchmove', onTouchMove, { passive: true });
+          canvas.addEventListener('touchend', onTouchEnd, { passive: true });
+        }
+
+        this._camArCleanupFn = () => {
+          window.removeEventListener('deviceorientation', onDeviceOrient);
+          window.removeEventListener('orientationchange', onScreenOrient);
+          if (canvas) {
+            canvas.removeEventListener('touchstart', onTouchStart);
+            canvas.removeEventListener('touchmove', onTouchMove);
+            canvas.removeEventListener('touchend', onTouchEnd);
+          }
+        };
+      }
+
       this.closeArModal();
 
       const host = this.shadowRoot && this.shadowRoot.host;
       if (host) host.classList.add('ar-camera-active');
       if (this.scene) this.scene.background = null;
       if (this.renderer) this.renderer.setClearColor(0x000000, 0);
-      this.requestRender({ durationMs: 1000 });
+      this.requestRender({ durationMs: 1200 });
 
-      const msg = 'Cámara AR activa · Arrastra para rotar y usa pellizco/rueda para acercar';
+      const msg = env.isMobile
+        ? 'Cámara activa · Fija el modelo y mueve el celular para explorarlo'
+        : 'Vista previa con cámara web activa';
       this.showToastMessage(msg, 3600, 'camera');
       this.dispatchEvent(new CustomEvent('ar-status', { detail: { platform: 'camera', icon: 'camera', message: msg } }));
     } catch (err) {
@@ -4328,16 +5073,54 @@ class Qr3dViewer extends HTMLElement {
     }
     if (keepUiState) return;
 
+    if (this._camArCleanupFn) {
+      this._camArCleanupFn();
+      this._camArCleanupFn = null;
+    }
+    if (this._camArGroundShadow) {
+      this.disposeThreeHelperObject(this._camArGroundShadow);
+      this._camArGroundShadow = null;
+    }
+
     this._isCameraArActive = false;
+    this._camArHasGyro = false;
+    this._camArAnchored = false;
+    this._camArOrientation = null;
+    this._camArAnchorDir = null;
+
     const host = this.shadowRoot && this.shadowRoot.host;
     if (host) host.classList.remove('ar-camera-active');
-    if (this.modelPivot && Number.isFinite(this._arCameraBaseScale)) {
+
+    if (this._arCameraSavedState) {
+      const st = this._arCameraSavedState;
+      this._arCameraSavedState = null;
+      if (this.modelPivot) {
+        this.modelPivot.position.copy(st.pivotPos);
+        this.modelPivot.scale.copy(st.pivotScale);
+        this.modelPivot.rotation.y = st.pivotRotY;
+      }
+      this.autoRotate = st.autoRotate;
+      this.updateRotateButtonLabel();
+      if (this.controls) {
+        this.controls.enabled = st.controlsEnabled;
+        this.controls.target.copy(st.cameraTarget);
+      }
+      if (this.camera) {
+        this.camera.position.copy(st.cameraPos);
+        if (Number.isFinite(st.cameraNear)) this.camera.near = st.cameraNear;
+        if (Number.isFinite(st.cameraFar)) this.camera.far = st.cameraFar;
+        this.camera.updateProjectionMatrix();
+      }
+      if (this.controls) this.controls.update();
+    } else if (this.modelPivot && Number.isFinite(this._arCameraBaseScale)) {
       this.modelPivot.scale.setScalar(this._arCameraBaseScale);
     }
+
     this.applyBackgroundStyle();
+    this.applyLightingConfig();
     this.requestRender({ durationMs: 600 });
     if (!silent) {
-      this.showToastMessage('Modo Cámara AR cerrado', 2400, 'camera');
+      this.showToastMessage('Modo Cámara cerrado', 2400, 'camera');
     }
   }
 
@@ -4365,19 +5148,21 @@ class Qr3dViewer extends HTMLElement {
 
     if (env.isIOS) {
       descEl.textContent = env.isNonSafariIos
-        ? 'Estás usando un navegador distinto a Safari en iPhone/iPad. Para abrir la cámara AR nativa (Quick Look) toca el botón inferior o abre este enlace en Safari.'
-        : 'Toca "Abrir en AR Quick Look" para proyectar el modelo en tu entorno con la cámara de iOS.';
+        ? 'Para fijar el modelo en tu mesa y caminar alrededor 360° en iPhone/iPad, abre este enlace en Safari o toca "Abrir en AR Quick Look".'
+        : 'Toca "Abrir en AR Quick Look" para fijar el objeto sobre tu mesa y explorarlo caminando alrededor con iOS ARKit.';
     } else if (env.isAndroid) {
-      descEl.textContent = 'Elige cómo abrir Realidad Aumentada en tu Android: WebXR en el navegador, Google Scene Viewer nativo o vista previa con cámara.';
+      descEl.textContent = env.isInAppWebView
+        ? 'Estás dentro de una app (WhatsApp/Instagram/escáner). Para fijar el objeto en tu mesa y recorrerlo en 360°, ábrelo en Google Chrome o Google Scene Viewer.'
+        : 'Elige WebXR (en este navegador) o Google Scene Viewer para fijar el objeto en tu mesa y caminar alrededor 360°.';
     } else {
-      descEl.textContent = 'Para proyectar el modelo sobre una mesa o piso real, escanea este QR con tu celular Android o iPhone. También puedes probar la vista previa con tu cámara web aquí mismo.';
+      descEl.textContent = 'Para fijar el modelo en una mesa real y recorrerlo moviendo y acercando la cámara (ARCore / ARKit 6DoF), escanea este QR con tu celular Android o iPhone.';
     }
 
     let warningText = '';
     if (env.isLocalHost || !env.isHttpsOrigin) {
-      warningText = 'Estás en entorno local/HTTP. Android Scene Viewer, WebXR y la cámara en celulares exigen abrir la vista mediante una URL pública HTTPS (ej. túnel HTTPS o servidor desplegado).';
+      warningText = 'Estás en entorno local/HTTP. La Realidad Aumentada espacial en mesa (WebXR / Scene Viewer / cámara móvil) exige abrir una URL pública HTTPS.';
     } else if (modeHint === 'webxr-denied') {
-      warningText = 'No se pudo iniciar WebXR en este navegador. Prueba con Google Scene Viewer o abre el enlace en Chrome actualizado.';
+      warningText = 'No se pudo iniciar WebXR en este navegador. Usa Google Scene Viewer o abre en Google Chrome actualizado con Play Services for AR.';
     }
     warnEl.textContent = warningText;
     warnEl.style.display = warningText ? 'block' : 'none';
@@ -4392,18 +5177,26 @@ class Qr3dViewer extends HTMLElement {
       actionsEl.appendChild(iosBtn);
     }
 
+    if (env.isAndroid && env.isInAppWebView && env.androidChromeIntentUrl) {
+      const chromeBtn = document.createElement('a');
+      chromeBtn.className = 'ar-btn-primary';
+      chromeBtn.href = env.androidChromeIntentUrl;
+      chromeBtn.innerHTML = `${renderIcon('globe', { size: 15 })}<span>Abrir en Google Chrome (AR completo)</span>`;
+      actionsEl.appendChild(chromeBtn);
+    }
+
     if (env.isAndroid && env.webXrSupported) {
       const xrBtn = document.createElement('button');
       xrBtn.type = 'button';
-      xrBtn.className = 'ar-btn-primary';
-      xrBtn.innerHTML = `${renderIcon('scan', { size: 15 })}<span>Iniciar AR Espacial (WebXR)</span>`;
+      xrBtn.className = env.isInAppWebView ? 'ar-btn-secondary' : 'ar-btn-primary';
+      xrBtn.innerHTML = `${renderIcon('scan', { size: 15 })}<span>Iniciar AR Espacial en Mesa (WebXR)</span>`;
       xrBtn.addEventListener('click', () => this.startWebXrAR());
       actionsEl.appendChild(xrBtn);
     }
 
-    if (env.isAndroid && env.absArModelUrl) {
+    if (env.isAndroid && env.absArModelUrl && env.isHttpsOrigin && !env.isLocalHost) {
       const svBtn = document.createElement('a');
-      svBtn.className = env.webXrSupported ? 'ar-btn-secondary' : 'ar-btn-primary';
+      svBtn.className = (!env.webXrSupported && !env.isInAppWebView) ? 'ar-btn-primary' : 'ar-btn-secondary';
       svBtn.href = this.buildAndroidSceneViewerIntent(env.absArModelUrl);
       svBtn.innerHTML = `${renderIcon('smartphone', { size: 15 })}<span>Abrir en Google Scene Viewer</span>`;
       actionsEl.appendChild(svBtn);
@@ -4413,7 +5206,8 @@ class Qr3dViewer extends HTMLElement {
       const camBtn = document.createElement('button');
       camBtn.type = 'button';
       camBtn.className = (!env.isMobile) ? 'ar-btn-primary' : 'ar-btn-secondary';
-      camBtn.innerHTML = `${renderIcon('camera', { size: 15 })}<span>Vista previa con Cámara aquí</span>`;
+      const camLabel = env.isMobile ? 'Cámara con sensores (vista anclada)' : 'Vista previa con Cámara Web (PC)';
+      camBtn.innerHTML = `${renderIcon('camera', { size: 15 })}<span>${camLabel}</span>`;
       camBtn.addEventListener('click', () => this.startCameraAR());
       actionsEl.appendChild(camBtn);
     }
@@ -4423,7 +5217,7 @@ class Qr3dViewer extends HTMLElement {
 
     const statusMsg = env.isMobile
       ? 'Opciones de Realidad Aumentada abiertas'
-      : 'Escanea el QR con tu celular o prueba la cámara web';
+      : 'Escanea el QR con tu celular para AR espacial en mesa';
     this.dispatchEvent(new CustomEvent('ar-status', {
       detail: { platform: env.isIOS ? 'ios' : (env.isAndroid ? 'android' : 'desktop'), icon: 'smartphone', message: statusMsg }
     }));
@@ -4435,13 +5229,14 @@ class Qr3dViewer extends HTMLElement {
     if (modal) modal.classList.remove('open');
   }
 
-  launchAR() {
+  async launchAR() {
     const modelEndpoint = this.getEndpoint('model');
     if (!modelEndpoint) {
       this.showToastMessage('Aún no hay un modelo 3D disponible para AR', 3500, 'alert-triangle');
       return;
     }
 
+    await this.ensureWebXrSupport();
     const env = this.getArEnvironmentInfo();
 
     if (env.isIOS && env.absUsdzUrl) {
@@ -4456,6 +5251,10 @@ class Qr3dViewer extends HTMLElement {
     if (env.isAndroid) {
       if (env.webXrSupported) {
         this.startWebXrAR();
+        return;
+      }
+      if (env.isInAppWebView) {
+        this.openArModal({ modeHint: 'android-webview' });
         return;
       }
       if (env.isHttpsOrigin && !env.isLocalHost && env.absArModelUrl) {
