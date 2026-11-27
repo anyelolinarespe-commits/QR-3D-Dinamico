@@ -1,4 +1,4 @@
-# 🚀 Guía de Integración para Servidores y Clientes Externos
+# Guía de Integración para Servidores y Clientes Externos
 
 Este proyecto de ejemplo demuestra cómo cualquier aplicación web externa (desarrollada en React, Vue, Svelte, Angular, PHP, Django, Spring Boot o HTML estático) puede consumir la **API 3D-QR**.
 

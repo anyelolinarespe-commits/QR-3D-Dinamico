@@ -31,10 +31,12 @@ import {
   resolveRequestBaseUrl,
   resolveUniqueViewToken,
   rotateQrItemLink,
+  sendCachedBinaryAsset,
   sendCachedGlbModel,
   serializeQrItem,
   validateHttpUrl
 } from '../services/qrLink.service.js';
+import { buildArModelForItem } from '../services/arModel.service.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -704,21 +706,99 @@ export async function qrRoutes(fastify, options) {
   fastify.patch('/api/qr/:qrId/view-link', { preHandler: [requireAuth] }, handleUpdateViewLink);
   fastify.put('/api/qr/:qrId/view-link', { preHandler: [requireAuth] }, handleUpdateViewLink);
 
-  // 4. Descargar / Servir modelo 3D GLB
+  // 4. Descargar / Servir modelo 3D GLB (soporta ?ar=1 para escala AR normalizada)
   fastify.get('/api/qr/:qrId/model', async (request, reply) => {
     const { qrId } = request.params;
-    const result = await db.query('SELECT model_blob FROM qr_items WHERE id = $1', [qrId]);
+    const result = await db.query(
+      `SELECT q.*, t.default_viewer_config AS tenant_default_viewer_config
+       FROM qr_items q
+       LEFT JOIN tenants t ON t.id = q.tenant_id
+       WHERE q.id = $1`,
+      [qrId]
+    );
 
     if (result.rows.length === 0 || !result.rows[0].model_blob) {
       return reply.status(404).send({ error: 'Modelo 3D no encontrado' });
     }
 
+    const item = result.rows[0];
+    const arRaw = String(request.query?.ar || '').trim().toLowerCase();
+    const useAr = arRaw === '1' || arRaw === 'true' || arRaw === 'yes';
+    const payload = useAr
+      ? await buildArModelForItem(item, {
+          format: 'glb',
+          query: request.query || {},
+          baseUrl: resolveRequestBaseUrl(request)
+        })
+      : item.model_blob;
+
     return sendCachedGlbModel(
       request,
       reply,
-      result.rows[0].model_blob,
+      payload,
       'public, max-age=300, must-revalidate'
     );
+  });
+
+  // 4b. Descargar / Servir modelo 3D USDZ para Apple AR Quick Look
+  fastify.get('/api/qr/:qrId/model.usdz', async (request, reply) => {
+    const { qrId } = request.params;
+    const result = await db.query(
+      `SELECT q.*, t.default_viewer_config AS tenant_default_viewer_config
+       FROM qr_items q
+       LEFT JOIN tenants t ON t.id = q.tenant_id
+       WHERE q.id = $1`,
+      [qrId]
+    );
+
+    if (result.rows.length === 0 || !result.rows[0].model_blob) {
+      return reply.status(404).send({ error: 'Modelo 3D no encontrado' });
+    }
+
+    const usdzBuffer = await buildArModelForItem(result.rows[0], {
+      format: 'usdz',
+      query: request.query || {},
+      baseUrl: resolveRequestBaseUrl(request)
+    });
+
+    return sendCachedBinaryAsset(request, reply, usdzBuffer, {
+      contentType: 'model/vnd.usdz+zip',
+      etagPrefix: 'usdz',
+      cacheControl: 'public, max-age=300, must-revalidate',
+      contentDisposition: 'inline; filename="modelo-3d.usdz"'
+    });
+  });
+
+  // 4c. QR directo hacia la vista pública 3D+AR (/view/:viewToken) para abrir en celular
+  fastify.get('/api/qr/:qrId/view-qr', async (request, reply) => {
+    const { qrId } = request.params;
+    const result = await db.query(
+      'SELECT id, view_token, color_primary, color_secondary, metadata FROM qr_items WHERE id = $1',
+      [qrId]
+    );
+    if (result.rows.length === 0) {
+      return reply.status(404).send({ error: 'QR no encontrado' });
+    }
+
+    const item = result.rows[0];
+    const meta = parseMetadata(item.metadata);
+    const viewToken = item.view_token || meta.viewToken;
+    if (!viewToken) {
+      return reply.status(404).send({ error: 'Vista pública no disponible para este QR' });
+    }
+
+    const baseUrl = resolveRequestBaseUrl(request);
+    const viewUrl = buildViewUrl(viewToken, baseUrl);
+    const pngBuffer = await generateQrPngBuffer(viewUrl, {
+      primary: item.color_primary || '#0f172a',
+      secondary: item.color_secondary || '#ffffff',
+      size: 512
+    });
+
+    return reply
+      .header('Content-Type', 'image/png')
+      .header('Cache-Control', 'public, max-age=60')
+      .send(pngBuffer);
   });
 
   // 5. Servir la imagen activa del QR

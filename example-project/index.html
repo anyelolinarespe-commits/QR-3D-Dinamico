@@ -6,8 +6,15 @@
   <title>Ejemplo Práctico — Cartelera Interactiva con QR 3D Desechable</title>
   <!-- Inclusión del Web Component distribuible -->
   <script src="/widget/3dqr-viewer.js" type="module"></script>
+  <script type="module">
+    import { hydrateIcons } from '/widget/icons.js';
+    window.addEventListener('DOMContentLoaded', () => hydrateIcons(document));
+    hydrateIcons(document);
+  </script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    .ui-inline { display: inline-flex; align-items: center; gap: 6px; }
+    .ui-icon { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
     body {
       background: #090d16;
       color: #f1f5f9;
@@ -28,7 +35,9 @@
       text-align: center;
     }
     .badge {
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
       background: rgba(59, 130, 246, 0.15);
       color: #60a5fa;
       border: 1px solid rgba(59, 130, 246, 0.3);
@@ -119,7 +128,7 @@
     <div style="background: linear-gradient(135deg, rgba(147, 44, 30, 0.45), rgba(223, 166, 52, 0.25)); border: 1px solid #dfa634; border-radius: 16px; padding: 20px 24px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);">
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
         <div style="display: flex; align-items: center; gap: 10px;">
-          <span style="font-size: 26px;">🏛️</span>
+          <span class="ui-icon" data-icon="landmark" data-size="26" style="color: #ffd782;"></span>
           <div>
             <div style="font-weight: 800; font-size: 18px; color: #ffd782;">Museo Tumbas Reales de Sipán — Modelos 3D Interactivos</div>
             <div style="font-size: 13px; color: #cbd5e1;">Reconstrucción arquitectónica procedimental PBR generada por código con Three.js. Elige un ejemplo:</div>
@@ -133,17 +142,17 @@
         <div style="background: rgba(17, 24, 39, 0.85); border: 2px solid #38bdf8; border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; justify-content: space-between; gap: 10px;">
           <div>
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
-              <span style="font-weight: 700; color: #7dd3fc; font-size: 15px;">🏛️ Modelo Integrado: Sipán 3D</span>
+              <span class="ui-inline" style="font-weight: 700; color: #7dd3fc; font-size: 15px;"><span class="ui-icon" data-icon="landmark" data-size="16"></span><span>Modelo Integrado: Sipán 3D</span></span>
               <span style="background: rgba(56,189,248,.22); color: #7dd3fc; font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px;">387 KB</span>
             </div>
             <p style="font-size: 12px; color: #94a3b8; line-height: 1.4;">Maqueta arquitectónica fiel (<code>museo_tumbas_reales_sipan.glb</code>) con 5 placas Moche, celosía de acero y rampa bastionada.</p>
           </div>
           <div style="display: flex; flex-direction: column; gap: 6px;">
             <a href="/example/sipan-nuevo.html" class="btn" style="background: linear-gradient(135deg, #0284c7, #2563eb); color: #fff; text-decoration: none; justify-content: center; font-size: 13px; font-weight: 700; padding: 8px 14px;">
-              🏛️ Abrir Visor Sipán 3D
+              <span class="ui-icon" data-icon="landmark" data-size="15"></span><span>Abrir Visor Sipán 3D</span>
             </a>
             <button type="button" id="btn-load-sipan-qr" class="btn" style="background: rgba(56, 189, 248, 0.16); border: 1px solid #38bdf8; color: #bae6fd; justify-content: center; font-size: 12px; padding: 7px 12px;">
-              🧊 Cargar en Widget QR 3D abajo
+              <span class="ui-icon" data-icon="cube" data-size="14"></span><span>Cargar en Widget QR 3D abajo</span>
             </button>
           </div>
         </div>
@@ -152,13 +161,13 @@
         <div style="background: rgba(17, 24, 39, 0.7); border: 1px solid rgba(223, 166, 52, 0.25); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; justify-content: space-between; gap: 10px;">
           <div>
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
-              <span style="font-weight: 700; color: #f1f5f9; font-size: 15px;">🏛️ Ejemplo 1: Modelo Base PBR</span>
+              <span class="ui-inline" style="font-weight: 700; color: #f1f5f9; font-size: 15px;"><span class="ui-icon" data-icon="landmark" data-size="16"></span><span>Ejemplo 1: Modelo Base PBR</span></span>
               <span style="background: rgba(99,102,241,.2); color: #a5b4fc; font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px;">2.58 MB</span>
             </div>
             <p style="font-size: 12px; color: #94a3b8; line-height: 1.4;">Volumetría principal en pirámide truncada con 5 frisos dorados, fachada de adobe texturizado y celosía azul.</p>
           </div>
           <a href="/example/museo-sipan.html" class="btn" style="background: rgba(223, 166, 52, 0.2); border: 1px solid #dfa634; color: #ffd782; text-decoration: none; justify-content: center; font-size: 13px; padding: 8px 14px;">
-            🚀 Abrir Ejemplo 1 (V1 HD)
+            <span class="ui-icon" data-icon="rocket" data-size="15"></span><span>Abrir Ejemplo 1 (V1 HD)</span>
           </a>
         </div>
 
@@ -166,27 +175,27 @@
         <div style="background: rgba(17, 24, 39, 0.7); border: 1px solid #22c55e; border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; justify-content: space-between; gap: 10px; position: relative;">
           <div>
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
-              <span style="font-weight: 700; color: #86efac; font-size: 15px;">🌟 Ejemplo 2: Versión Arquitectónica HD+</span>
+              <span class="ui-inline" style="font-weight: 700; color: #86efac; font-size: 15px;"><span class="ui-icon" data-icon="sparkles" data-size="16"></span><span>Ejemplo 2: Versión Arquitectónica HD+</span></span>
               <span style="background: rgba(34, 197, 94, 0.25); color: #4ade80; font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px;">3.36 MB</span>
             </div>
             <p style="font-size: 12px; color: #94a3b8; line-height: 1.4;">Geometría extendida con muro lateral de pilastras, patio ceremonial cuadrilátero, rampa con lucernario y 5 iconografías únicas.</p>
           </div>
           <a href="/example/sipan-ejemplo2.html" class="btn" style="background: linear-gradient(135deg, #932c1e, #dfa634); color: #fff; text-decoration: none; justify-content: center; font-size: 13px; font-weight: 700; padding: 8px 14px;">
-            ✨ Abrir Ejemplo 2 (Mejorado)
+            <span class="ui-icon" data-icon="sparkles" data-size="15"></span><span>Abrir Ejemplo 2 (Mejorado)</span>
           </a>
         </div>
       </div>
     </div>
 
     <header>
-      <span class="badge">🎪 Demostración en Vivo</span>
+      <span class="badge"><span class="ui-icon" data-icon="radio" data-size="14"></span><span>Demostración en Vivo</span></span>
       <h1>Acceso a Auditorio VIP — Conferencia 2026</h1>
       <p class="lead">Ejemplo práctico de integración en un servidor o proyecto externo.</p>
     </header>
 
     <div class="card">
       <div class="instruction-box">
-        <strong>⚡ Escenario de Uso:</strong>
+        <strong class="ui-inline"><span class="ui-icon" data-icon="zap" data-size="15" style="color:#10b981;"></span><span>Escenario de Uso:</span></strong>
         Este tótem interactivo 3D muestra un código QR de <strong>un solo uso (one-time)</strong> para validar la entrada a la conferencia.
         <br /><br />
         <strong>Prueba la reactividad:</strong> Escanea el código con tu celular o haz clic en el botón <em>"Simular Escaneo Móvil"</em>. 
@@ -206,11 +215,11 @@
           <span>SSE Activo: Escuchando eventos en tiempo real</span>
         </div>
         <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-          <a href="/example/sipan-nuevo.html" class="btn" style="background: linear-gradient(135deg, #0284c7, #2563eb);">🏛️ Museo Sipán (Nuevo GLB)</a>
-          <a href="/example/museo-sipan.html" class="btn" style="background: rgba(223, 166, 52, 0.2); border: 1px solid #dfa634; color: #ffd782;">🏛️ Museo Sipán (Ejemplo 1)</a>
-          <a href="/example/sipan-ejemplo2.html" class="btn" style="background: linear-gradient(135deg, #932c1e, #dfa634);">🌟 Museo Sipán (Ejemplo 2 HD+)</a>
-          <button class="btn" id="btn-scan-demo">📱 Simular Escaneo Móvil</button>
-          <a href="/admin/" class="btn btn-outline" target="_blank">⚙️ Ir al Panel Admin</a>
+          <a href="/example/sipan-nuevo.html" class="btn" style="background: linear-gradient(135deg, #0284c7, #2563eb); text-decoration: none;"><span class="ui-icon" data-icon="landmark" data-size="15"></span><span>Museo Sipán (Nuevo GLB)</span></a>
+          <a href="/example/museo-sipan.html" class="btn" style="background: rgba(223, 166, 52, 0.2); border: 1px solid #dfa634; color: #ffd782; text-decoration: none;"><span class="ui-icon" data-icon="landmark" data-size="15"></span><span>Museo Sipán (Ejemplo 1)</span></a>
+          <a href="/example/sipan-ejemplo2.html" class="btn" style="background: linear-gradient(135deg, #932c1e, #dfa634); text-decoration: none;"><span class="ui-icon" data-icon="sparkles" data-size="15"></span><span>Museo Sipán (Ejemplo 2 HD+)</span></a>
+          <button class="btn" id="btn-scan-demo"><span class="ui-icon" data-icon="smartphone" data-size="15"></span><span>Simular Escaneo Móvil</span></button>
+          <a href="/admin/" class="btn btn-outline" target="_blank" style="text-decoration: none;"><span class="ui-icon" data-icon="settings" data-size="15"></span><span>Ir al Panel Admin</span></a>
         </div>
       </div>
     </div>

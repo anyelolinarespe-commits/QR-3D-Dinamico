@@ -21,6 +21,7 @@ import { usersRoutes } from '../src/routes/users.routes.js';
 import { viewRoutes } from '../src/routes/view.routes.js';
 import { runRotationTickNow, stopQrRotationScheduler } from '../src/services/qrScheduler.service.js';
 import { generateQrMatrix, generateQrPngBuffer } from '../src/services/qr.service.js';
+import { computeSceneBounds } from '../src/services/model3d.service.js';
 import { config } from '../src/config/env.js';
 
 async function buildTestApp() {
@@ -45,7 +46,7 @@ async function buildTestApp() {
 }
 
 async function runTests() {
-  console.log('🧪 Iniciando Suite de Pruebas de la API 3D-QR...\n');
+  console.log('[TEST] Iniciando Suite de Pruebas de la API 3D-QR...\n');
 
   const testSqlitePath = path.join(os.tmpdir(), `qr3d_test_${process.pid}_${Date.now()}.sqlite`);
   let app = null;
@@ -69,7 +70,7 @@ async function runTests() {
     url: '/api/qr'
   });
   assert.strictEqual(resNoAuth.statusCode, 401, 'Debe retornar 401 Unauthorized sin API key');
-  console.log('✅ 401 Unauthorized verificado correctamente.');
+  console.log('[PASS] 401 Unauthorized verificado correctamente.');
 
   // Test 2: Crear QR 3D con imagen de prueba (extracción de color y síntesis 3D)
   console.log('\nTest 2: Creación de QR 3D con síntesis PBR y colores...');
@@ -119,7 +120,7 @@ async function runTests() {
   assert.ok(createdData.qr.colors.primary, 'Debe haber extraído el color primario');
 
   createdQrId = createdData.qr.id;
-  console.log(`✅ QR 3D generado con ID: ${createdQrId}`);
+  console.log(`[PASS] QR 3D generado con ID: ${createdQrId}`);
   console.log(`   Color extraído: ${createdData.qr.colors.primary} (Dominante: ${createdData.qr.colors.dominant})`);
 
   // Extraer token de la scan_url
@@ -137,7 +138,7 @@ async function runTests() {
   assert.strictEqual(resModel.headers['content-type'], 'model/gltf-binary');
   const magic = resModel.rawPayload.slice(0, 4).toString('ascii');
   assert.strictEqual(magic, 'glTF', 'El archivo debe tener la cabecera mágica binaria glTF');
-  console.log(`✅ Modelo GLB válido verificado (${resModel.rawPayload.length} bytes con cabecera glTF).`);
+  console.log(`[PASS] Modelo GLB válido verificado (${resModel.rawPayload.length} bytes con cabecera glTF).`);
 
   // Test 4: Descarga de imagen activa de QR PNG
   console.log('\nTest 4: Verificando servicio de imagen PNG del QR...');
@@ -147,7 +148,7 @@ async function runTests() {
   });
   assert.strictEqual(resImg.statusCode, 200);
   assert.strictEqual(resImg.headers['content-type'], 'image/png');
-  console.log(`✅ Imagen QR PNG activa servida correctamente (${resImg.rawPayload.length} bytes).`);
+  console.log(`[PASS] Imagen QR PNG activa servida correctamente (${resImg.rawPayload.length} bytes).`);
 
   // Test 5: Escaneo válido de 1er uso -> Redirección 302 y rotación
   console.log('\nTest 5: Simulando escaneo móvil con token válido (1-time scan)...');
@@ -157,7 +158,7 @@ async function runTests() {
   });
   assert.strictEqual(resScanValid.statusCode, 302, 'Debe redirigir con HTTP 302 Found');
   assert.strictEqual(resScanValid.headers.location, 'https://google.com/destination-test');
-  console.log('✅ Redirección 302 hacia el destino exitosa.');
+  console.log('[PASS] Redirección 302 hacia el destino exitosa.');
 
   // Test 6: Re-escaneo del MISMO código descartado -> Debe fallar / mostrar pantalla expirada
   console.log('\nTest 6: Verificando descarte del código usado (One-time protection)...');
@@ -168,7 +169,7 @@ async function runTests() {
   assert.strictEqual(resScanExpired.statusCode, 200);
   assert.ok(resScanExpired.body.includes('Código de 1 solo uso') || resScanExpired.body.includes('QR Ya Utilizado'),
     'Debe informar al usuario que el código ya fue descartado');
-  console.log('✅ Código de un solo uso descartado y protegido correctamente.');
+  console.log('[PASS] Código de un solo uso descartado y protegido correctamente.');
 
   // Test 7: Listar QRs del inquilino y verificar conteo de escaneos incrementado
   console.log('\nTest 7: Comprobando métricas de escaneos e items del tenant...');
@@ -182,7 +183,7 @@ async function runTests() {
   const found = listData.items.find(i => i.id === createdQrId);
   assert.ok(found, 'El QR creado debe estar en la lista');
   assert.strictEqual(found.scan_count, 1, 'El contador de escaneos debe haberse incrementado a 1');
-  console.log(`✅ Métricas verificadas: scan_count = ${found.scan_count}.`);
+  console.log(`[PASS] Métricas verificadas: scan_count = ${found.scan_count}.`);
 
   // Test 8: Subida simultánea de Imagen Y Modelo 3D personalizado
   console.log('\nTest 8: Creación con subida simultánea de Imagen Y Modelo GLB...');
@@ -219,7 +220,7 @@ async function runTests() {
   assert.strictEqual(resDual.statusCode, 201, `Dual upload debe retornar 201: ${resDual.body}`);
   const dualData = JSON.parse(resDual.body);
   assert.ok(dualData.success);
-  console.log(`✅ Subida dual (Imagen + Modelo 3D) completada exitosamente con ID: ${dualData.qr.id}`);
+  console.log(`[PASS] Subida dual (Imagen + Modelo 3D) completada exitosamente con ID: ${dualData.qr.id}`);
 
   // Test 9: Catálogo de modelos integrados incluye museo_tumbas_reales_sipan.glb
   console.log('\nTest 9: Verificando catálogo /api/models...');
@@ -231,7 +232,7 @@ async function runTests() {
   const modelsData = JSON.parse(resModels.body);
   const sipanCatalogEntry = modelsData.models.find(m => m.filename === 'museo_tumbas_reales_sipan.glb');
   assert.ok(sipanCatalogEntry, 'museo_tumbas_reales_sipan.glb debe estar listado en /api/models');
-  console.log(`✅ Catálogo verificado: ${sipanCatalogEntry.name} (${sipanCatalogEntry.sizeFormatted})`);
+  console.log(`[PASS] Catálogo verificado: ${sipanCatalogEntry.name} (${sipanCatalogEntry.sizeFormatted})`);
 
   // Test 10: Integración de museo_tumbas_reales_sipan.glb preservando materiales + Totem QR integrado
   console.log('\nTest 10: Integrando museo_tumbas_reales_sipan.glb via upload y model_preset...');
@@ -290,7 +291,7 @@ async function runTests() {
     })
   });
   assert.strictEqual(resSipanPreset.statusCode, 201, `Preset JSON debe retornar 201: ${resSipanPreset.body}`);
-  console.log('✅ Integración de museo_tumbas_reales_sipan.glb verificada (materiales intactos + Totem QR + preset JSON).');
+  console.log('[PASS] Integración de museo_tumbas_reales_sipan.glb verificada (materiales intactos + Totem QR + preset JSON).');
 
   // Test 11: Rotación manual actualiza la imagen PNG activa del QR y su matriz binaria
   console.log('\nTest 11: Verificando rotación manual y endpoint /api/qr/:qrId/matrix...');
@@ -315,7 +316,7 @@ async function runTests() {
   const matAfterJson = JSON.parse(matAfter.body);
   assert.notStrictEqual(Buffer.compare(imgBefore.rawPayload, imgAfter.rawPayload), 0, 'La imagen PNG del QR debe rotar tras PUT rotate_now');
   assert.notStrictEqual(matBeforeJson.scanUrl, matAfterJson.scanUrl, 'La URL de escaneo en /matrix debe rotar tras PUT rotate_now');
-  console.log('✅ Rotación de imagen PNG y matriz QR verificadas correctamente.');
+  console.log('[PASS] Rotación de imagen PNG y matriz QR verificadas correctamente.');
 
   // Test 12: Presets visuales y configuración automática por defecto
   console.log('\nTest 12: Verificando presets visuales /api/viewer-presets y configuración automática...');
@@ -348,7 +349,7 @@ async function runTests() {
   assert.strictEqual(autoCamPutJson.viewerConfig.cameraMode, 'direct');
   assert.strictEqual(autoCamPutJson.viewerConfig.sunMode, 'model');
   assert.strictEqual(autoCamPutJson.viewerConfig.autoRotate, false);
-  console.log('✅ Presets y configuración automática verificados.');
+  console.log('[PASS] Presets y configuración automática verificados.');
 
   // Test 13: Actualización manual de viewer_config sin rotar el código QR
   console.log('\nTest 13: Verificando guardado de configuración manual sin rotar QR...');
@@ -399,7 +400,7 @@ async function runTests() {
 
   const matPostConfig = JSON.parse((await app.inject({ method: 'GET', url: `/api/qr/${sipanQrId}/matrix` })).body);
   assert.strictEqual(matPostConfig.scanUrl, matPreConfig.scanUrl, 'Guardar estilo visual no debe rotar el token del QR');
-  console.log('✅ Configuración manual persistida y validada sin rotar el QR.');
+  console.log('[PASS] Configuración manual persistida y validada sin rotar el QR.');
 
   // Test 14: Subida directa a /api/files y reutilización mediante saved_model_id
   console.log('\nTest 14: Subida directa a /api/files y reutilización en POST /api/qr...');
@@ -439,7 +440,7 @@ async function runTests() {
     })
   });
   assert.strictEqual(resReuse.statusCode, 201, `Reutilizar saved_model_id debe crear QR: ${resReuse.body}`);
-  console.log(`✅ Archivo persistido (${uploadedFileMeta.id}) y reutilizado exitosamente.`);
+  console.log(`[PASS] Archivo persistido (${uploadedFileMeta.id}) y reutilizado exitosamente.`);
 
   // Test 15: Persistencia real al cerrar y reiniciar la API desde la base de datos SQLite
   console.log('\nTest 15: Simulando reinicio completo de la API y verificando recarga de archivos...');
@@ -475,7 +476,7 @@ async function runTests() {
   });
   assert.strictEqual(resDownloadAfterRestart.statusCode, 200);
   assert.strictEqual(Buffer.compare(resDownloadAfterRestart.rawPayload, sipanGlbBuffer), 0, 'El binario descargado tras reiniciar debe ser idéntico al subido');
-  console.log('✅ Persistencia total verificada tras reiniciar la API.');
+  console.log('[PASS] Persistencia total verificada tras reiniciar la API.');
 
   // Test 16: Edición completa de información del QR (título, descripción, estrategia, estado, URL sin rotación espuria)
   console.log('\nTest 16: Verificando edición completa de información en PUT /api/qr/:qrId...');
@@ -548,7 +549,7 @@ async function runTests() {
   assert.strictEqual(editMultipartJson.qr.title, 'Huaca Túcume Activa');
   assert.strictEqual(editMultipartJson.qr.target_url, 'https://example.com/tucume-v2');
   assert.strictEqual(editMultipartJson.qr.is_active, true);
-  console.log('✅ Edición de información (JSON + multipart + estado + URL) verificada correctamente.');
+  console.log('[PASS] Edición de información (JSON + multipart + estado + URL) verificada correctamente.');
 
   // Test 17: Vista Pública Unida (Modelo 3D + QR) aislada del panel administrativo
   console.log('\nTest 17: Verificando vista pública aislada /view/:viewToken y /api/qr/:qrId/view-link...');
@@ -633,7 +634,7 @@ async function runTests() {
     secondary: sipanDetailRow.color_secondary
   });
   assert.strictEqual(Buffer.compare(resViewImg.rawPayload, expectedPng3100), 0, 'El PNG servido en /view/:viewToken/image debe codificar el enlace en puerto 3100');
-  console.log('✅ Vista pública unida (Modelo + QR) verificada sin exposición administrativa.');
+  console.log('[PASS] Vista pública unida (Modelo + QR) verificada sin exposición administrativa.');
 
   // Test 18: QRs Estáticos vs Dinámicos con rotación automática por intervalo + URLs rotativas
   console.log('\nTest 18: Verificando QRs estáticos vs dinámicos (rotación automática y API link)...');
@@ -723,7 +724,7 @@ async function runTests() {
   assert.strictEqual(resHistory.statusCode, 200);
   const historyJson = JSON.parse(resHistory.body);
   assert.ok(historyJson.history.some((h) => h.reason === 'auto_interval'));
-  console.log('✅ Estático vs Dinámico (intervalo automático, URLs rotativas y PATCH /link) verificado.');
+  console.log('[PASS] Estático vs Dinámico (intervalo automático, URLs rotativas y PATCH /link) verificado.');
 
   // Test 19: Control de acceso al Link de Vista (deshabilitar y regenerar token)
   console.log('\nTest 19: Verificando desactivación y rotación del viewToken...');
@@ -758,7 +759,7 @@ async function runTests() {
   assert.strictEqual(resOldView.statusCode, 404, 'El link anterior debe quedar revocado');
   const resNewView = await app.inject({ method: 'GET', url: `/view/${rotatedViewData.viewToken}` });
   assert.strictEqual(resNewView.statusCode, 200, 'El nuevo link regenerado debe funcionar');
-  console.log('✅ Desactivación y revocación/rotación de viewToken verificadas.');
+  console.log('[PASS] Desactivación y revocación/rotación de viewToken verificadas.');
 
   // Test 20: Migración automática de base de datos SQLite antigua sin columna view_token
   console.log('\nTest 20: Verificando migración segura de SQLite legado sin view_token...');
@@ -812,7 +813,7 @@ async function runTests() {
     }
     await initDb({ sqlitePath: testSqlitePath, dbEngine: 'sqlite' });
   }
-  console.log('✅ Migración segura y backfill de view_token verificados.');
+  console.log('[PASS] Migración segura y backfill de view_token verificados.');
 
   // Test 21: Edición de ruta pública (/view/<ruta>) y cambio de URL/ruta destino
   console.log('\nTest 21: Verificando edición de ruta pública personalizada y enlace/ruta destino...');
@@ -883,7 +884,7 @@ async function runTests() {
     payload: JSON.stringify({ target_url: 'javascript:alert(1)' })
   });
   assert.strictEqual(resInvalidScheme.statusCode, 400, 'Esquemas inseguros en target_url deben rechazarse con 400');
-  console.log('✅ Edición de ruta pública (/view/<ruta>) y cambio de URL/ruta destino verificados.');
+  console.log('[PASS] Edición de ruta pública (/view/<ruta>) y cambio de URL/ruta destino verificados.');
 
   // Test 22: Contador diario de ingresos al link y personas únicas (excluyendo días previos y expirados)
   console.log('\nTest 22: Verificando contador diario de escaneos/ingresos y personas únicas...');
@@ -986,7 +987,7 @@ async function runTests() {
   const globalDailyJson = JSON.parse(globalDailyRes.body);
   assert.ok(globalDailyJson.dailyScans >= 4);
   assert.ok(globalDailyJson.dailyUniqueVisitors >= 2);
-  console.log('✅ Contador diario (ingresos hoy, personas únicas hoy, historial y exclusión de expirados) verificado.');
+  console.log('[PASS] Contador diario (ingresos hoy, personas únicas hoy, historial y exclusión de expirados) verificado.');
 
   // Test 23: Caché ETag (304 Not Modified) en modelos 3D GLB y soporte Realidad Aumentada en vista pública
   console.log('\nTest 23: Verificando caché ETag de modelos GLB y botón AR en vista pública...');
@@ -1013,7 +1014,76 @@ async function runTests() {
 
   const resArViewHtml = await app.inject({ method: 'GET', url: `/view/${viewToken}` });
   assert.ok(resArViewHtml.body.includes('id="btn-view-ar"'), 'La vista pública debe incluir botón de Realidad Aumentada');
-  console.log('✅ Caché ETag/304 de modelos GLB y botón AR verificados correctamente.');
+
+  // Verificar modelo GLB normalizado para AR (?ar=1 y ?totem=0) en vista pública Sipán
+  const sipanViewToken = JSON.parse(resSipanUpload.body).qr.viewToken;
+  const resArGlb = await app.inject({ method: 'GET', url: `/view/${sipanViewToken}/model?ar=1` });
+  assert.strictEqual(resArGlb.statusCode, 200);
+  assert.strictEqual(resArGlb.headers['content-type'], 'model/gltf-binary');
+  const arDoc = await io.readBinary(new Uint8Array(resArGlb.rawPayload));
+  const arBounds = computeSceneBounds(arDoc);
+  const arSpan = Math.max(
+    arBounds.max[0] - arBounds.min[0],
+    arBounds.max[1] - arBounds.min[1],
+    arBounds.max[2] - arBounds.min[2]
+  );
+  assert.ok(arSpan <= 1.2 && arSpan >= 0.4, `La maqueta AR debe quedar normalizada (~0.9m), obtenido: ${arSpan}`);
+  assert.ok(Math.abs(arBounds.min[1]) < 0.02, `La base en AR debe apoyarse en Y=0, obtenido: ${arBounds.min[1]}`);
+
+  const resArGlbNoTotem = await app.inject({ method: 'GET', url: `/view/${sipanViewToken}/model?ar=1&totem=0` });
+  assert.strictEqual(resArGlbNoTotem.statusCode, 200);
+  const arDocNoTotem = await io.readBinary(new Uint8Array(resArGlbNoTotem.rawPayload));
+  assert.ok(
+    !arDocNoTotem.getRoot().listNodes().some((n) => n.getName() === 'QR_Totem_Integrated'),
+    'Con ?totem=0 el modelo AR no debe incluir QR_Totem_Integrated'
+  );
+
+  // Verificar conversión USDZ para iOS AR Quick Look + alineación de 64 bytes + ETag 304
+  const resUsdz = await app.inject({ method: 'GET', url: `/view/${sipanViewToken}/model.usdz` });
+  assert.strictEqual(resUsdz.statusCode, 200, 'Endpoint /model.usdz debe responder 200');
+  assert.strictEqual(resUsdz.headers['content-type'], 'model/vnd.usdz+zip');
+  assert.ok(String(resUsdz.headers['content-disposition'] || '').startsWith('inline;'));
+  assert.ok(String(resUsdz.headers.etag || '').startsWith('"usdz-'));
+  const usdzBuf = resUsdz.rawPayload;
+  assert.strictEqual(usdzBuf.readUInt32LE(0), 0x04034b50, 'El USDZ debe ser un archivo ZIP válido (PK)');
+  let zipOffset = 0;
+  let zipEntries = 0;
+  while (zipOffset < usdzBuf.length && usdzBuf.readUInt32LE(zipOffset) === 0x04034b50) {
+    const compSize = usdzBuf.readUInt32LE(zipOffset + 18);
+    const fnLen = usdzBuf.readUInt16LE(zipOffset + 26);
+    const exLen = usdzBuf.readUInt16LE(zipOffset + 28);
+    const dataOffset = zipOffset + 30 + fnLen + exLen;
+    assert.strictEqual(dataOffset % 64, 0, 'Cada entrada del USDZ debe estar alineada a 64 bytes');
+    zipEntries++;
+    zipOffset = dataOffset + compSize;
+  }
+  assert.ok(zipEntries >= 2, 'El USDZ de Sipán debe contener model.usda y texturas PNG');
+
+  const resUsdz304 = await app.inject({
+    method: 'GET',
+    url: `/view/${sipanViewToken}/model.usdz`,
+    headers: { 'if-none-match': resUsdz.headers.etag }
+  });
+  assert.strictEqual(resUsdz304.statusCode, 304);
+
+  const resApiUsdz = await app.inject({ method: 'GET', url: `/api/qr/${sipanQrId}/model.usdz` });
+  assert.strictEqual(resApiUsdz.statusCode, 200);
+  assert.strictEqual(resApiUsdz.headers['content-type'], 'model/vnd.usdz+zip');
+
+  // Verificar endpoints /view-qr (QR directo a la vista 3D+AR) y URLs AR en /meta
+  const resViewQrPng = await app.inject({ method: 'GET', url: `/view/${sipanViewToken}/view-qr` });
+  assert.strictEqual(resViewQrPng.statusCode, 200);
+  assert.strictEqual(resViewQrPng.headers['content-type'], 'image/png');
+
+  const resApiViewQrPng = await app.inject({ method: 'GET', url: `/api/qr/${sipanQrId}/view-qr` });
+  assert.strictEqual(resApiViewQrPng.statusCode, 200);
+  assert.strictEqual(resApiViewQrPng.headers['content-type'], 'image/png');
+
+  const resMetaAr = await app.inject({ method: 'GET', url: `/view/${sipanViewToken}/meta` });
+  const metaArJson = JSON.parse(resMetaAr.body);
+  assert.ok(metaArJson.arModelUrl && metaArJson.usdzUrl && metaArJson.viewQrUrl && metaArJson.viewUrl);
+
+  console.log('[PASS] Caché ETag/304 de modelos GLB, escala AR, USDZ alineado a 64B, QR de vista AR y botón AR verificados correctamente.');
 
   // Test 24: Login Superadmin, creación de Sitios Web + Administradores y vista global
   console.log('\nTest 24: Verificando Login de Superadmin, creación de Sitios Web + Administradores...');
@@ -1080,7 +1150,7 @@ async function runTests() {
   assert.strictEqual(resListTenants.statusCode, 200);
   const tenantsListJson = JSON.parse(resListTenants.body);
   assert.ok(tenantsListJson.tenants.length >= 3, 'Superadmin debe ver todos los sitios web');
-  console.log('✅ Superadmin autenticado y sitios web con administradores creados.');
+  console.log('[PASS] Superadmin autenticado y sitios web con administradores creados.');
 
   // Test 25: Administrador de sitio gestiona API Key y Usuarios 3D aislados
   console.log('\nTest 25: Verificando permisos de Administrador de sitio y aislamiento de Usuarios 3D...');
@@ -1216,7 +1286,7 @@ async function runTests() {
   const superAllQrs = JSON.parse((await app.inject({ method: 'GET', url: '/api/qr', headers: { authorization: superBearer } })).body);
   assert.ok(superAllQrs.items.some((q) => q.id === user1QrId));
   assert.ok(superAllQrs.items.some((q) => q.id === sipanQrId));
-  console.log('✅ Aislamiento entre Superadmin, Admin de sitio y Usuarios 3D verificado.');
+  console.log('[PASS] Aislamiento entre Superadmin, Admin de sitio y Usuarios 3D verificado.');
 
   // Test 26: Cambio de contraseña, logout y desactivación revocan sesiones inmediatamente
   console.log('\nTest 26: Verificando cambio de contraseña, logout y desactivación de usuario/sitio...');
@@ -1280,7 +1350,7 @@ async function runTests() {
     headers: { authorization: adminABearer }
   });
   assert.strictEqual(resAdminAfterSiteSuspend.statusCode, 401);
-  console.log('✅ Cambio de contraseña, logout y revocación inmediata por suspensión verificados.');
+  console.log('[PASS] Cambio de contraseña, logout y revocación inmediata por suspensión verificados.');
 
   // Test 27: Tema por defecto del Tenant, cascada de configuración y colores explícitos del QR
   console.log('\nTest 27: Verificando tema por defecto del Tenant, herencia y colores explícitos de QR...');
@@ -1399,7 +1469,7 @@ async function runTests() {
   });
   assert.strictEqual(resMunayRevert.statusCode, 200);
   assert.strictEqual(JSON.parse(resMunayRevert.body).viewerConfig.accentColor, '#14532d');
-  console.log('✅ Tema por defecto del Tenant, herencia en cascada y colores explícitos verificados.');
+  console.log('[PASS] Tema por defecto del Tenant, herencia en cascada y colores explícitos verificados.');
 
   // Test 28: Vista pública con modo ?embed=1, parámetros de tema y presets nuevos
   console.log('\nTest 28: Verificando /view/:viewToken con ?embed=1 y parámetros de paleta...');
@@ -1410,6 +1480,7 @@ async function runTests() {
   const resFullLightView = await app.inject({ method: 'GET', url: `/view/${munayQr.viewToken}` });
   assert.strictEqual(resFullLightView.statusCode, 200);
   assert.ok(resFullLightView.body.includes('#14532d'), 'Vista completa debe aplicar el color de acento heredado');
+  assert.ok(resFullLightView.body.includes('<svg'), 'Vista completa debe renderizar iconos SVG en lugar de emojis');
 
   const resEmbedView = await app.inject({
     method: 'GET',
@@ -1424,7 +1495,7 @@ async function runTests() {
   assert.ok(resEmbedView.body.includes('qr-reveal="blocks"'), 'Modo ?embed=1 debe pasar qr-reveal="blocks"');
   assert.ok(resEmbedView.body.includes('--qr3d-accent:#0f3d2e'), 'Modo ?embed=1 debe aplicar CSS var --qr3d-accent');
   assert.ok(!resEmbedView.body.includes('/admin'), 'Modo ?embed=1 no debe enlazar a /admin');
-  console.log('✅ Modo ?embed=1, parámetros de paleta y presets nuevos verificados.');
+  console.log('[PASS] Modo ?embed=1, parámetros de paleta y presets nuevos verificados.');
 
   // Test 29: Respuesta explícita 503 cuando el servicio / base de datos no se activó
   console.log('\nTest 29: Verificando bloqueo y mensaje de error 503 si el servicio no se activó...');
@@ -1449,9 +1520,9 @@ async function runTests() {
 
   const resViewDown = await app.inject({ method: 'GET', url: `/view/${viewToken}` });
   assert.strictEqual(resViewDown.statusCode, 503);
-  console.log('✅ Estado inactivo (503 SERVICE_INACTIVE) verificado correctamente.');
+  console.log('[PASS] Estado inactivo (503 SERVICE_INACTIVE) verificado correctamente.');
 
-  console.log('\n🎉 ¡TODAS LAS PRUEBAS (29/29) PASARON SATISFACTORIAMENTE!\n');
+  console.log('\n[DONE] ¡TODAS LAS PRUEBAS (29/29) PASARON SATISFACTORIAMENTE!\n');
   } finally {
     stopQrRotationScheduler();
     if (app) await app.close().catch(() => {});
@@ -1464,6 +1535,6 @@ async function runTests() {
 }
 
 runTests().catch(err => {
-  console.error('❌ Error en pruebas:', err);
+  console.error('[FAIL] Error en pruebas:', err);
   process.exit(1);
 });

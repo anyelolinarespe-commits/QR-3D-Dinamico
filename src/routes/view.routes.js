@@ -1,7 +1,7 @@
 import { db } from '../db/pool.js';
 import { config } from '../config/env.js';
 import { eventBus } from '../config/redis.js';
-import { generateQrMatrix } from '../services/qr.service.js';
+import { generateQrMatrix, generateQrPngBuffer } from '../services/qr.service.js';
 import {
   sanitizeOptionalHexColor,
   sanitizeViewerConfig,
@@ -9,13 +9,17 @@ import {
 } from '../services/viewerConfig.service.js';
 import {
   buildScanUrl,
+  buildViewUrl,
   ensureQrPngForBaseUrl,
   getDailyStatsForQr,
   parseMetadata,
   resolveRequestBaseUrl,
+  sendCachedBinaryAsset,
   sendCachedGlbModel,
   serializePublicViewData
 } from '../services/qrLink.service.js';
+import { buildArModelForItem } from '../services/arModel.service.js';
+import { getIconMap, renderIcon } from '../../widget/icons.js';
 
 function escapeHtml(val) {
   return String(val ?? '')
@@ -26,7 +30,7 @@ function escapeHtml(val) {
     .replace(/'/g, '&#39;');
 }
 
-function renderStatusPage({ statusTitle, badgeText, message, icon = '🔒' }) {
+function renderStatusPage({ statusTitle, badgeText, message, iconName = 'lock' }) {
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -55,7 +59,18 @@ function renderStatusPage({ statusTitle, badgeText, message, icon = '🔒' }) {
       text-align: center;
       box-shadow: 0 24px 48px rgba(0, 0, 0, 0.55);
     }
-    .icon { font-size: 52px; margin-bottom: 14px; }
+    .icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 64px;
+      height: 64px;
+      border-radius: 16px;
+      background: rgba(239, 68, 68, 0.12);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      margin: 0 auto 14px;
+    }
     .badge {
       display: inline-block;
       background: rgba(239, 68, 68, 0.14);
@@ -73,7 +88,7 @@ function renderStatusPage({ statusTitle, badgeText, message, icon = '🔒' }) {
 </head>
 <body>
   <div class="card">
-    <div class="icon">${icon}</div>
+    <div class="icon">${renderIcon(iconName, { size: 30 })}</div>
     <span class="badge">${escapeHtml(badgeText)}</span>
     <h1>${escapeHtml(statusTitle)}</h1>
     <p>${escapeHtml(message)}</p>
@@ -294,20 +309,24 @@ function renderUnifiedViewPage(viewData, query = {}) {
     viewEnabled: viewData.viewEnabled
   }).replace(/</g, '\\u003c');
 
-  let modeBadgeText = '🔒 QR Estático · Enlace Fijo';
+  let modeBadgeHtml = `${renderIcon('lock', { size: 14 })}<span>QR Estático · Enlace Fijo</span>`;
   let modeHelpText = 'Este código QR es estático: su enlace permanece fijo de forma permanente.';
   if (!isStatic) {
     if (viewData.rotationStrategy === 'timed') {
-      modeBadgeText = `🔄 QR Dinámico · Cambia cada ${viewData.rotationIntervalSeconds}s`;
+      modeBadgeHtml = `${renderIcon('refresh', { size: 14 })}<span>QR Dinámico · Cambia cada ${viewData.rotationIntervalSeconds}s</span>`;
       modeHelpText = `Este enlace cambia automáticamente cada ${viewData.rotationIntervalSeconds} segundos en tiempo real.`;
     } else if (viewData.rotationStrategy === 'dynamic') {
-      modeBadgeText = `🔄⚡ QR Dinámico · Cada ${viewData.rotationIntervalSeconds}s y por escaneo`;
+      modeBadgeHtml = `${renderIcon('zap', { size: 14 })}<span>QR Dinámico · Cada ${viewData.rotationIntervalSeconds}s y por escaneo</span>`;
       modeHelpText = `El código rota automáticamente cada ${viewData.rotationIntervalSeconds}s y también tras cada escaneo.`;
     } else {
-      modeBadgeText = '⚡ QR Dinámico · 1 Solo Uso';
+      modeBadgeHtml = `${renderIcon('zap', { size: 14 })}<span>QR Dinámico · 1 Solo Uso</span>`;
       modeHelpText = 'Este código cambia automáticamente cada vez que es escaneado.';
     }
   }
+
+  const viewIconsJson = JSON.stringify(
+    getIconMap(['lock', 'refresh', 'zap', 'scan', 'smartphone', 'undo', 'user', 'pause', 'alert-triangle'], { size: 15 })
+  ).replace(/</g, '\\u003c');
 
   return `<!DOCTYPE html>
 <html lang="es">
@@ -671,6 +690,9 @@ function renderUnifiedViewPage(viewData, query = {}) {
       border-radius: 9999px;
       font-size: 13px;
       font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
       box-shadow: 0 12px 24px rgba(0, 0, 0, 0.45);
       opacity: 0;
       pointer-events: none;
@@ -714,7 +736,7 @@ function renderUnifiedViewPage(viewData, query = {}) {
         ${safeDesc ? `<p>${safeDesc}</p>` : ''}
       </div>
       <div class="status-pills">
-        <span id="mode-pill" class="pill ${isStatic ? 'pill-static' : 'pill-dynamic'}">${escapeHtml(modeBadgeText)}</span>
+        <span id="mode-pill" class="pill ${isStatic ? 'pill-static' : 'pill-dynamic'}">${modeBadgeHtml}</span>
         <span class="pill pill-live"><span class="live-dot"></span><span id="live-status-text">En vivo</span></span>
       </div>
     </header>
@@ -758,7 +780,7 @@ function renderUnifiedViewPage(viewData, query = {}) {
         <div>
           <div class="daily-counter-card" id="daily-counter-card">
             <div class="daily-counter-head">
-              <span>📊 Ingresos de hoy</span>
+              <span style="display:inline-flex;align-items:center;gap:6px;">${renderIcon('bar-chart', { size: 14 })}<span>Ingresos de hoy</span></span>
               <span class="daily-date-chip" id="meta-today-date">${escapeHtml(viewData.todayDate || '')}</span>
             </div>
             <div class="daily-counter-grid">
@@ -792,21 +814,21 @@ function renderUnifiedViewPage(viewData, query = {}) {
           </div>
 
           <button type="button" id="btn-toggle-aerial" class="btn-aerial-toggle" style="margin-top: 12px;">
-            🛸 Ver QR sobre el Modelo (90°)
+            ${renderIcon('scan', { size: 16 })}<span>Ver QR sobre el Modelo (90°)</span>
           </button>
           <button type="button" id="btn-view-ar" class="btn-aerial-toggle" style="margin-top: 8px; background: linear-gradient(135deg, #059669, #10b981);">
-            📱 Ver en Realidad Aumentada (AR)
+            ${renderIcon('smartphone', { size: 16 })}<span>Ver en Realidad Aumentada (AR)</span>
           </button>
         </div>
       </aside>
     </main>
   </div>
 
-  <div class="toast-banner" id="view-toast">🔄 Nuevo enlace QR activo</div>
+  <div class="toast-banner" id="view-toast">${renderIcon('refresh', { size: 15 })}<span>Nuevo enlace QR activo</span></div>
 
   <div class="paused-overlay" id="paused-overlay">
     <div class="paused-card">
-      <div style="font-size:48px; margin-bottom:12px;">⏸️</div>
+      <div style="display:inline-flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:16px;background:rgba(239,68,68,0.14);color:#fca5a5;border:1px solid rgba(239,68,68,0.35);margin:0 auto 14px;">${renderIcon('pause', { size: 30 })}</div>
       <h2>Vista Temporalmente Desactivada</h2>
       <p id="paused-reason">Esta vista 3D-QR ha sido pausada o deshabilitada por su propietario.</p>
     </div>
@@ -814,6 +836,7 @@ function renderUnifiedViewPage(viewData, query = {}) {
 
   <script>
     const state = ${initialDataJson};
+    const VIEW_ICONS = ${viewIconsJson};
     const viewerEl = document.getElementById('unified-viewer');
     const dockImg = document.getElementById('dock-qr-img');
     const qrFrameBox = document.getElementById('qr-frame-box');
@@ -840,8 +863,16 @@ function renderUnifiedViewPage(viewData, query = {}) {
       return d.toLocaleTimeString();
     }
 
-    function showUpdateToast(text) {
-      toastEl.textContent = text || '🔄 Nuevo enlace QR activo';
+    function showUpdateToast(text, iconName = 'refresh') {
+      toastEl.innerHTML = '';
+      if (iconName && VIEW_ICONS[iconName]) {
+        const iconSpan = document.createElement('span');
+        iconSpan.style.display = 'inline-flex';
+        iconSpan.style.alignItems = 'center';
+        iconSpan.innerHTML = VIEW_ICONS[iconName];
+        toastEl.appendChild(iconSpan);
+      }
+      toastEl.appendChild(document.createTextNode(text || 'Nuevo enlace QR activo'));
       toastEl.classList.add('show');
       if (toastTimer) clearTimeout(toastTimer);
       toastTimer = setTimeout(() => toastEl.classList.remove('show'), 3000);
@@ -858,16 +889,16 @@ function renderUnifiedViewPage(viewData, query = {}) {
       qrTagMode.textContent = isStatic ? 'Estático' : 'Dinámico';
       metaRotationsRow.style.display = isStatic ? 'none' : '';
       if (isStatic) {
-        modePill.textContent = '🔒 QR Estático · Enlace Fijo';
+        modePill.innerHTML = VIEW_ICONS.lock + '<span>QR Estático · Enlace Fijo</span>';
         modeHelpText.textContent = 'Este código QR es estático: su enlace permanece fijo de forma permanente.';
       } else if (state.rotationStrategy === 'timed') {
-        modePill.textContent = '🔄 QR Dinámico · Cambia cada ' + state.rotationIntervalSeconds + 's';
+        modePill.innerHTML = VIEW_ICONS.refresh + '<span>QR Dinámico · Cambia cada ' + state.rotationIntervalSeconds + 's</span>';
         modeHelpText.textContent = 'Este enlace cambia automáticamente cada ' + state.rotationIntervalSeconds + ' segundos en tiempo real.';
       } else if (state.rotationStrategy === 'dynamic') {
-        modePill.textContent = '🔄⚡ QR Dinámico · Cada ' + state.rotationIntervalSeconds + 's y por escaneo';
+        modePill.innerHTML = VIEW_ICONS.zap + '<span>QR Dinámico · Cada ' + state.rotationIntervalSeconds + 's y por escaneo</span>';
         modeHelpText.textContent = 'El código rota automáticamente cada ' + state.rotationIntervalSeconds + 's y también tras cada escaneo.';
       } else {
-        modePill.textContent = '⚡ QR Dinámico · 1 Solo Uso';
+        modePill.innerHTML = VIEW_ICONS.zap + '<span>QR Dinámico · 1 Solo Uso</span>';
         modeHelpText.textContent = 'Este código cambia automáticamente cada vez que es escaneado.';
       }
     }
@@ -901,11 +932,11 @@ function renderUnifiedViewPage(viewData, query = {}) {
       if (viewerEl.isAerialMode) {
         viewerEl.exitAerialScanMode();
         btnAerial.classList.remove('active');
-        btnAerial.textContent = '🛸 Ver QR sobre el Modelo (90°)';
+        btnAerial.innerHTML = VIEW_ICONS.scan + '<span>Ver QR sobre el Modelo (90°)</span>';
       } else {
         viewerEl.enterAerialScanMode();
         btnAerial.classList.add('active');
-        btnAerial.textContent = '↩️ Volver a Vista 3D';
+        btnAerial.innerHTML = VIEW_ICONS.undo + '<span>Volver a Vista 3D</span>';
       }
     });
 
@@ -919,7 +950,8 @@ function renderUnifiedViewPage(viewData, query = {}) {
 
     viewerEl.addEventListener('ar-status', (e) => {
       const msg = e?.detail?.message;
-      if (msg) showUpdateToast(msg);
+      const iconName = e?.detail?.icon || 'smartphone';
+      if (msg) showUpdateToast(msg, iconName);
     });
 
     viewerEl.addEventListener('qr-visual-update', (e) => {
@@ -929,9 +961,9 @@ function renderUnifiedViewPage(viewData, query = {}) {
       }
       if (typeof detail.isAerial === 'boolean') {
         btnAerial.classList.toggle('active', detail.isAerial);
-        btnAerial.textContent = detail.isAerial
-          ? '↩️ Volver a Vista 3D'
-          : '🛸 Ver QR sobre el Modelo (90°)';
+        btnAerial.innerHTML = detail.isAerial
+          ? (VIEW_ICONS.undo + '<span>Volver a Vista 3D</span>')
+          : (VIEW_ICONS.scan + '<span>Ver QR sobre el Modelo (90°)</span>');
       }
     });
 
@@ -979,7 +1011,7 @@ function renderUnifiedViewPage(viewData, query = {}) {
 
     viewerEl.addEventListener('qr-scan-recorded', (e) => {
       applyScanCounters(e.detail || {});
-      showUpdateToast('👤 Nuevo ingreso registrado al link');
+      showUpdateToast('Nuevo ingreso registrado al link', 'user');
     });
 
     viewerEl.addEventListener('qr-rotated', (e) => {
@@ -1004,7 +1036,7 @@ function renderUnifiedViewPage(viewData, query = {}) {
         }, 160);
       }
       flashQrCard();
-      showUpdateToast('🔄 Código QR actualizado en vivo');
+      showUpdateToast('Código QR actualizado en vivo', 'refresh');
     });
 
     viewerEl.addEventListener('qr-status-change', (e) => {
@@ -1055,7 +1087,7 @@ export async function viewRoutes(fastify) {
           statusTitle: 'Vista 3D-QR No Encontrada',
           badgeText: 'Enlace inválido',
           message: 'El enlace de visualización solicitado no existe o fue reemplazado.',
-          icon: '🔍'
+          iconName: 'search'
         })
       );
     }
@@ -1066,7 +1098,7 @@ export async function viewRoutes(fastify) {
           statusTitle: 'Vista Temporalmente Desactivada',
           badgeText: 'Vista Pausada',
           message: 'Esta vista pública de modelo 3D y código QR fue desactivada por su propietario.',
-          icon: '⏸️'
+          iconName: 'pause'
         })
       );
     }
@@ -1093,7 +1125,7 @@ export async function viewRoutes(fastify) {
     return reply.send(serializePublicViewData(item, resolveRequestBaseUrl(request), dailyStats));
   });
 
-  // 3. Modelo 3D GLB de la vista
+  // 3. Modelo 3D GLB de la vista (soporta ?ar=1 para escala normalizada de Realidad Aumentada)
   fastify.get('/view/:viewToken/model', async (request, reply) => {
     const { viewToken } = request.params;
     const { status, item } = await findActiveViewItem(viewToken);
@@ -1108,12 +1140,76 @@ export async function viewRoutes(fastify) {
       return reply.status(404).send({ error: 'Modelo 3D no encontrado' });
     }
 
+    const useAr = parseQueryBool(request.query?.ar) === true;
+    const payload = useAr
+      ? await buildArModelForItem(item, {
+          format: 'glb',
+          query: request.query || {},
+          baseUrl: resolveRequestBaseUrl(request)
+        })
+      : item.model_blob;
+
     return sendCachedGlbModel(
       request,
       reply,
-      item.model_blob,
+      payload,
       'public, max-age=60, must-revalidate'
     );
+  });
+
+  // 3b. Modelo 3D USDZ de la vista (para Apple AR Quick Look en iPhone/iPad)
+  fastify.get('/view/:viewToken/model.usdz', async (request, reply) => {
+    const { viewToken } = request.params;
+    const { status, item } = await findActiveViewItem(viewToken);
+
+    if (status === 'not_found') {
+      return reply.status(404).send({ error: 'Vista no encontrada' });
+    }
+    if (status === 'disabled') {
+      return reply.status(410).send({ error: 'Vista desactivada o pausada' });
+    }
+    if (!item.model_blob) {
+      return reply.status(404).send({ error: 'Modelo 3D no encontrado' });
+    }
+
+    const usdzBuffer = await buildArModelForItem(item, {
+      format: 'usdz',
+      query: request.query || {},
+      baseUrl: resolveRequestBaseUrl(request)
+    });
+
+    return sendCachedBinaryAsset(request, reply, usdzBuffer, {
+      contentType: 'model/vnd.usdz+zip',
+      etagPrefix: 'usdz',
+      cacheControl: 'public, max-age=120, must-revalidate',
+      contentDisposition: 'inline; filename="modelo-3d.usdz"'
+    });
+  });
+
+  // 4b. QR directo hacia esta vista pública (para abrir AR desde otro celular)
+  fastify.get('/view/:viewToken/view-qr', async (request, reply) => {
+    const { viewToken } = request.params;
+    const { status, item } = await findActiveViewItem(viewToken);
+
+    if (status === 'not_found') {
+      return reply.status(404).send({ error: 'Vista no encontrada' });
+    }
+    if (status === 'disabled') {
+      return reply.status(410).send({ error: 'Vista desactivada o pausada' });
+    }
+
+    const baseUrl = resolveRequestBaseUrl(request);
+    const viewUrl = buildViewUrl(item.view_token || viewToken, baseUrl);
+    const pngBuffer = await generateQrPngBuffer(viewUrl, {
+      primary: item.color_primary || '#0f172a',
+      secondary: item.color_secondary || '#ffffff',
+      size: 512
+    });
+
+    return reply
+      .header('Content-Type', 'image/png')
+      .header('Cache-Control', 'public, max-age=60')
+      .send(pngBuffer);
   });
 
   // 4. Imagen PNG del QR activo de la vista

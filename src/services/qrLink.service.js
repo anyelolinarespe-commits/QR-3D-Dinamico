@@ -46,24 +46,45 @@ export function generateViewToken() {
   return 'vw_' + crypto.randomBytes(8).toString('hex');
 }
 
-export function sendCachedGlbModel(
+export function sendCachedBinaryAsset(
   request,
   reply,
   buffer,
-  cacheControl = 'public, max-age=60, must-revalidate'
+  {
+    contentType = 'application/octet-stream',
+    etagPrefix = 'bin',
+    cacheControl = 'public, max-age=60, must-revalidate',
+    contentDisposition = null
+  } = {}
 ) {
   const buf = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
   const hash = crypto.createHash('sha1').update(buf).digest('hex').slice(0, 16);
-  const etag = `"glb-${buf.length}-${hash}"`;
+  const etag = `"${etagPrefix}-${buf.length}-${hash}"`;
   reply.header('ETag', etag);
   reply.header('Cache-Control', cacheControl);
+  if (contentDisposition) {
+    reply.header('Content-Disposition', contentDisposition);
+  }
 
   const ifNoneMatch = request?.headers?.['if-none-match'];
   if (ifNoneMatch && ifNoneMatch.includes(etag)) {
     return reply.status(304).send();
   }
 
-  return reply.header('Content-Type', 'model/gltf-binary').send(buf);
+  return reply.header('Content-Type', contentType).send(buf);
+}
+
+export function sendCachedGlbModel(
+  request,
+  reply,
+  buffer,
+  cacheControl = 'public, max-age=60, must-revalidate'
+) {
+  return sendCachedBinaryAsset(request, reply, buffer, {
+    contentType: 'model/gltf-binary',
+    etagPrefix: 'glb',
+    cacheControl
+  });
 }
 
 export function buildViewUrl(viewToken, baseUrl = config.publicBaseUrl) {
@@ -665,6 +686,7 @@ export function serializePublicViewData(item, baseUrl = config.publicBaseUrl, da
 
   return {
     viewToken,
+    viewUrl: buildViewUrl(viewToken, baseUrl),
     title: item.title || 'Modelo 3D + QR',
     description: meta.description || '',
     isActive: Boolean(item.is_active),
@@ -685,6 +707,9 @@ export function serializePublicViewData(item, baseUrl = config.publicBaseUrl, da
     },
     viewerConfig: effectiveViewerConfig,
     modelUrl: `${baseUrl}/view/${viewToken}/model`,
+    arModelUrl: `${baseUrl}/view/${viewToken}/model?ar=1`,
+    usdzUrl: `${baseUrl}/view/${viewToken}/model.usdz`,
+    viewQrUrl: `${baseUrl}/view/${viewToken}/view-qr`,
     imageUrl: `${baseUrl}/view/${viewToken}/image`,
     matrixUrl: `${baseUrl}/view/${viewToken}/matrix`,
     eventsUrl: `${baseUrl}/view/${viewToken}/events`
@@ -739,6 +764,9 @@ export function serializeQrItem(item, baseUrl = config.publicBaseUrl, dailyStats
     viewerConfig: effectiveViewerConfig,
     hasCustomViewerConfig: Boolean(meta.hasCustomViewerConfig),
     modelUrl: `${baseUrl}/api/qr/${item.id}/model`,
+    arModelUrl: `${baseUrl}/api/qr/${item.id}/model?ar=1`,
+    usdzUrl: `${baseUrl}/api/qr/${item.id}/model.usdz`,
+    viewQrUrl: `${baseUrl}/api/qr/${item.id}/view-qr`,
     imageUrl: `${baseUrl}/api/qr/${item.id}/image`,
     scanUrl: buildScanUrl(item.id, null, baseUrl),
     created_at: item.created_at,

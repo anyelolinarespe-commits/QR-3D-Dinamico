@@ -200,7 +200,7 @@ async function seedDefaultTenant() {
        VALUES ($1, $2, $3, $4, $5, $6, $7)`,
       ['tenant_default', 'Default Dev Tenant', '', devKeyHash, config.devTenantKey.slice(0, 10), true, 300]
     );
-    console.log(`🔑 Inquilino por defecto creado con API Key: ${config.devTenantKey}`);
+    console.log(`[AUTH] Inquilino por defecto creado con API Key: ${config.devTenantKey}`);
   }
 }
 
@@ -225,7 +225,7 @@ async function seedDefaultUsers() {
         true
       ]
     );
-    console.log(`👑 Superadmin inicial listo (usuario: ${config.superadminUsername})`);
+    console.log(`[AUTH] Superadmin inicial listo (usuario: ${config.superadminUsername})`);
   }
 }
 
@@ -292,7 +292,7 @@ export async function initDb(options = {}) {
         ...(needsSsl ? { ssl: { rejectUnauthorized: false } } : {})
       });
       pool.on('error', (poolErr) => {
-        console.warn('⚠️  Cliente inactivo de PostgreSQL desconectado (se reconectará automáticamente):', poolErr.message);
+        console.warn('[WARN] Cliente inactivo de PostgreSQL desconectado (se reconectará automáticamente):', poolErr.message);
       });
 
       const client = await pool.connect();
@@ -312,7 +312,7 @@ export async function initDb(options = {}) {
       const stats = await refreshStartupStats();
       dbStatus.initializedAt = new Date().toISOString();
       console.log(
-        `✅ Conexión exitosa a PostgreSQL (${stats.savedFiles} archivo(s) guardado(s), ${stats.qrItems} QR(s) cargados)`
+        `[OK] Conexión exitosa a PostgreSQL (${stats.savedFiles} archivo(s) guardado(s), ${stats.qrItems} QR(s) cargados)`
       );
       return getDbStatus();
     } catch (err) {
@@ -324,11 +324,11 @@ export async function initDb(options = {}) {
         dbStatus.ready = false;
         dbStatus.engine = null;
         dbStatus.error = `No se pudo conectar a PostgreSQL: ${err.message}`;
-        console.error(`❌ El servicio no se activó (${dbStatus.error})`);
+        console.error(`[ERROR] El servicio no se activó (${dbStatus.error})`);
         return getDbStatus();
       }
-      console.warn('⚠️  PostgreSQL no disponible en localhost:', err.message);
-      console.log(`📦 Activando base de datos SQLite persistente en disco: ${targetSqlitePath}`);
+      console.warn('[WARN] PostgreSQL no disponible en localhost:', err.message);
+      console.log(`[DB] Activando base de datos SQLite persistente en disco: ${targetSqlitePath}`);
     }
   }
 
@@ -373,7 +373,7 @@ export async function initDb(options = {}) {
     const stats = await refreshStartupStats();
     dbStatus.initializedAt = new Date().toISOString();
     console.log(
-      `✅ Base de datos SQLite lista (${targetSqlitePath}): ${stats.savedFiles} archivo(s) y ${stats.qrItems} QR(s) cargados al iniciar.`
+      `[OK] Base de datos SQLite lista (${targetSqlitePath}): ${stats.savedFiles} archivo(s) y ${stats.qrItems} QR(s) cargados al iniciar.`
     );
     return getDbStatus();
   } catch (err) {
@@ -385,7 +385,7 @@ export async function initDb(options = {}) {
     dbStatus.engine = null;
     dbStatus.location = null;
     dbStatus.error = `Error al abrir la base de datos persistente: ${err.message}`;
-    console.error(`❌ El servicio no se activó: ${dbStatus.error}`);
+    console.error(`[ERROR] El servicio no se activó: ${dbStatus.error}`);
     return getDbStatus();
   }
 }

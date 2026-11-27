@@ -7,6 +7,8 @@
  * además de perfiles Automático y Manual para iluminación, aristas, color y encuadre.
  */
 
+import { renderIcon } from './icons.js';
+
 export const VIEWER_PRESETS = {
   auto: {
     mode: 'auto',
@@ -327,6 +329,22 @@ class Qr3dViewer extends HTMLElement {
     this._lastHeight = 0;
     this.intersectionObserver = null;
     this._arToastTimer = null;
+    this._webXrSupported = false;
+    this._xrSession = null;
+    this._xrOverlayEl = null;
+    this._xrHitTestSource = null;
+    this._xrHitTestRequested = false;
+    this._xrReticle = null;
+    this._xrController = null;
+    this._xrPlaced = false;
+    this._xrScaleFactor = 1;
+    this._xrRotYOffset = 0;
+    this._xrSavedState = null;
+    this._arCameraStream = null;
+    this._isCameraArActive = false;
+    this._arCameraFacing = 'environment';
+    this._arCameraBaseScale = 1;
+    this._arModalOpen = false;
     this._onVisibilityChange = () => {
       this._isPageVisible = !document.hidden;
       if (this._isPageVisible) {
@@ -558,10 +576,14 @@ class Qr3dViewer extends HTMLElement {
   }
 
   getEndpoint(kind) {
+    const totemHidden = this.viewerConfig && this.viewerConfig.showTotem === false;
     if (this.viewToken) {
       const base = `${this.apiUrl}/view/${this.viewToken}`;
       if (kind === 'meta') return `${base}/meta`;
       if (kind === 'model') return `${base}/model`;
+      if (kind === 'arModel') return `${base}/model?ar=1${totemHidden ? '&totem=0' : ''}`;
+      if (kind === 'usdz') return `${base}/model.usdz${totemHidden ? '?totem=0' : ''}`;
+      if (kind === 'viewQr') return `${base}/view-qr`;
       if (kind === 'image') return `${base}/image`;
       if (kind === 'matrix') return `${base}/matrix`;
       if (kind === 'events') return `${base}/events`;
@@ -570,11 +592,21 @@ class Qr3dViewer extends HTMLElement {
       const base = `${this.apiUrl}/api/qr/${this.qrId}`;
       if (kind === 'meta') return base;
       if (kind === 'model') return `${base}/model`;
+      if (kind === 'arModel') return `${base}/model?ar=1${totemHidden ? '&totem=0' : ''}`;
+      if (kind === 'usdz') return `${base}/model.usdz${totemHidden ? '?totem=0' : ''}`;
+      if (kind === 'viewQr') return `${base}/view-qr`;
       if (kind === 'image') return `${base}/image`;
       if (kind === 'matrix') return `${base}/matrix`;
       if (kind === 'events') return `${base}/events`;
     }
     return null;
+  }
+
+  getPublicViewUrl() {
+    if (this.viewToken) {
+      return new URL(`${this.apiUrl}/view/${this.viewToken}`, window.location.origin).href;
+    }
+    return window.location.href;
   }
 
   connectedCallback() {
@@ -610,6 +642,7 @@ class Qr3dViewer extends HTMLElement {
     this.updateEdgesButtonLabel();
     this.updateCameraModeButtonLabel();
     this.updateSunModeButtonLabel();
+    this.probeArCapabilities();
     this.loadDependencies().then(() => {
       if (!this.isConnected) return;
       this.initThree();
@@ -620,6 +653,8 @@ class Qr3dViewer extends HTMLElement {
   }
 
   disconnectedCallback() {
+    this.stopCameraAR({ silent: true });
+    this.stopWebXrAR();
     if (typeof document !== 'undefined') {
       document.removeEventListener('visibilitychange', this._onVisibilityChange);
     }
@@ -742,8 +777,32 @@ class Qr3dViewer extends HTMLElement {
         :host(.hint-hidden) .hint-3d {
           display: none;
         }
+        :host(.ar-camera-active) {
+          background: #000000 !important;
+        }
+        :host(.ar-camera-active) .qr-badge-container,
+        :host(.ar-camera-active) .hint-3d {
+          display: none !important;
+        }
+
+        #ar-camera-video {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          z-index: 1;
+          display: none;
+          pointer-events: none;
+        }
+
+        :host(.ar-camera-active) #ar-camera-video {
+          display: block;
+        }
 
         #viewport {
+          position: relative;
+          z-index: 2;
           width: 100%;
           height: 100%;
           display: block;
@@ -886,7 +945,7 @@ class Qr3dViewer extends HTMLElement {
           transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
           display: flex;
           align-items: center;
-          gap: 4px;
+          gap: 6px;
         }
 
         .btn-tool:hover {
@@ -911,6 +970,9 @@ class Qr3dViewer extends HTMLElement {
           padding: 4px 10px;
           border-radius: 999px;
           backdrop-filter: blur(6px);
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
         }
 
         .loader {
@@ -940,23 +1002,212 @@ class Qr3dViewer extends HTMLElement {
         @keyframes spin {
           to { transform: rotate(360deg); }
         }
+
+        .ar-camera-hud {
+          position: absolute;
+          left: 50%;
+          bottom: 16px;
+          transform: translateX(-50%);
+          z-index: 25;
+          display: none;
+          align-items: center;
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: 8px;
+          padding: 8px 12px;
+          border-radius: 14px;
+          background: rgba(15, 23, 42, 0.88);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          backdrop-filter: blur(10px);
+          color: #f8fafc;
+          box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+          max-width: calc(100% - 24px);
+        }
+        :host(.ar-camera-active) .ar-camera-hud {
+          display: flex;
+        }
+        .ar-hud-btn {
+          background: rgba(255, 255, 255, 0.12);
+          color: #f8fafc;
+          border: 1px solid rgba(255, 255, 255, 0.18);
+          border-radius: 8px;
+          padding: 6px 10px;
+          font-size: 12px;
+          font-weight: 600;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+        }
+        .ar-hud-btn:hover {
+          background: rgba(255, 255, 255, 0.22);
+        }
+        .ar-hud-btn-danger {
+          background: rgba(239, 68, 68, 0.85);
+          border-color: rgba(248, 113, 113, 0.6);
+        }
+        .ar-hud-btn-danger:hover {
+          background: rgba(220, 38, 38, 0.95);
+        }
+
+        .ar-modal-backdrop {
+          position: absolute;
+          inset: 0;
+          z-index: 30;
+          background: rgba(9, 13, 22, 0.78);
+          backdrop-filter: blur(8px);
+          display: none;
+          align-items: center;
+          justify-content: center;
+          padding: 16px;
+        }
+        .ar-modal-backdrop.open {
+          display: flex;
+        }
+        .ar-modal-card {
+          width: 100%;
+          max-width: 390px;
+          max-height: 100%;
+          overflow-y: auto;
+          background: var(--_qr3d-surface);
+          color: var(--_qr3d-text);
+          border: 1px solid var(--_qr3d-border);
+          border-radius: 16px;
+          padding: 18px;
+          box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .ar-modal-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+        }
+        .ar-modal-title {
+          font-size: 15px;
+          font-weight: 800;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .ar-modal-close {
+          background: transparent;
+          border: 1px solid var(--_qr3d-border);
+          color: var(--_qr3d-text);
+          border-radius: 8px;
+          width: 30px;
+          height: 30px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+        }
+        .ar-modal-desc {
+          font-size: 12.5px;
+          line-height: 1.45;
+          opacity: 0.88;
+        }
+        .ar-modal-qr-box {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 8px;
+          padding: 12px;
+          border-radius: 12px;
+          background: rgba(148, 163, 184, 0.1);
+          border: 1px solid var(--_qr3d-border);
+        }
+        .ar-modal-qr-box img {
+          width: 154px;
+          height: 154px;
+          border-radius: 10px;
+          background: #ffffff;
+          padding: 6px;
+          object-fit: contain;
+        }
+        .ar-modal-url-row {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          width: 100%;
+        }
+        .ar-modal-url-input {
+          flex: 1;
+          min-width: 0;
+          font-size: 11px;
+          font-family: monospace;
+          padding: 6px 8px;
+          border-radius: 8px;
+          border: 1px solid var(--_qr3d-border);
+          background: rgba(15, 23, 42, 0.25);
+          color: inherit;
+        }
+        .ar-modal-warn {
+          font-size: 11.5px;
+          line-height: 1.45;
+          padding: 9px 11px;
+          border-radius: 10px;
+          background: rgba(245, 158, 11, 0.14);
+          border: 1px solid rgba(245, 158, 11, 0.4);
+          color: #fcd34d;
+        }
+        :host(.light-ui) .ar-modal-warn {
+          color: #92400e;
+          background: rgba(245, 158, 11, 0.16);
+        }
+        .ar-modal-actions {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .ar-btn-primary,
+        .ar-btn-secondary {
+          width: 100%;
+          border-radius: 10px;
+          padding: 10px 12px;
+          font-size: 13px;
+          font-weight: 700;
+          cursor: pointer;
+          text-decoration: none;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          box-sizing: border-box;
+        }
+        .ar-btn-primary {
+          border: none;
+          background: var(--_qr3d-accent);
+          color: var(--_qr3d-accent-text);
+        }
+        .ar-btn-secondary {
+          background: transparent;
+          color: var(--_qr3d-text);
+          border: 1px solid var(--_qr3d-border);
+        }
+        .ar-btn-primary:hover,
+        .ar-btn-secondary:hover {
+          filter: brightness(1.08);
+        }
       </style>
 
       <div class="controls-toolbar">
-        <button id="btn-aerial" class="btn-tool">🛸 Escanear 90°</button>
-        <button id="btn-ar" class="btn-tool" title="Ver el modelo 3D en Realidad Aumentada desde celular">📱 AR</button>
-        <button id="btn-rotate" class="btn-tool">🔄 Auto-Giro: ON</button>
-        <button id="btn-edges" class="btn-tool active">✏️ Aristas: Auto</button>
-        <button id="btn-camera-mode" class="btn-tool" title="Alternar entre cámara cinematográfica suave y respuesta directa 1:1 sin inercia">🎬 Cámara: Cine</button>
-        <button id="btn-sun-mode" class="btn-tool" title="Alternar entre sol fijo al modelo (la sombra de la casa al suelo se mantiene) y sol dinámico en el escenario (actual)">☀️ Sol: Dinámico</button>
-        <button id="btn-reset" class="btn-tool">🎯 Centrar</button>
+        <button id="btn-aerial" class="btn-tool">${renderIcon('scan', { size: 14 })}<span>Escanear 90°</span></button>
+        <button id="btn-ar" class="btn-tool" title="Ver el modelo 3D en Realidad Aumentada desde celular">${renderIcon('smartphone', { size: 14 })}<span>AR</span></button>
+        <button id="btn-rotate" class="btn-tool">${renderIcon('refresh', { size: 14 })}<span>Auto-Giro: ON</span></button>
+        <button id="btn-edges" class="btn-tool active">${renderIcon('pencil', { size: 14 })}<span>Aristas: Auto</span></button>
+        <button id="btn-camera-mode" class="btn-tool" title="Alternar entre cámara cinematográfica suave y respuesta directa 1:1 sin inercia">${renderIcon('film', { size: 14 })}<span>Cámara: Cine</span></button>
+        <button id="btn-sun-mode" class="btn-tool" title="Alternar entre sol fijo al modelo (la sombra de la casa al suelo se mantiene) y sol dinámico en el escenario (actual)">${renderIcon('sun', { size: 14 })}<span>Sol: Dinámico</span></button>
+        <button id="btn-reset" class="btn-tool">${renderIcon('target', { size: 14 })}<span>Centrar</span></button>
       </div>
 
       <div class="scan-toast" id="scan-toast">
-        ✨ ¡QR escaneado! Nuevo código activo
+        ${renderIcon('sparkles', { size: 15 })}<span>¡QR escaneado! Nuevo código activo</span>
       </div>
 
-      <div class="hint-3d" id="hint-3d">🖱️ Clic en el modelo: Vista aérea 90° · Arrastra para girar</div>
+      <div class="hint-3d" id="hint-3d">${renderIcon('mouse-pointer', { size: 14 })}<span>Clic en el modelo: Vista aérea 90° · Arrastra para girar</span></div>
 
       <div class="loader" id="loader">
         <div class="spinner"></div>
@@ -975,7 +1226,35 @@ class Qr3dViewer extends HTMLElement {
         <div id="qr-badge-sub" style="font-size: 10px; color: #94a3b8; text-align: center;">Clic para escanear 90°</div>
       </div>
 
+      <video id="ar-camera-video" autoplay playsinline muted></video>
       <canvas id="viewport"></canvas>
+
+      <div class="ar-camera-hud" id="ar-camera-hud">
+        <button id="ar-cam-smaller" type="button" class="ar-hud-btn" title="Reducir modelo">${renderIcon('minus', { size: 14 })}</button>
+        <button id="ar-cam-bigger" type="button" class="ar-hud-btn" title="Agrandar modelo">${renderIcon('plus', { size: 14 })}</button>
+        <button id="ar-cam-flip" type="button" class="ar-hud-btn" title="Cambiar cámara frontal/trasera">${renderIcon('refresh', { size: 14 })}<span>Cámara</span></button>
+        <button id="ar-cam-exit" type="button" class="ar-hud-btn ar-hud-btn-danger">${renderIcon('x', { size: 14 })}<span>Salir AR</span></button>
+      </div>
+
+      <div class="ar-modal-backdrop" id="ar-modal" role="dialog" aria-modal="true" aria-labelledby="ar-modal-title">
+        <div class="ar-modal-card">
+          <div class="ar-modal-head">
+            <div class="ar-modal-title" id="ar-modal-title">${renderIcon('smartphone', { size: 17 })}<span>Realidad Aumentada (AR)</span></div>
+            <button id="ar-modal-close" type="button" class="ar-modal-close" aria-label="Cerrar">${renderIcon('x', { size: 16 })}</button>
+          </div>
+          <p class="ar-modal-desc" id="ar-modal-desc"></p>
+          <div class="ar-modal-warn" id="ar-modal-warn" style="display:none;"></div>
+          <div class="ar-modal-qr-box" id="ar-modal-qr-box">
+            <img id="ar-modal-qr-img" src="" alt="QR para abrir vista AR en celular" />
+            <div style="font-size:11.5px;font-weight:600;text-align:center;">Escanea desde tu celular para abrir esta vista 3D + AR</div>
+            <div class="ar-modal-url-row">
+              <input id="ar-modal-url-input" class="ar-modal-url-input" type="text" readonly />
+              <button id="ar-modal-copy" type="button" class="ar-hud-btn" style="color:inherit;border-color:var(--_qr3d-border);">${renderIcon('copy', { size: 13 })}<span>Copiar</span></button>
+            </div>
+          </div>
+          <div class="ar-modal-actions" id="ar-modal-actions"></div>
+        </div>
+      </div>
     `;
 
     this.shadowRoot.getElementById('btn-aerial').addEventListener('click', () => {
@@ -996,6 +1275,59 @@ class Qr3dViewer extends HTMLElement {
 
     this.shadowRoot.getElementById('btn-ar').addEventListener('click', () => {
       this.launchAR();
+    });
+
+    this.shadowRoot.getElementById('ar-modal-close').addEventListener('click', () => {
+      this.closeArModal();
+    });
+
+    this.shadowRoot.getElementById('ar-modal').addEventListener('click', (e) => {
+      if (e.target && e.target.id === 'ar-modal') {
+        this.closeArModal();
+      }
+    });
+
+    this.shadowRoot.getElementById('ar-modal-copy').addEventListener('click', async () => {
+      const input = this.shadowRoot.getElementById('ar-modal-url-input');
+      const btn = this.shadowRoot.getElementById('ar-modal-copy');
+      if (!input || !input.value) return;
+      try {
+        await navigator.clipboard.writeText(input.value);
+      } catch {
+        input.select();
+        document.execCommand('copy');
+      }
+      if (btn) {
+        btn.innerHTML = `${renderIcon('check', { size: 13 })}<span>Copiado</span>`;
+        setTimeout(() => {
+          btn.innerHTML = `${renderIcon('copy', { size: 13 })}<span>Copiar</span>`;
+        }, 1800);
+      }
+    });
+
+    this.shadowRoot.getElementById('ar-cam-smaller').addEventListener('click', () => {
+      if (this.modelPivot) {
+        const next = Math.max(0.2, this.modelPivot.scale.x * 0.8);
+        this.modelPivot.scale.setScalar(next);
+        this.requestRender({ durationMs: 400 });
+      }
+    });
+
+    this.shadowRoot.getElementById('ar-cam-bigger').addEventListener('click', () => {
+      if (this.modelPivot) {
+        const next = Math.min(3.5, this.modelPivot.scale.x * 1.25);
+        this.modelPivot.scale.setScalar(next);
+        this.requestRender({ durationMs: 400 });
+      }
+    });
+
+    this.shadowRoot.getElementById('ar-cam-flip').addEventListener('click', () => {
+      this._arCameraFacing = this._arCameraFacing === 'environment' ? 'user' : 'environment';
+      this.startCameraAR({ keepScale: true });
+    });
+
+    this.shadowRoot.getElementById('ar-cam-exit').addEventListener('click', () => {
+      this.stopCameraAR();
     });
 
     this.shadowRoot.getElementById('btn-rotate').addEventListener('click', () => {
@@ -1068,7 +1400,9 @@ class Qr3dViewer extends HTMLElement {
     if (!this.shadowRoot) return;
     const btn = this.shadowRoot.getElementById('btn-rotate');
     if (btn) {
-      btn.innerText = this.autoRotate ? '🔄 Auto-Giro: ON' : '⏸️ Auto-Giro: OFF';
+      btn.innerHTML = this.autoRotate
+        ? `${renderIcon('refresh', { size: 14 })}<span>Auto-Giro: ON</span>`
+        : `${renderIcon('pause', { size: 14 })}<span>Auto-Giro: OFF</span>`;
     }
   }
 
@@ -1079,13 +1413,13 @@ class Qr3dViewer extends HTMLElement {
     const mode = this.viewerConfig.edgeMode || 'smart';
     if (mode === 'off') {
       btn.classList.remove('active');
-      btn.innerText = '✏️ Aristas: OFF';
+      btn.innerHTML = `${renderIcon('pencil', { size: 14 })}<span>Aristas: OFF</span>`;
     } else if (mode === 'all') {
       btn.classList.add('active');
-      btn.innerText = '✏️ Aristas: Todas';
+      btn.innerHTML = `${renderIcon('pencil', { size: 14 })}<span>Aristas: Todas</span>`;
     } else {
       btn.classList.add('active');
-      btn.innerText = '✏️ Aristas: Auto';
+      btn.innerHTML = `${renderIcon('pencil', { size: 14 })}<span>Aristas: Auto</span>`;
     }
   }
 
@@ -1095,7 +1429,9 @@ class Qr3dViewer extends HTMLElement {
     if (!btn) return;
     const isDirect = this.viewerConfig.cameraMode === 'direct';
     btn.classList.toggle('active', isDirect);
-    btn.innerText = isDirect ? '⚡ Cámara: Directa' : '🎬 Cámara: Cine';
+    btn.innerHTML = isDirect
+      ? `${renderIcon('zap', { size: 14 })}<span>Cámara: Directa</span>`
+      : `${renderIcon('film', { size: 14 })}<span>Cámara: Cine</span>`;
   }
 
   updateSunModeButtonLabel() {
@@ -1104,7 +1440,9 @@ class Qr3dViewer extends HTMLElement {
     if (!btn) return;
     const isModel = this.viewerConfig.sunMode === 'model';
     btn.classList.toggle('active', isModel);
-    btn.innerText = isModel ? '📌 Sol: Fijo' : '☀️ Sol: Dinámico';
+    btn.innerHTML = isModel
+      ? `${renderIcon('pin', { size: 14 })}<span>Sol: Fijo</span>`
+      : `${renderIcon('sun', { size: 14 })}<span>Sol: Dinámico</span>`;
   }
 
   applyCameraMode() {
@@ -1242,6 +1580,7 @@ class Qr3dViewer extends HTMLElement {
     });
 
     this.resizeObserver = new ResizeObserver(() => {
+      if (this._xrSession) return;
       const w = this.clientWidth;
       const h = this.clientHeight;
       if (w > 0 && h > 0 && (w !== this._lastWidth || h !== this._lastHeight)) {
@@ -1274,6 +1613,7 @@ class Qr3dViewer extends HTMLElement {
 
     this._animateLoop = (now) => {
       this.animationFrameId = null;
+      if (this._xrSession) return;
       if (!this.renderer || !this.scene || !this.camera) return;
       if (!this._isPageVisible || !this._isInViewport) return;
 
@@ -1346,6 +1686,7 @@ class Qr3dViewer extends HTMLElement {
   }
 
   requestRender({ durationMs = 600 } = {}) {
+    if (this._xrSession) return;
     if (durationMs > 0) {
       this._activeUntil = Math.max(this._activeUntil, performance.now() + durationMs);
     }
@@ -2540,12 +2881,12 @@ class Qr3dViewer extends HTMLElement {
 
     if (btnAerial) {
       btnAerial.classList.add('active');
-      btnAerial.innerText = '↩️ Volver a 3D';
+      btnAerial.innerHTML = `${renderIcon('undo', { size: 14 })}<span>Volver a 3D</span>`;
     }
     if (badge) badge.classList.add('aerial-active');
     if (badgeTitle) badgeTitle.innerText = useBlocks ? 'QR Bloques 90°' : 'QR Aéreo 90°';
     if (badgeSub) badgeSub.innerText = 'Colores tomados de la vista 90°';
-    if (hint) hint.innerText = '🛸 Vista Aérea 90° activa · Escanea el QR cromático o haz clic para volver';
+    if (hint) hint.innerHTML = `${renderIcon('scan', { size: 14 })}<span>Vista Aérea 90° activa · Escanea el QR cromático o haz clic para volver</span>`;
 
     // Generar muestras cenitales y aplicar los colores al QR (y bloques si corresponde)
     await this.applyAerialColoredQr({ buildBlocks: useBlocks });
@@ -2655,12 +2996,12 @@ class Qr3dViewer extends HTMLElement {
 
     if (btnAerial) {
       btnAerial.classList.remove('active');
-      btnAerial.innerText = '🛸 Escanear 90°';
+      btnAerial.innerHTML = `${renderIcon('scan', { size: 14 })}<span>Escanear 90°</span>`;
     }
     if (badge) badge.classList.remove('aerial-active');
     if (badgeTitle) badgeTitle.innerText = 'QR Dinámico';
     if (badgeSub) badgeSub.innerText = 'Clic para escanear 90°';
-    if (hint) hint.innerText = '🖱️ Clic en el modelo: Vista aérea 90° · Arrastra para girar';
+    if (hint) hint.innerHTML = `${renderIcon('mouse-pointer', { size: 14 })}<span>Clic en el modelo: Vista aérea 90° · Arrastra para girar</span>`;
 
     // Restaurar imagen estándar del QR
     const imageEndpoint = this.getEndpoint('image');
@@ -3315,13 +3656,13 @@ class Qr3dViewer extends HTMLElement {
           .then((r) => r.json().catch(() => null))
           .then((h) => {
             if (!h || h.serviceActive === false) {
-              loaderEl.innerHTML = `<span style="color:#f87171; text-align:center; padding:12px;">⛔ El servicio no se activó o la base de datos no está disponible</span>`;
+              loaderEl.innerHTML = `<span style="color:#f87171; text-align:center; padding:12px; display:inline-flex; align-items:center; gap:8px;">${renderIcon('ban', { size: 16 })}<span>El servicio no se activó o la base de datos no está disponible</span></span>`;
             } else {
-              loaderEl.innerHTML = `<span style="color:#f87171">⚠️ No se pudo cargar el modelo 3D</span>`;
+              loaderEl.innerHTML = `<span style="color:#f87171; display:inline-flex; align-items:center; gap:8px;">${renderIcon('alert-triangle', { size: 16 })}<span>No se pudo cargar el modelo 3D</span></span>`;
             }
           })
           .catch(() => {
-            loaderEl.innerHTML = `<span style="color:#f87171; text-align:center; padding:12px;">⛔ El servicio no se activó o el servidor no responde</span>`;
+            loaderEl.innerHTML = `<span style="color:#f87171; text-align:center; padding:12px; display:inline-flex; align-items:center; gap:8px;">${renderIcon('ban', { size: 16 })}<span>El servicio no se activó o el servidor no responde</span></span>`;
           });
       }
     );
@@ -3410,89 +3751,676 @@ class Qr3dViewer extends HTMLElement {
     });
   }
 
-  async launchAR() {
-    const modelEndpoint = this.getEndpoint('model');
-    if (!modelEndpoint) {
-      this.showToastMessage('⚠️ Aún no hay un modelo 3D disponible para AR');
-      return;
+  probeArCapabilities() {
+    if (typeof navigator !== 'undefined' && navigator.xr && typeof navigator.xr.isSessionSupported === 'function') {
+      navigator.xr
+        .isSessionSupported('immersive-ar')
+        .then((supported) => {
+          this._webXrSupported = Boolean(supported);
+        })
+        .catch(() => {
+          this._webXrSupported = false;
+        });
+    } else {
+      this._webXrSupported = false;
     }
+  }
 
+  getArEnvironmentInfo() {
     const ua = navigator.userAgent || '';
     const isIOS =
       /iPad|iPhone|iPod/i.test(ua) ||
       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     const isAndroid = /Android/i.test(ua);
+    const isInAppWebView = /Instagram|FBAN|FBAV|WhatsApp|Line|MicroMessenger|TikTok/i.test(ua);
+    const isNonSafariIos = isIOS && (/CriOS|FxiOS|EdgiOS|OPiOS/i.test(ua) || isInAppWebView);
+    const arModelEndpoint = this.getEndpoint('arModel') || this.getEndpoint('model');
+    const usdzEndpoint = this.getEndpoint('usdz');
+    const absArModelUrl = arModelEndpoint ? new URL(arModelEndpoint, window.location.origin).href : null;
+    const absUsdzUrl = usdzEndpoint ? new URL(usdzEndpoint, window.location.origin).href : null;
+    const parsedModel = absArModelUrl ? new URL(absArModelUrl) : null;
+    const isLocalHost = parsedModel
+      ? /^(localhost|127\.0\.0\.1|0\.0\.0\.0|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)$/i.test(parsedModel.hostname)
+      : false;
+    const isHttpsOrigin = parsedModel ? parsedModel.protocol === 'https:' : window.location.protocol === 'https:';
+    const hasCameraApi = Boolean(navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function');
+    return {
+      isIOS,
+      isAndroid,
+      isMobile: isIOS || isAndroid,
+      isInAppWebView,
+      isNonSafariIos,
+      absArModelUrl,
+      absUsdzUrl,
+      isLocalHost,
+      isHttpsOrigin,
+      hasCameraApi,
+      webXrSupported: Boolean(this._webXrSupported)
+    };
+  }
 
-    if (isAndroid) {
-      const absModelUrl = new URL(modelEndpoint, window.location.origin).href;
-      const arTitle = this.getAttribute('ar-title') || 'Modelo 3D Interactivo';
-      const intentUrl =
-        `intent://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(absModelUrl)}` +
-        `&mode=ar_preferred&title=${encodeURIComponent(arTitle)}&resizable=true` +
-        `#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;end;`;
-      const msg = window.location.protocol !== 'https:'
-        ? '📱 Abriendo Scene Viewer (recuerda que Android AR requiere URL pública HTTPS)'
-        : '📱 Abriendo Realidad Aumentada en Android...';
-      this.showToastMessage(msg, 4200);
-      this.dispatchEvent(new CustomEvent('ar-status', { detail: { platform: 'android', message: msg } }));
-      window.location.href = intentUrl;
+  buildAndroidSceneViewerIntent(absModelUrl) {
+    const arTitle = this.getAttribute('ar-title') || 'Modelo 3D Interactivo';
+    const fallbackUrl = window.location.href;
+    return (
+      `intent://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(absModelUrl)}` +
+      `&mode=ar_preferred&title=${encodeURIComponent(arTitle)}&resizable=true` +
+      `#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;` +
+      `S.browser_fallback_url=${encodeURIComponent(fallbackUrl)};end;`
+    );
+  }
+
+  createIosQuickLookAnchor(usdzUrl, { labelText = null, className = null } = {}) {
+    const anchor = document.createElement('a');
+    anchor.setAttribute('rel', 'ar');
+    anchor.setAttribute('href', usdzUrl);
+    if (className) anchor.className = className;
+
+    const img = document.createElement('img');
+    img.alt = '';
+    img.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+    if (labelText) {
+      img.style.width = '1px';
+      img.style.height = '1px';
+      img.style.opacity = '0.01';
+      img.style.position = 'absolute';
+      img.style.pointerEvents = 'none';
+    }
+    anchor.appendChild(img);
+
+    if (labelText) {
+      const iconWrap = document.createElement('span');
+      iconWrap.style.display = 'inline-flex';
+      iconWrap.innerHTML = renderIcon('smartphone', { size: 15 });
+      const txt = document.createElement('span');
+      txt.textContent = labelText;
+      anchor.appendChild(iconWrap);
+      anchor.appendChild(txt);
+    }
+    return anchor;
+  }
+
+  triggerIosQuickLook(usdzUrl) {
+    const anchor = this.createIosQuickLookAnchor(usdzUrl);
+    anchor.style.position = 'fixed';
+    anchor.style.top = '0';
+    anchor.style.left = '0';
+    anchor.style.width = '1px';
+    anchor.style.height = '1px';
+    anchor.style.opacity = '0.01';
+    anchor.style.pointerEvents = 'none';
+    document.body.appendChild(anchor);
+    anchor.click();
+    setTimeout(() => anchor.remove(), 250);
+    const msg = 'Abriendo AR Quick Look en iOS...';
+    this.showToastMessage(msg, 3500, 'smartphone');
+    this.dispatchEvent(new CustomEvent('ar-status', { detail: { platform: 'ios', icon: 'smartphone', message: msg } }));
+  }
+
+  triggerAndroidSceneViewer(absModelUrl) {
+    const intentUrl = this.buildAndroidSceneViewerIntent(absModelUrl);
+    const msg = 'Abriendo Google Scene Viewer en Android...';
+    this.showToastMessage(msg, 4200, 'smartphone');
+    this.dispatchEvent(new CustomEvent('ar-status', { detail: { platform: 'android', icon: 'smartphone', message: msg } }));
+    const anchor = document.createElement('a');
+    anchor.href = intentUrl;
+    anchor.style.display = 'none';
+    document.body.appendChild(anchor);
+    anchor.click();
+    setTimeout(() => anchor.remove(), 250);
+  }
+
+  computeArUnitScale() {
+    if (!this.modelPivot) return 0.5;
+    let maxSpan = 1;
+    if (this.mainBounds && this.mainBounds.size) {
+      const s = this.mainBounds.size;
+      maxSpan = Math.max(s.x, s.y, s.z, 0.01);
+    } else {
+      const box = new window.THREE.Box3().setFromObject(this.modelPivot);
+      const s = box.getSize(new window.THREE.Vector3());
+      maxSpan = Math.max(s.x, s.y, s.z, 0.01);
+    }
+    const targetSpan = 0.78;
+    return maxSpan > 1.2 || maxSpan < 0.25 ? targetSpan / maxSpan : 1;
+  }
+
+  buildWebXrOverlayDom() {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = [
+      'position:fixed',
+      'inset:0',
+      'z-index:2147483647',
+      'pointer-events:none',
+      'display:flex',
+      'flex-direction:column',
+      'justify-content:space-between',
+      'padding:18px 16px 26px',
+      'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif'
+    ].join(';');
+
+    const statusPill = document.createElement('div');
+    statusPill.id = 'xr-status-pill';
+    statusPill.textContent = 'Apunta a una superficie y toca la pantalla para fijar el modelo';
+    statusPill.style.cssText = [
+      'align-self:center',
+      'background:rgba(15,23,42,0.84)',
+      'color:#f8fafc',
+      'border:1px solid rgba(255,255,255,0.2)',
+      'border-radius:9999px',
+      'padding:8px 14px',
+      'font-size:12.5px',
+      'font-weight:600',
+      'text-align:center',
+      'max-width:92vw',
+      'backdrop-filter:blur(8px)',
+      'pointer-events:none'
+    ].join(';');
+
+    const bar = document.createElement('div');
+    bar.style.cssText = [
+      'align-self:center',
+      'display:flex',
+      'flex-wrap:wrap',
+      'justify-content:center',
+      'gap:8px',
+      'padding:9px 12px',
+      'background:rgba(15,23,42,0.88)',
+      'border:1px solid rgba(255,255,255,0.2)',
+      'border-radius:14px',
+      'backdrop-filter:blur(10px)',
+      'pointer-events:auto'
+    ].join(';');
+
+    const makeBtn = (html, title, bg = 'rgba(255,255,255,0.14)') => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.title = title;
+      b.innerHTML = html;
+      b.style.cssText = [
+        `background:${bg}`,
+        'color:#fff',
+        'border:1px solid rgba(255,255,255,0.2)',
+        'border-radius:9px',
+        'padding:7px 11px',
+        'font-size:12.5px',
+        'font-weight:700',
+        'display:inline-flex',
+        'align-items:center',
+        'gap:5px',
+        'cursor:pointer'
+      ].join(';');
+      return b;
+    };
+
+    const btnSmaller = makeBtn(`${renderIcon('minus', { size: 14 })}<span>Achicar</span>`, 'Reducir escala');
+    const btnBigger = makeBtn(`${renderIcon('plus', { size: 14 })}<span>Agrandar</span>`, 'Aumentar escala');
+    const btnRotate = makeBtn(`${renderIcon('refresh', { size: 14 })}<span>Girar</span>`, 'Rotar modelo 45°');
+    const btnExit = makeBtn(`${renderIcon('x', { size: 14 })}<span>Salir AR</span>`, 'Cerrar sesión AR', 'rgba(239,68,68,0.88)');
+
+    btnSmaller.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this._xrScaleFactor = Math.max(0.25, this._xrScaleFactor * 0.78);
+      if (this.modelPivot && this._xrSavedState) {
+        this.modelPivot.scale.setScalar(this._xrSavedState.arBaseScale * this._xrScaleFactor);
+      }
+    });
+    btnBigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this._xrScaleFactor = Math.min(4.0, this._xrScaleFactor * 1.28);
+      if (this.modelPivot && this._xrSavedState) {
+        this.modelPivot.scale.setScalar(this._xrSavedState.arBaseScale * this._xrScaleFactor);
+      }
+    });
+    btnRotate.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this._xrRotYOffset += Math.PI / 4;
+      if (this.modelPivot) {
+        this.modelPivot.rotation.y = this._xrRotYOffset;
+        this.syncSunTransform({ updateShadow: true });
+      }
+    });
+    btnExit.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.stopWebXrAR();
+    });
+
+    bar.append(btnSmaller, btnBigger, btnRotate, btnExit);
+    overlay.append(statusPill, bar);
+    document.body.appendChild(overlay);
+    return { overlay, statusPill };
+  }
+
+  startWebXrAR() {
+    if (!navigator.xr || !this.renderer || !this.scene || !this.modelPivot) {
+      this.openArModal({ modeHint: 'webxr-unavailable' });
+      return;
+    }
+    if (this._xrSession) return;
+
+    this.closeArModal();
+    this.stopCameraAR({ silent: true });
+    if (this.isAerialMode) {
+      this.exitAerialScanMode();
+    }
+    this.restoreModelRevealState();
+
+    const { overlay, statusPill } = this.buildWebXrOverlayDom();
+    this._xrOverlayEl = overlay;
+
+    navigator.xr
+      .requestSession('immersive-ar', {
+        optionalFeatures: ['hit-test', 'dom-overlay', 'local-floor'],
+        domOverlay: { root: overlay }
+      })
+      .then((session) => {
+        if (!this.isConnected) {
+          session.end().catch(() => {});
+          return;
+        }
+        this._xrSession = session;
+        this._xrHitTestSource = null;
+        this._xrHitTestRequested = false;
+        this._xrPlaced = false;
+        this._xrScaleFactor = 1;
+        this._xrRotYOffset = 0;
+
+        if (this.animationFrameId) {
+          cancelAnimationFrame(this.animationFrameId);
+          this.animationFrameId = null;
+        }
+
+        const arBaseScale = this.computeArUnitScale();
+        this._xrSavedState = {
+          pivotPos: this.modelPivot.position.clone(),
+          pivotScale: this.modelPivot.scale.clone(),
+          pivotRotY: this.modelPivot.rotation.y,
+          autoRotate: this.autoRotate,
+          controlsEnabled: this.controls ? this.controls.enabled : true,
+          cameraPos: this.camera.position.clone(),
+          cameraTarget: this.controls ? this.controls.target.clone() : new window.THREE.Vector3(),
+          arBaseScale
+        };
+
+        this.autoRotate = false;
+        if (this.controls) this.controls.enabled = false;
+
+        this.scene.background = null;
+        this.renderer.setClearColor(0x000000, 0);
+        this.modelPivot.scale.setScalar(arBaseScale);
+        this.modelPivot.rotation.set(0, 0, 0);
+        this.modelPivot.position.set(0, -0.35, -1.5);
+        this.syncSunTransform({ updateShadow: true });
+
+        const reticleGeo = new window.THREE.RingGeometry(0.09, 0.13, 32).rotateX(-Math.PI / 2);
+        const reticleMat = new window.THREE.MeshBasicMaterial({
+          color: 0x22c55e,
+          side: window.THREE.DoubleSide,
+          transparent: true,
+          opacity: 0.9
+        });
+        this._xrReticle = new window.THREE.Mesh(reticleGeo, reticleMat);
+        this._xrReticle.matrixAutoUpdate = false;
+        this._xrReticle.visible = false;
+        this.scene.add(this._xrReticle);
+
+        this._xrController = this.renderer.xr.getController(0);
+        this._onXrSelect = () => {
+          if (this._xrReticle && this._xrReticle.visible && this.modelPivot) {
+            this.modelPivot.position.setFromMatrixPosition(this._xrReticle.matrix);
+            this._xrPlaced = true;
+            this.syncSunTransform({ updateShadow: true });
+            if (statusPill) {
+              statusPill.textContent = 'Modelo colocado · Toca otra superficie para moverlo';
+            }
+          }
+        };
+        this._xrController.addEventListener('select', this._onXrSelect);
+        this.scene.add(this._xrController);
+
+        session.addEventListener('end', () => {
+          this.cleanupWebXrState();
+        });
+
+        this.renderer.xr.enabled = true;
+        this.renderer.xr.setReferenceSpaceType('local');
+        this.renderer.xr.setSession(session);
+
+        this.dispatchEvent(new CustomEvent('ar-status', {
+          detail: { platform: 'webxr', icon: 'smartphone', message: 'Sesión AR espacial iniciada (WebXR)' }
+        }));
+
+        this.renderer.setAnimationLoop((timestamp, frame) => {
+          if (frame) {
+            const refSpace = this.renderer.xr.getReferenceSpace();
+            const activeSession = this.renderer.xr.getSession();
+            if (!this._xrHitTestRequested && activeSession) {
+              this._xrHitTestRequested = true;
+              activeSession
+                .requestReferenceSpace('viewer')
+                .then((viewerSpace) => activeSession.requestHitTestSource({ space: viewerSpace }))
+                .then((source) => {
+                  this._xrHitTestSource = source;
+                })
+                .catch(() => {
+                  this._xrHitTestSource = null;
+                });
+            }
+            if (this._xrHitTestSource && refSpace && this._xrReticle) {
+              const results = frame.getHitTestResults(this._xrHitTestSource);
+              if (results.length > 0) {
+                const pose = results[0].getPose(refSpace);
+                if (pose) {
+                  this._xrReticle.visible = true;
+                  this._xrReticle.matrix.fromArray(pose.transform.matrix);
+                }
+              } else {
+                this._xrReticle.visible = false;
+              }
+            }
+          }
+          this.renderer.render(this.scene, this.camera);
+        });
+      })
+      .catch(() => {
+        if (this._xrOverlayEl) {
+          this._xrOverlayEl.remove();
+          this._xrOverlayEl = null;
+        }
+        const env = this.getArEnvironmentInfo();
+        if (env.isAndroid && env.isHttpsOrigin && !env.isLocalHost && env.absArModelUrl) {
+          this.triggerAndroidSceneViewer(env.absArModelUrl);
+        } else {
+          this.openArModal({ modeHint: 'webxr-denied' });
+        }
+      });
+  }
+
+  stopWebXrAR() {
+    if (this._xrSession) {
+      const s = this._xrSession;
+      this._xrSession = null;
+      s.end().catch(() => {
+        this.cleanupWebXrState();
+      });
+      return;
+    }
+    this.cleanupWebXrState();
+  }
+
+  cleanupWebXrState() {
+    this._xrSession = null;
+    this._xrHitTestSource = null;
+    this._xrHitTestRequested = false;
+
+    if (this.renderer) {
+      this.renderer.setAnimationLoop(null);
+      this.renderer.xr.enabled = false;
+    }
+    if (this._xrReticle) {
+      if (this._xrReticle.parent) this._xrReticle.parent.remove(this._xrReticle);
+      if (this._xrReticle.geometry) this._xrReticle.geometry.dispose();
+      if (this._xrReticle.material) this._xrReticle.material.dispose();
+      this._xrReticle = null;
+    }
+    if (this._xrController) {
+      if (this._onXrSelect) {
+        this._xrController.removeEventListener('select', this._onXrSelect);
+      }
+      if (this._xrController.parent) this._xrController.parent.remove(this._xrController);
+      this._xrController = null;
+      this._onXrSelect = null;
+    }
+    if (this._xrOverlayEl) {
+      this._xrOverlayEl.remove();
+      this._xrOverlayEl = null;
+    }
+    if (this._xrSavedState) {
+      const st = this._xrSavedState;
+      this._xrSavedState = null;
+      if (this.modelPivot) {
+        this.modelPivot.position.copy(st.pivotPos);
+        this.modelPivot.scale.copy(st.pivotScale);
+        this.modelPivot.rotation.y = st.pivotRotY;
+      }
+      this.autoRotate = st.autoRotate;
+      this.updateRotateButtonLabel();
+      if (this.controls) {
+        this.controls.enabled = st.controlsEnabled;
+        this.controls.target.copy(st.cameraTarget);
+      }
+      if (this.camera) {
+        this.camera.position.copy(st.cameraPos);
+      }
+      if (this.controls) this.controls.update();
+      this.applyBackgroundStyle();
+      this.syncSunTransform({ updateShadow: true });
+    }
+    this.requestRender({ durationMs: 1000 });
+  }
+
+  async startCameraAR({ keepScale = false } = {}) {
+    const videoEl = this.shadowRoot && this.shadowRoot.getElementById('ar-camera-video');
+    if (!videoEl) return;
+
+    const env = this.getArEnvironmentInfo();
+    if (!env.hasCameraApi) {
+      const msg = env.isHttpsOrigin
+        ? 'Tu navegador no permite acceso a cámara en este contexto.'
+        : 'La cámara web en móvil requiere abrir la vista por HTTPS (o localhost en PC).';
+      this.showToastMessage(msg, 4800, 'alert-triangle');
+      this.dispatchEvent(new CustomEvent('ar-status', { detail: { platform: 'camera', icon: 'alert-triangle', message: msg } }));
       return;
     }
 
-    if (isIOS && this.currentModel) {
-      try {
-        this.restoreModelRevealState();
-        this.showToastMessage('📱 Preparando modelo USDZ para AR Quick Look...', 3500);
-        if (!window.THREE.USDZExporter) {
-          await this.loadScript('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/USDZExporter.js');
-        }
-        const hiddenVis = [];
-        for (const obj of [
-          ...this.smartEdgeLines,
-          ...this.allEdgeLines,
-          ...(this.aerialQrMesh ? [this.aerialQrMesh] : []),
-          ...(this.aerialQrBackingMesh ? [this.aerialQrBackingMesh] : []),
-          ...(this.aerialBlocksMesh ? [this.aerialBlocksMesh] : [])
-        ]) {
-          if (obj.visible) {
-            hiddenVis.push(obj);
-            obj.visible = false;
-          }
-        }
-        const exporter = new window.THREE.USDZExporter();
-        const arraybuffer = await exporter.parse(this.currentModel);
-        for (const l of hiddenVis) l.visible = true;
-
-        const blob = new Blob([arraybuffer], { type: 'model/vnd.usdz+zip' });
-        const usdzUrl = URL.createObjectURL(blob);
-        const anchor = document.createElement('a');
-        anchor.setAttribute('rel', 'ar');
-        anchor.setAttribute('download', 'modelo-3d.usdz');
-        anchor.setAttribute('href', usdzUrl);
-        anchor.appendChild(document.createElement('img'));
-        document.body.appendChild(anchor);
-        anchor.click();
-        anchor.remove();
-        setTimeout(() => URL.revokeObjectURL(usdzUrl), 12000);
-        this.dispatchEvent(new CustomEvent('ar-status', { detail: { platform: 'ios', message: '📱 Abriendo AR Quick Look en iOS' } }));
-        return;
-      } catch (err) {
-        const errMsg = `⚠️ No se pudo abrir AR en iOS: ${err.message}`;
-        this.showToastMessage(errMsg, 4200);
-        this.dispatchEvent(new CustomEvent('ar-status', { detail: { platform: 'ios', error: err.message, message: errMsg } }));
+    try {
+      this.stopCameraAR({ silent: true, keepUiState: keepScale });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: this._arCameraFacing } },
+        audio: false
+      });
+      if (!this.isConnected) {
+        stream.getTracks().forEach((t) => t.stop());
         return;
       }
-    }
+      this._arCameraStream = stream;
+      this._isCameraArActive = true;
+      videoEl.srcObject = stream;
+      await videoEl.play().catch(() => {});
 
-    const desktopMsg = '📱 AR funciona en celulares Android/iOS: escanea el QR desde tu teléfono y toca "Ver en AR"';
-    this.showToastMessage(desktopMsg, 4800);
-    this.dispatchEvent(new CustomEvent('ar-status', { detail: { platform: 'desktop', message: desktopMsg } }));
+      if (this.isAerialMode) {
+        this.exitAerialScanMode();
+      }
+      this.restoreModelRevealState();
+      if (!keepScale && this.modelPivot) {
+        this._arCameraBaseScale = this.modelPivot.scale.x || 1;
+      }
+      this.closeArModal();
+
+      const host = this.shadowRoot && this.shadowRoot.host;
+      if (host) host.classList.add('ar-camera-active');
+      if (this.scene) this.scene.background = null;
+      if (this.renderer) this.renderer.setClearColor(0x000000, 0);
+      this.requestRender({ durationMs: 1000 });
+
+      const msg = 'Cámara AR activa · Arrastra para rotar y usa pellizco/rueda para acercar';
+      this.showToastMessage(msg, 3600, 'camera');
+      this.dispatchEvent(new CustomEvent('ar-status', { detail: { platform: 'camera', icon: 'camera', message: msg } }));
+    } catch (err) {
+      const msg = `No se pudo iniciar la cámara: ${err.message || 'permiso denegado'}`;
+      this.showToastMessage(msg, 4500, 'alert-triangle');
+      this.dispatchEvent(new CustomEvent('ar-status', { detail: { platform: 'camera', icon: 'alert-triangle', error: err.message, message: msg } }));
+    }
   }
 
-  showToastMessage(text, durationMs = 3500) {
+  stopCameraAR({ silent = false, keepUiState = false } = {}) {
+    if (this._arCameraStream) {
+      for (const track of this._arCameraStream.getTracks()) {
+        track.stop();
+      }
+      this._arCameraStream = null;
+    }
+    const videoEl = this.shadowRoot && this.shadowRoot.getElementById('ar-camera-video');
+    if (videoEl) {
+      videoEl.srcObject = null;
+    }
+    if (keepUiState) return;
+
+    this._isCameraArActive = false;
+    const host = this.shadowRoot && this.shadowRoot.host;
+    if (host) host.classList.remove('ar-camera-active');
+    if (this.modelPivot && Number.isFinite(this._arCameraBaseScale)) {
+      this.modelPivot.scale.setScalar(this._arCameraBaseScale);
+    }
+    this.applyBackgroundStyle();
+    this.requestRender({ durationMs: 600 });
+    if (!silent) {
+      this.showToastMessage('Modo Cámara AR cerrado', 2400, 'camera');
+    }
+  }
+
+  openArModal({ modeHint = 'auto' } = {}) {
+    const modal = this.shadowRoot && this.shadowRoot.getElementById('ar-modal');
+    const descEl = this.shadowRoot && this.shadowRoot.getElementById('ar-modal-desc');
+    const warnEl = this.shadowRoot && this.shadowRoot.getElementById('ar-modal-warn');
+    const qrBox = this.shadowRoot && this.shadowRoot.getElementById('ar-modal-qr-box');
+    const qrImg = this.shadowRoot && this.shadowRoot.getElementById('ar-modal-qr-img');
+    const urlInput = this.shadowRoot && this.shadowRoot.getElementById('ar-modal-url-input');
+    const actionsEl = this.shadowRoot && this.shadowRoot.getElementById('ar-modal-actions');
+    if (!modal || !descEl || !warnEl || !actionsEl) return;
+
+    const env = this.getArEnvironmentInfo();
+    const viewUrl = this.getPublicViewUrl();
+    const viewQrEndpoint = this.getEndpoint('viewQr');
+
+    if (urlInput) urlInput.value = viewUrl;
+    if (qrImg && viewQrEndpoint) {
+      qrImg.src = `${viewQrEndpoint}?t=${Date.now()}`;
+      if (qrBox) qrBox.style.display = 'flex';
+    } else if (qrBox) {
+      qrBox.style.display = 'none';
+    }
+
+    if (env.isIOS) {
+      descEl.textContent = env.isNonSafariIos
+        ? 'Estás usando un navegador distinto a Safari en iPhone/iPad. Para abrir la cámara AR nativa (Quick Look) toca el botón inferior o abre este enlace en Safari.'
+        : 'Toca "Abrir en AR Quick Look" para proyectar el modelo en tu entorno con la cámara de iOS.';
+    } else if (env.isAndroid) {
+      descEl.textContent = 'Elige cómo abrir Realidad Aumentada en tu Android: WebXR en el navegador, Google Scene Viewer nativo o vista previa con cámara.';
+    } else {
+      descEl.textContent = 'Para proyectar el modelo sobre una mesa o piso real, escanea este QR con tu celular Android o iPhone. También puedes probar la vista previa con tu cámara web aquí mismo.';
+    }
+
+    let warningText = '';
+    if (env.isLocalHost || !env.isHttpsOrigin) {
+      warningText = 'Estás en entorno local/HTTP. Android Scene Viewer, WebXR y la cámara en celulares exigen abrir la vista mediante una URL pública HTTPS (ej. túnel HTTPS o servidor desplegado).';
+    } else if (modeHint === 'webxr-denied') {
+      warningText = 'No se pudo iniciar WebXR en este navegador. Prueba con Google Scene Viewer o abre el enlace en Chrome actualizado.';
+    }
+    warnEl.textContent = warningText;
+    warnEl.style.display = warningText ? 'block' : 'none';
+
+    actionsEl.innerHTML = '';
+
+    if (env.isIOS && env.absUsdzUrl) {
+      const iosBtn = this.createIosQuickLookAnchor(env.absUsdzUrl, {
+        labelText: 'Abrir en AR Quick Look (iOS)',
+        className: 'ar-btn-primary'
+      });
+      actionsEl.appendChild(iosBtn);
+    }
+
+    if (env.isAndroid && env.webXrSupported) {
+      const xrBtn = document.createElement('button');
+      xrBtn.type = 'button';
+      xrBtn.className = 'ar-btn-primary';
+      xrBtn.innerHTML = `${renderIcon('scan', { size: 15 })}<span>Iniciar AR Espacial (WebXR)</span>`;
+      xrBtn.addEventListener('click', () => this.startWebXrAR());
+      actionsEl.appendChild(xrBtn);
+    }
+
+    if (env.isAndroid && env.absArModelUrl) {
+      const svBtn = document.createElement('a');
+      svBtn.className = env.webXrSupported ? 'ar-btn-secondary' : 'ar-btn-primary';
+      svBtn.href = this.buildAndroidSceneViewerIntent(env.absArModelUrl);
+      svBtn.innerHTML = `${renderIcon('smartphone', { size: 15 })}<span>Abrir en Google Scene Viewer</span>`;
+      actionsEl.appendChild(svBtn);
+    }
+
+    if (env.hasCameraApi) {
+      const camBtn = document.createElement('button');
+      camBtn.type = 'button';
+      camBtn.className = (!env.isMobile) ? 'ar-btn-primary' : 'ar-btn-secondary';
+      camBtn.innerHTML = `${renderIcon('camera', { size: 15 })}<span>Vista previa con Cámara aquí</span>`;
+      camBtn.addEventListener('click', () => this.startCameraAR());
+      actionsEl.appendChild(camBtn);
+    }
+
+    this._arModalOpen = true;
+    modal.classList.add('open');
+
+    const statusMsg = env.isMobile
+      ? 'Opciones de Realidad Aumentada abiertas'
+      : 'Escanea el QR con tu celular o prueba la cámara web';
+    this.dispatchEvent(new CustomEvent('ar-status', {
+      detail: { platform: env.isIOS ? 'ios' : (env.isAndroid ? 'android' : 'desktop'), icon: 'smartphone', message: statusMsg }
+    }));
+  }
+
+  closeArModal() {
+    this._arModalOpen = false;
+    const modal = this.shadowRoot && this.shadowRoot.getElementById('ar-modal');
+    if (modal) modal.classList.remove('open');
+  }
+
+  launchAR() {
+    const modelEndpoint = this.getEndpoint('model');
+    if (!modelEndpoint) {
+      this.showToastMessage('Aún no hay un modelo 3D disponible para AR', 3500, 'alert-triangle');
+      return;
+    }
+
+    const env = this.getArEnvironmentInfo();
+
+    if (env.isIOS && env.absUsdzUrl) {
+      if (env.isNonSafariIos) {
+        this.openArModal({ modeHint: 'ios-browser' });
+        return;
+      }
+      this.triggerIosQuickLook(env.absUsdzUrl);
+      return;
+    }
+
+    if (env.isAndroid) {
+      if (env.webXrSupported) {
+        this.startWebXrAR();
+        return;
+      }
+      if (env.isHttpsOrigin && !env.isLocalHost && env.absArModelUrl) {
+        this.triggerAndroidSceneViewer(env.absArModelUrl);
+        return;
+      }
+      this.openArModal({ modeHint: 'android-http' });
+      return;
+    }
+
+    this.openArModal({ modeHint: 'desktop' });
+  }
+
+  showToastMessage(text, durationMs = 3500, iconName = null) {
     const toast = this.shadowRoot.getElementById('scan-toast');
     if (!toast) return;
-    if (text) toast.textContent = text;
+    if (text) {
+      toast.innerHTML = '';
+      if (iconName) {
+        const iconWrap = document.createElement('span');
+        iconWrap.style.display = 'inline-flex';
+        iconWrap.style.alignItems = 'center';
+        iconWrap.innerHTML = renderIcon(iconName, { size: 15 });
+        toast.appendChild(iconWrap);
+      }
+      toast.appendChild(document.createTextNode(text));
+    }
     toast.classList.add('show');
     if (this._arToastTimer) clearTimeout(this._arToastTimer);
     this._arToastTimer = setTimeout(() => {
@@ -3501,7 +4429,7 @@ class Qr3dViewer extends HTMLElement {
   }
 
   showScanToast() {
-    this.showToastMessage('✨ ¡QR escaneado! Nuevo código activo', 3500);
+    this.showToastMessage('¡QR escaneado! Nuevo código activo', 3500, 'sparkles');
   }
 }
 

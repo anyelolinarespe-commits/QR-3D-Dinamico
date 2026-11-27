@@ -7,9 +7,17 @@
 
   <!-- Google model-viewer -->
   <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+  <script type="module">
+    import { hydrateIcons } from '/widget/icons.js';
+    window.__hydrateIcons = hydrateIcons;
+    window.addEventListener('DOMContentLoaded', () => hydrateIcons(document));
+    hydrateIcons(document);
+  </script>
 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    .ui-inline { display: inline-flex; align-items: center; gap: 6px; }
+    .ui-icon { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
 
     :root {
       --terracota: #9a2e1e;
@@ -43,7 +51,7 @@
       gap: 12px;
     }
     .header-left { display: flex; align-items: center; gap: 14px; }
-    .header-left .icon { font-size: 32px; line-height: 1; }
+    .header-left .icon { display: inline-flex; align-items: center; justify-content: center; color: var(--gold-lt); }
     .header-left h1 { font-size: 18px; font-weight: 800; color: var(--gold-lt); line-height: 1.2; }
     .header-left p  { font-size: 12px; color: var(--muted); margin-top: 2px; }
     .badges { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -116,6 +124,7 @@
     .sidebar-section h3 {
       font-size: 11px; font-weight: 700; text-transform: uppercase;
       letter-spacing: 1px; color: var(--gold); margin-bottom: 12px;
+      display: flex; align-items: center; gap: 6px;
     }
 
     /* Camera presets */
@@ -129,7 +138,8 @@
       text-align: left;
     }
     .cam-btn:hover { background: rgba(154,46,30,.40); border-color: var(--terracota); }
-    .cam-btn .emo { font-size: 16px; display: block; margin-bottom: 4px; }
+    .cam-btn .emo { display: inline-flex; align-items: center; margin-bottom: 5px; color: var(--gold-lt); }
+    .cam-btn > span:last-child { display: block; }
 
     /* Info cards */
     .info-card {
@@ -140,7 +150,7 @@
       font-size: 13px; line-height: 1.55;
     }
     .info-card:last-child { margin-bottom: 0; }
-    .info-card strong { color: var(--gold-lt); display: block; margin-bottom: 4px; }
+    .info-card strong { color: var(--gold-lt); display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
 
     /* Stats */
     .stat-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,.05); font-size: 13px; }
@@ -172,7 +182,7 @@
   <!-- HEADER ─────────────────────────────────────────────────── -->
   <header>
     <div class="header-left">
-      <span class="icon">🏛️</span>
+      <span class="icon" data-icon="landmark" data-size="30"></span>
       <div>
         <h1>Museo Tumbas Reales de Sipán</h1>
         <p>Reconstrucción 3D · Ejemplo 2 — Versión Arquitectónica Mejorada</p>
@@ -214,6 +224,9 @@
         shadow-softness="0.9"
         environment-image="neutral"
         exposure="1.05"
+        ar
+        ar-modes="webxr scene-viewer quick-look"
+        ar-scale="auto"
         touch-action="pan-y"
       >
       </model-viewer>
@@ -224,53 +237,53 @@
 
       <!-- Vistas predefinidas -->
       <div class="sidebar-section">
-        <h3>📷 Vistas de Cámara</h3>
+        <h3><span class="ui-icon" data-icon="camera" data-size="13"></span><span>Vistas de Cámara</span></h3>
         <div class="cam-grid">
           <button class="cam-btn" onclick="setCamera('-35deg 72deg 72m', '0m 5m 0m', '40deg')">
-            <span class="emo">🏔️</span>Perspectiva General
+            <span class="emo" data-icon="mountain" data-size="16"></span><span>Perspectiva General</span>
           </button>
           <button class="cam-btn" onclick="setCamera('0deg 80deg 55m', '0m 3m 5m', '38deg')">
-            <span class="emo">🎭</span>Fachada Frontal
+            <span class="emo" data-icon="landmark" data-size="16"></span><span>Fachada Frontal</span>
           </button>
           <button class="cam-btn" onclick="setCamera('-80deg 68deg 60m', '0m 6m 0m', '36deg')">
-            <span class="emo">🪜</span>Vista Rampa
+            <span class="emo" data-icon="stairs" data-size="16"></span><span>Vista Rampa</span>
           </button>
           <button class="cam-btn" onclick="setCamera('-10deg 25deg 90m', '0m 2m 0m', '50deg')">
-            <span class="emo">🛸</span>Vista Aérea
+            <span class="emo" data-icon="scan" data-size="16"></span><span>Vista Aérea</span>
           </button>
           <button class="cam-btn" onclick="setCamera('10deg 78deg 42m', '7m 4m 5m', '32deg')">
-            <span class="emo">🚪</span>Entrada + Vidrio
+            <span class="emo" data-icon="log-out" data-size="16"></span><span>Entrada + Vidrio</span>
           </button>
           <button class="cam-btn" onclick="setCamera('-25deg 50deg 80m', '-5m 8m -5m', '44deg')">
-            <span class="emo">🏅</span>Frisos Superiores
+            <span class="emo" data-icon="award" data-size="16"></span><span>Frisos Superiores</span>
           </button>
         </div>
       </div>
 
       <!-- Información del edificio -->
       <div class="sidebar-section">
-        <h3>🏺 Datos Arquitectónicos</h3>
+        <h3><span class="ui-icon" data-icon="compass" data-size="13"></span><span>Datos Arquitectónicos</span></h3>
         <div class="info-card">
-          <strong>🏗️ Estructura</strong>
+          <strong><span class="ui-icon" data-icon="building" data-size="14"></span><span>Estructura</span></strong>
           Pirámide truncada en talud a ~54°, dos alas simétricas, pabellón de entrada triangular y muro lateral con pilastras.
         </div>
         <div class="info-card">
-          <strong>🪜 Rampa Monumental</strong>
+          <strong><span class="ui-icon" data-icon="stairs" data-size="14"></span><span>Rampa Monumental</span></strong>
           Recorrido de ~60 m de longitud, barandal metálico, 8 pilastras escalonadas y vestíbulo cenital con lucernario.
         </div>
         <div class="info-card">
-          <strong>🌟 Frisos Iconográficos</strong>
+          <strong><span class="ui-icon" data-icon="sparkles" data-size="14"></span><span>Frisos Iconográficos</span></strong>
           5 cajas con placas de oro: Naylamp, Ai Apaec (medallón solar), sacerdotes danzantes, guerrero alado y araña de oro Moche.
         </div>
         <div class="info-card">
-          <strong>🔷 Vidrio y Lucernario</strong>
+          <strong><span class="ui-icon" data-icon="gem" data-size="14"></span><span>Vidrio y Lucernario</span></strong>
           Celosía romboidal azul en la entrada triangular + pirámide de vidrio cenital con aristas metálicas oscuras.
         </div>
       </div>
 
       <!-- Estadísticas -->
       <div class="sidebar-section">
-        <h3>📊 Estadísticas del Modelo</h3>
+        <h3><span class="ui-icon" data-icon="bar-chart" data-size="13"></span><span>Estadísticas del Modelo</span></h3>
         <div class="stat-row"><span>Formato</span><span class="stat-val">GLB (binario)</span></div>
         <div class="stat-row"><span>Tamaño</span><span class="stat-val">3.36 MB</span></div>
         <div class="stat-row"><span>Motor</span><span class="stat-val">Three.js r128</span></div>
@@ -282,16 +295,16 @@
 
       <!-- Acciones -->
       <div class="sidebar-section">
-        <h3>⚡ Acciones</h3>
+        <h3><span class="ui-icon" data-icon="zap" data-size="13"></span><span>Acciones</span></h3>
         <div class="btn-row">
           <a id="btn-download" href="models/sipan_v2.glb" download="museo_sipan_v2.glb" class="btn-action btn-dl">
-            ⬇️ Descargar GLB
+            <span class="ui-icon" data-icon="download" data-size="15"></span><span>Descargar GLB</span>
           </a>
           <a href="/example/museo-sipan.html" class="btn-action btn-ex1">
-            🏛️ Ver Ejemplo 1 (V1 PBR)
+            <span class="ui-icon" data-icon="landmark" data-size="15"></span><span>Ver Ejemplo 1 (V1 PBR)</span>
           </a>
           <a href="/example/" class="btn-action btn-idx">
-            ← Volver al inicio
+            <span class="ui-icon" data-icon="arrow-left" data-size="15"></span><span>Volver al inicio</span>
           </a>
         </div>
       </div>
@@ -314,7 +327,10 @@
       overlay.classList.add('hidden');
     });
     mv.addEventListener('error', () => {
-      overlay.querySelector('.loader-label').textContent = '⚠️ Error al cargar el modelo';
+      const lbl = overlay.querySelector('.loader-label');
+      lbl.innerHTML = '<span class="ui-icon" data-icon="alert-triangle" data-size="16"></span><span>Error al cargar el modelo</span>';
+      lbl.classList.add('ui-inline');
+      if (window.__hydrateIcons) window.__hydrateIcons(lbl);
       overlay.querySelector('.loader-sub').textContent   = 'Verifica que el servidor esté activo';
       overlay.querySelector('.loader-ring').style.display = 'none';
     });

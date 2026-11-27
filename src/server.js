@@ -97,17 +97,17 @@ async function bootstrap() {
     startQrRotationScheduler(1000);
     const dbStatus = db.getStatus();
     if (!dbStatus.ready) {
-      console.error(`\n⛔ ADVERTENCIA CRÍTICA: El servicio HTTP inició, pero la base de datos NO se activó (${dbStatus.error}).`);
+      console.error(`\n[ERROR] ADVERTENCIA CRÍTICA: El servicio HTTP inició, pero la base de datos NO se activó (${dbStatus.error}).`);
       console.error('   Las rutas API devolverán 503 SERVICE_INACTIVE hasta activar la base de datos.\n');
     } else {
       console.log(
-        `💾 Base de datos activa (${dbStatus.engine}): ${dbStatus.startupStats.savedFiles} archivo(s) y ${dbStatus.startupStats.qrItems} QR(s) cargados.`
+        `[DB] Base de datos activa (${dbStatus.engine}): ${dbStatus.startupStats.savedFiles} archivo(s) y ${dbStatus.startupStats.qrItems} QR(s) cargados.`
       );
     }
-    console.log(`\n🚀 Servidor API 3D-QR escuchando en http://localhost:${config.port}`);
-    console.log(`📱 Widget JS disponible en: http://localhost:${config.port}/widget/3dqr-viewer.js`);
-    console.log(`🖥️  Panel Administrativo en: http://localhost:${config.port}/admin/`);
-    console.log(`🎪 Proyecto de Ejemplo en: http://localhost:${config.port}/example/\n`);
+    console.log(`\n[API] Servidor API 3D-QR escuchando en http://localhost:${config.port}`);
+    console.log(`[WIDGET] Widget JS disponible en: http://localhost:${config.port}/widget/3dqr-viewer.js`);
+    console.log(`[ADMIN] Panel Administrativo en: http://localhost:${config.port}/admin/`);
+    console.log(`[DEMO] Proyecto de Ejemplo en: http://localhost:${config.port}/example/\n`);
   } catch (err) {
     server.log.error(err);
     process.exit(1);

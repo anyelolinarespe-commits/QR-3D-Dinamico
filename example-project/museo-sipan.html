@@ -7,8 +7,16 @@
   
   <!-- Google <model-viewer> (Web Component estándar de alto rendimiento) -->
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+  <script type="module">
+    import { hydrateIcons } from '/widget/icons.js';
+    window.__hydrateIcons = hydrateIcons;
+    window.addEventListener('DOMContentLoaded', () => hydrateIcons(document));
+    hydrateIcons(document);
+  </script>
 
   <style>
+    .ui-inline { display: inline-flex; align-items: center; gap: 6px; }
+    .ui-icon { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
     * {
       box-sizing: border-box;
       margin: 0;
@@ -280,23 +288,23 @@
     <header>
       <div class="title-group">
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
-          <span style="background: rgba(223, 166, 52, 0.2); border: 1px solid #dfa634; color: #ffd782; font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 9999px;">
-            ✨ VERSIÓN 2.0 HD PBR (2.58 MB)
+          <span class="ui-inline" style="background: rgba(223, 166, 52, 0.2); border: 1px solid #dfa634; color: #ffd782; font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 9999px;">
+            <span class="ui-icon" data-icon="sparkles" data-size="12"></span><span>VERSIÓN 2.0 HD PBR (2.58 MB)</span>
           </span>
           <span style="font-size: 12px; color: #86efac; font-weight: 600;">● Texturizado con Iconografía Mochica</span>
         </div>
-        <h1>🏛️ Museo Tumbas Reales de Sipán</h1>
+        <h1 class="ui-inline" style="gap:10px;"><span class="ui-icon" data-icon="landmark" data-size="24" style="color:#ffd782;"></span><span>Museo Tumbas Reales de Sipán</span></h1>
         <p>Lambayeque, Perú — Reconstrucción 3D Técnica PBR con Relieves e Iconografía Auténtica</p>
       </div>
       <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
         <a href="/example/sipan-ejemplo2.html" class="back-btn" style="background: rgba(223, 166, 52, 0.2); border-color: #dfa634; color: #ffd782;">
-          🏛️ Ver Ejemplo 2 (V2 HD Plus) →
+          <span class="ui-icon" data-icon="landmark" data-size="14"></span><span>Ver Ejemplo 2 (V2 HD Plus)</span><span class="ui-icon" data-icon="arrow-right" data-size="13"></span>
         </a>
         <a href="models/museo_sipan.glb" download="museo_sipan_v2_pbr.glb" class="back-btn" style="background: rgba(34, 197, 94, 0.15); border-color: rgba(34, 197, 94, 0.4); color: #86efac;">
-          📥 Descargar .GLB (2.58 MB)
+          <span class="ui-icon" data-icon="download" data-size="14"></span><span>Descargar .GLB (2.58 MB)</span>
         </a>
         <a href="/example/" class="back-btn">
-          ← Volver a Cartelería QR
+          <span class="ui-icon" data-icon="arrow-left" data-size="14"></span><span>Volver a Cartelería QR</span>
         </a>
       </div>
     </header>
@@ -333,6 +341,9 @@
         shadow-intensity="1.2"
         shadow-softness="0.8"
         exposure="1.15"
+        ar
+        ar-modes="webxr scene-viewer quick-look"
+        ar-scale="auto"
         interaction-prompt="auto">
       </model-viewer>
 
@@ -340,28 +351,28 @@
       <div class="controls-overlay">
         <div class="presets-group">
           <button class="control-btn active" onclick="setCameraView('35deg', '70deg', '62m', '2m 6m 4m', this)">
-            🎬 Vista Presentación
+            <span class="ui-icon" data-icon="film" data-size="14"></span><span>Vista Presentación</span>
           </button>
           <button class="control-btn" onclick="setCameraView('0deg', '75deg', '48m', '-4m 7m 3m', this)">
-            🏛️ Fachada Principal
+            <span class="ui-icon" data-icon="landmark" data-size="14"></span><span>Fachada Principal</span>
           </button>
           <button class="control-btn" onclick="setCameraView('62deg', '68deg', '52m', '14m 6m 6m', this)">
-            🚶 Rampa Ceremonial
+            <span class="ui-icon" data-icon="stairs" data-size="14"></span><span>Rampa Ceremonial</span>
           </button>
           <button class="control-btn" onclick="setCameraView('15deg', '78deg', '28m', '7m 4m 7m', this)">
-            🔷 Celosía y Entrada
+            <span class="ui-icon" data-icon="gem" data-size="14"></span><span>Celosía y Entrada</span>
           </button>
           <button class="control-btn" onclick="setCameraView('10deg', '45deg', '85m', '2m 2m 2m', this)">
-            🦅 Vista Aérea
+            <span class="ui-icon" data-icon="scan" data-size="14"></span><span>Vista Aérea</span>
           </button>
         </div>
 
         <div class="tools-group">
           <button id="rotateToggleBtn" class="control-btn" onclick="toggleAutoRotate()">
-            ⏸️ Pausar Giro
+            <span class="ui-icon" data-icon="pause" data-size="14"></span><span>Pausar Giro</span>
           </button>
           <button class="control-btn" onclick="resetView()">
-            🔄 Reiniciar
+            <span class="ui-icon" data-icon="refresh" data-size="14"></span><span>Reiniciar</span>
           </button>
         </div>
       </div>
@@ -370,25 +381,25 @@
     <!-- Ficha Técnica y Detalles del Edificio -->
     <div class="info-grid">
       <div class="info-card">
-        <h3>🟥 Rojo Terracota Mochica</h3>
+        <h3><span class="ui-icon" data-icon="swatch-terracota" data-size="16"></span><span>Rojo Terracota Mochica</span></h3>
         <p>Inspirado en el cinabrio y los murales polícromos de adobe sagrado. Material mate con rugosidad 0.82 para evitar reflejos plásticos indeseados.</p>
         <span class="badge-pbr">Material PBR Mate</span>
       </div>
 
       <div class="info-card">
-        <h3>👑 Frisos y Oro Ceremonial</h3>
+        <h3><span class="ui-icon" data-icon="crown" data-size="16"></span><span>Frisos y Oro Ceremonial</span></h3>
         <p>5 cajas en voladizo sobre la cresta del talud representando al dios Naylamp con tocado semilunar, el medallón solar y sacerdotes guerreros.</p>
         <span class="badge-pbr">Orfebrería Satinada 0.90 Met</span>
       </div>
 
       <div class="info-card">
-        <h3>🔷 Celosía de Vidrio Azul</h3>
+        <h3><span class="ui-icon" data-icon="gem" data-size="16"></span><span>Celosía de Vidrio Azul</span></h3>
         <p>Pabellón de entrada triangular con cerramiento de vidrio azul cobalto translúcido y celosía romboidal, acompañado del lucernario cenital superior.</p>
         <span class="badge-pbr">Vidrio Físico Transmission 0.76</span>
       </div>
 
       <div class="info-card">
-        <h3>⚡ Optimización y Peso</h3>
+        <h3><span class="ui-icon" data-icon="zap" data-size="16"></span><span>Optimización y Peso</span></h3>
         <p>Geometría paramétrica controlada por código Three.js. Exportado a estándar GLB con apenas <strong>311 KB</strong> (< 5 MB), ideal para dispositivos móviles.</p>
         <span class="badge-pbr">Ultraligero ~0.30 MB</span>
       </div>
@@ -429,7 +440,10 @@
     // Alternar auto-rotación
     function toggleAutoRotate() {
       viewer.autoRotate = !viewer.autoRotate;
-      rotateBtn.innerHTML = viewer.autoRotate ? '⏸️ Pausar Giro' : '▶️ Reanudar Giro';
+      rotateBtn.innerHTML = viewer.autoRotate
+        ? '<span class="ui-icon" data-icon="pause" data-size="14"></span><span>Pausar Giro</span>'
+        : '<span class="ui-icon" data-icon="play" data-size="14"></span><span>Reanudar Giro</span>';
+      if (window.__hydrateIcons) window.__hydrateIcons(rotateBtn);
     }
 
     // Reiniciar vista

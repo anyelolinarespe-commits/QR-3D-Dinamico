@@ -1,4 +1,4 @@
-# 🧊 API 3D-QR — QRs Tridimensionales Dinámicos y Desechables
+# API 3D-QR — QRs Tridimensionales Dinámicos y Desechables
 
 API REST de alto rendimiento y escalabilidad multi-inquilino para la creación, manipulación y visualización de **códigos QR incrustados en modelos 3D interactivos**.
 
@@ -6,7 +6,7 @@ Diseñada para cartelería digital, stands de eventos, accesos VIP y productos f
 
 ---
 
-## 🌟 Características Principales
+## Características Principales
 
 1. **Modelos 3D Interactivos (Three.js):**
    - Soporte para **GLB, glTF, OBJ, FBX y STL** (hasta 100 MB).
@@ -33,7 +33,7 @@ Diseñada para cartelería digital, stands de eventos, accesos VIP y productos f
 
 ---
 
-## 🚀 Inicio Rápido
+## Inicio Rápido
 
 ### Opción A: Desarrollo Local (Node.js)
 
@@ -46,9 +46,9 @@ npm start
 ```
 
 El servidor estará disponible en:
-- 🖥️ **Panel Administrativo:** [http://localhost:3000/admin/](http://localhost:3000/admin/)
-- 🎪 **Proyecto de Ejemplo en Vivo:** [http://localhost:3000/example/](http://localhost:3000/example/)
-- 📱 **Widget Embebible:** `http://localhost:3000/widget/3dqr-viewer.js`
+- **Panel Administrativo:** [http://localhost:3000/admin/](http://localhost:3000/admin/)
+- **Proyecto de Ejemplo en Vivo:** [http://localhost:3000/example/](http://localhost:3000/example/)
+- **Widget Embebible:** `http://localhost:3000/widget/3dqr-viewer.js`
 
 ### Opción B: Producción con Docker Compose
 
@@ -59,7 +59,7 @@ Levanta automáticamente la API, PostgreSQL 16 y Redis 7 listos para producción
 
 ---
 
-## 🧪 Pruebas Automatizadas
+## Pruebas Automatizadas
 
 Para ejecutar la suite de pruebas unitarias y de integración:
 
@@ -69,7 +69,7 @@ npm test
 
 ---
 
-## 📡 Referencia de la API REST
+## Referencia de la API REST
 
 ### Autenticación
 Envía tu clave en el encabezado HTTP:
@@ -79,23 +79,23 @@ Envía tu clave en el encabezado HTTP:
 
 | Método | Ruta | Descripción | Auth |
 |--------|------|-------------|------|
-| `POST` | `/api/qr` | Crea un nuevo QR 3D (soporta `target_url` http(s) o `/ruta`, `view_slug`, `link_mode: static \| dynamic`, `rotation_strategy`, `rotation_interval_seconds`, `rotating_urls`) | ✅ Requerido |
-| `GET` | `/api/qr` | Lista todos los QRs del inquilino (incluye `viewUrl`, estado estático/dinámico y conteo diario `summary`) | ✅ Requerido |
-| `GET` | `/api/stats/daily` | Resumen diario global de ingresos al link y personas únicas de hoy | ✅ Requerido |
-| `GET` | `/api/qr/:qrId/daily-stats` | Conteo diario (`dailyScans`, `dailyUniqueVisitors`) e historial por día (`?days=30`) | ✅ Requerido |
+| `POST` | `/api/qr` | Crea un nuevo QR 3D (soporta `target_url` http(s) o `/ruta`, `view_slug`, `link_mode: static \| dynamic`, `rotation_strategy`, `rotation_interval_seconds`, `rotating_urls`) | Requerido |
+| `GET` | `/api/qr` | Lista todos los QRs del inquilino (incluye `viewUrl`, estado estático/dinámico y conteo diario `summary`) | Requerido |
+| `GET` | `/api/stats/daily` | Resumen diario global de ingresos al link y personas únicas de hoy | Requerido |
+| `GET` | `/api/qr/:qrId/daily-stats` | Conteo diario (`dailyScans`, `dailyUniqueVisitors`) e historial por día (`?days=30`) | Requerido |
 | `GET` | `/api/qr/:qrId` | Retorna metadatos de un QR (título, colores, estadísticas diarias/totales, `viewUrl`) | Opcional |
-| `GET` | `/api/qr/:qrId/view-link` | Retorna exclusivamente el link público de vista (`viewUrl`) para sistemas o empresas externas | ✅ Requerido |
-| `PATCH` | `/api/qr/:qrId/view-link` | Edita la ruta pública personalizada (`/view/<view_slug>`) o activa/desactiva `view_enabled` | ✅ Requerido |
-| `POST` | `/api/qr/:qrId/view-link/rotate` | Revoca y regenera el `viewToken` del link público de vista | ✅ Requerido |
-| `PATCH` | `/api/qr/:qrId/link` | Cambia `target_url` (URL o `/ruta`), `view_slug`, `rotating_urls`, modo estático/dinámico, intervalo o visibilidad sin tocar el modelo 3D | ✅ Requerido |
-| `POST` | `/api/qr/:qrId/rotate` | Rota inmediatamente el enlace activo del QR y notifica por SSE | ✅ Requerido |
+| `GET` | `/api/qr/:qrId/view-link` | Retorna exclusivamente el link público de vista (`viewUrl`) para sistemas o empresas externas | Requerido |
+| `PATCH` | `/api/qr/:qrId/view-link` | Edita la ruta pública personalizada (`/view/<view_slug>`) o activa/desactiva `view_enabled` | Requerido |
+| `POST` | `/api/qr/:qrId/view-link/rotate` | Revoca y regenera el `viewToken` del link público de vista | Requerido |
+| `PATCH` | `/api/qr/:qrId/link` | Cambia `target_url` (URL o `/ruta`), `view_slug`, `rotating_urls`, modo estático/dinámico, intervalo o visibilidad sin tocar el modelo 3D | Requerido |
+| `POST` | `/api/qr/:qrId/rotate` | Rota inmediatamente el enlace activo del QR y notifica por SSE | Requerido |
 | `GET` | `/view/:viewToken` | **Vista Pública Unida (Modelo 3D + QR)** solo lectura, aislada del panel administrativo e incrustable en `<iframe>` | Público |
 | `GET` | `/api/qr/:qrId/model` | Descarga el modelo 3D GLB con la textura QR incrustada | Público |
 | `GET` | `/api/qr/:qrId/image` | Retorna la imagen PNG activa del código QR | Público |
 | `GET` | `/api/qr/:qrId/events` | Stream SSE en tiempo real para eventos de recambio | Público |
 | `GET` | `/scan/:qrId` | Endpoint público de escaneo (redirige al destino o marca expirado) | Público |
-| `PUT` | `/api/qr/:qrId` | Actualiza título, URL, estrategia, estilo visual o rota el código manualmente | ✅ Requerido |
-| `DELETE`| `/api/qr/:qrId` | Elimina un item QR | ✅ Requerido |
+| `PUT` | `/api/qr/:qrId` | Actualiza título, URL, estrategia, estilo visual o rota el código manualmente | Requerido |
+| `DELETE`| `/api/qr/:qrId` | Elimina un item QR | Requerido |
 | `GET` | `/health` | Healthcheck del sistema (estado de DB y Redis) | Público |
 
 ### Estrategias de Enlace (Estático vs Dinámico)
@@ -106,7 +106,7 @@ Envía tu clave en el encabezado HTTP:
 
 ---
 
-## 🧩 Integración del Widget Web Component
+## Integración del Widget Web Component
 
 Para incrustar el visor interactivo en cualquier sitio web externo (React, Vue, WordPress, HTML puro):
 
@@ -126,16 +126,16 @@ Para incrustar el visor interactivo en cualquier sitio web externo (React, Vue, 
 
 ---
 
-## 🗂️ Formatos 3D y Generación con IA
+## Formatos 3D y Generación con IA
 
 ### Tabla de Formatos Soportados
 
 | Formato | Programa de Creación | ¿IA puede generarlo? |
 |---------|---------------------|----------------------|
-| **GLB** ✅ | Blender, Sketchfab | ✅ Meshy, Tripo AI |
-| **OBJ** | Blender, Maya, ZBrush | ✅ Meshy, CSM AI |
-| **FBX** | Maya, Cinema 4D | ✅ Meshy (export) |
-| **STL** | Fusion 360, Tinkercad | ⚠️ Sin textura (solo geometría) |
+| **GLB** (Recomendado) | Blender, Sketchfab | Soportado: Meshy, Tripo AI |
+| **OBJ** | Blender, Maya, ZBrush | Soportado: Meshy, CSM AI |
+| **FBX** | Maya, Cinema 4D | Soportado: Meshy (export) |
+| **STL** | Fusion 360, Tinkercad | Limitado: sin textura (solo geometría) |
 
 ### Creación de Modelos con IA (Image → 3D)
 
