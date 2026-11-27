@@ -7,9 +7,17 @@
 
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
   <script type="module" src="/widget/3dqr-viewer.js"></script>
+  <script type="module">
+    import { hydrateIcons } from '/widget/icons.js';
+    window.__hydrateIcons = hydrateIcons;
+    window.addEventListener('DOMContentLoaded', () => hydrateIcons(document));
+    hydrateIcons(document);
+  </script>
 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    .ui-inline { display: inline-flex; align-items: center; gap: 6px; }
+    .ui-icon { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
     :root {
       --terracota: #b84a39;
       --gold: #e5b344;
@@ -42,7 +50,7 @@
     }
 
     .header-left { display: flex; align-items: center; gap: 14px; }
-    .header-left .icon { font-size: 32px; line-height: 1; }
+    .header-left .icon { display: inline-flex; align-items: center; justify-content: center; color: var(--gold-lt); }
     .header-left h1 { font-size: 19px; font-weight: 800; color: var(--gold-lt); }
     .header-left p { font-size: 12px; color: #cbd5e1; margin-top: 2px; }
 
@@ -119,6 +127,9 @@
       font-size: 12px;
       font-weight: 600;
       cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
     .mode-btn.active {
       background: var(--gold);
@@ -157,6 +168,7 @@
     .sidebar-section h3 {
       font-size: 11px; font-weight: 700; text-transform: uppercase;
       letter-spacing: 0.9px; color: var(--gold); margin-bottom: 10px;
+      display: flex; align-items: center; gap: 6px;
     }
 
     .cam-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -166,6 +178,7 @@
       color: var(--text); padding: 8px 10px; border-radius: 8px;
       font-size: 12px; font-weight: 600; cursor: pointer; text-align: left;
       transition: background 0.2s;
+      display: inline-flex; align-items: center; gap: 6px;
     }
     .cam-btn:hover { background: rgba(184, 74, 57, 0.36); }
 
@@ -198,7 +211,7 @@
 <body>
   <header>
     <div class="header-left">
-      <span class="icon">🏛️</span>
+      <span class="icon" data-icon="landmark" data-size="30"></span>
       <div>
         <h1>Museo Tumbas Reales de Sipán — Modelo Integrado</h1>
         <p>Archivo <code>museo_tumbas_reales_sipan.glb</code> integrado en el visor 3D y en la API QR</p>
@@ -207,17 +220,17 @@
     <div class="header-actions">
       <span class="badge badge-new">Integrado en API-3DQR</span>
       <span class="badge badge-glb">GLB · 386.9 KB</span>
-      <a href="/admin/" class="nav-btn">⚙️ Panel Admin</a>
-      <a href="/example/" class="nav-btn primary">← Volver a Cartelería QR</a>
+      <a href="/admin/" class="nav-btn"><span class="ui-icon" data-icon="settings" data-size="13"></span><span>Panel Admin</span></a>
+      <a href="/example/" class="nav-btn primary"><span class="ui-icon" data-icon="arrow-left" data-size="13"></span><span>Volver a Cartelería QR</span></a>
     </div>
   </header>
 
   <div class="layout">
     <div class="viewer-wrap">
       <div class="mode-switch">
-        <button id="btn-mode-model" class="mode-btn active">🏛️ Maqueta 3D Pura</button>
-        <button id="btn-mode-qr" class="mode-btn">🧊 Con QR 3D en Vivo</button>
-        <button id="btn-mode-aerial" class="mode-btn">🛸 Escanear 90°</button>
+        <button id="btn-mode-model" class="mode-btn active"><span class="ui-icon" data-icon="landmark" data-size="14"></span><span>Maqueta 3D Pura</span></button>
+        <button id="btn-mode-qr" class="mode-btn"><span class="ui-icon" data-icon="cube" data-size="14"></span><span>Con QR 3D en Vivo</span></button>
+        <button id="btn-mode-aerial" class="mode-btn"><span class="ui-icon" data-icon="scan" data-size="14"></span><span>Escanear 90°</span></button>
       </div>
 
       <div id="loading-overlay">
@@ -242,6 +255,9 @@
         shadow-softness="0.6"
         environment-image="neutral"
         exposure="1.12"
+        ar
+        ar-modes="webxr scene-viewer quick-look"
+        ar-scale="auto"
         touch-action="pan-y">
       </model-viewer>
 
@@ -250,19 +266,19 @@
 
     <aside class="sidebar">
       <div class="sidebar-section">
-        <h3>📷 Vistas de Cámara</h3>
+        <h3><span class="ui-icon" data-icon="camera" data-size="13"></span><span>Vistas de Cámara</span></h3>
         <div class="cam-grid">
-          <button class="cam-btn" onclick="setCamera('42deg 62deg 108m', '0m 4.5m 0m', '36deg')">🏔️ Isométrica</button>
-          <button class="cam-btn" onclick="setCamera('2deg 75deg 78m', '-8m 6.5m 4m', '32deg')">🎭 Fachada Moche</button>
-          <button class="cam-btn" onclick="setCamera('68deg 70deg 66m', '15m 4.2m 5m', '32deg')">🪜 Rampa Ceremonial</button>
-          <button class="cam-btn" onclick="setCamera('48deg 56deg 52m', '-5m 10.5m -3m', '32deg')">🔷 Lucernario</button>
-          <button class="cam-btn" onclick="setCamera('-138deg 62deg 88m', '-3m 5m -3m', '32deg')">🧱 Volumen Posterior</button>
-          <button class="cam-btn" onclick="setCamera('0deg 14deg 98m', '0m 2m 0m', '34deg')">🛸 Vista Planta</button>
+          <button class="cam-btn" onclick="setCamera('42deg 62deg 108m', '0m 4.5m 0m', '36deg')"><span class="ui-icon" data-icon="mountain" data-size="14"></span><span>Isométrica</span></button>
+          <button class="cam-btn" onclick="setCamera('2deg 75deg 78m', '-8m 6.5m 4m', '32deg')"><span class="ui-icon" data-icon="landmark" data-size="14"></span><span>Fachada Moche</span></button>
+          <button class="cam-btn" onclick="setCamera('68deg 70deg 66m', '15m 4.2m 5m', '32deg')"><span class="ui-icon" data-icon="stairs" data-size="14"></span><span>Rampa Ceremonial</span></button>
+          <button class="cam-btn" onclick="setCamera('48deg 56deg 52m', '-5m 10.5m -3m', '32deg')"><span class="ui-icon" data-icon="gem" data-size="14"></span><span>Lucernario</span></button>
+          <button class="cam-btn" onclick="setCamera('-138deg 62deg 88m', '-3m 5m -3m', '32deg')"><span class="ui-icon" data-icon="blocks" data-size="14"></span><span>Volumen Posterior</span></button>
+          <button class="cam-btn" onclick="setCamera('0deg 14deg 98m', '0m 2m 0m', '34deg')"><span class="ui-icon" data-icon="scan" data-size="14"></span><span>Vista Planta</span></button>
         </div>
       </div>
 
       <div class="sidebar-section">
-        <h3>🏺 Elementos Arquitectónicos</h3>
+        <h3><span class="ui-icon" data-icon="compass" data-size="13"></span><span>Elementos Arquitectónicos</span></h3>
         <div class="info-card">
           <strong>Volumen Piramidal en Talud</strong>
           Paños frontales inclinados (2+1+3) con 5 placas escultóricas Moche en relieve dorado.
@@ -278,7 +294,7 @@
       </div>
 
       <div class="sidebar-section">
-        <h3>📊 Especificaciones del GLB</h3>
+        <h3><span class="ui-icon" data-icon="bar-chart" data-size="13"></span><span>Especificaciones del GLB</span></h3>
         <div class="stat-row"><span>Archivo</span><span class="stat-val">museo_tumbas_reales_sipan.glb</span></div>
         <div class="stat-row"><span>Peso</span><span class="stat-val">386.9 KB</span></div>
         <div class="stat-row"><span>Dimensiones</span><span class="stat-val">72 × 17.5 × 56 m</span></div>
@@ -286,12 +302,12 @@
       </div>
 
       <div class="sidebar-section">
-        <h3>⚡ Acciones de Integración</h3>
+        <h3><span class="ui-icon" data-icon="zap" data-size="13"></span><span>Acciones de Integración</span></h3>
         <div class="btn-row">
-          <button id="btn-aerial-scan" class="btn-action btn-qr" style="background: rgba(217, 119, 6, 0.22); border: 1px solid rgba(251, 191, 36, 0.5); color: #fde68a;">🛸 Escanear en Vista Aérea 90°</button>
-          <button id="btn-create-live-qr" class="btn-action btn-qr">🧊 Probar con QR 3D en Vivo</button>
-          <a href="models/museo_tumbas_reales_sipan.glb" download="museo_tumbas_reales_sipan.glb" class="btn-action btn-dl">⬇️ Descargar .GLB</a>
-          <a href="/example/" class="btn-action btn-back">← Volver al Selector</a>
+          <button id="btn-aerial-scan" class="btn-action btn-qr" style="background: rgba(217, 119, 6, 0.22); border: 1px solid rgba(251, 191, 36, 0.5); color: #fde68a;"><span class="ui-icon" data-icon="scan" data-size="15"></span><span>Escanear en Vista Aérea 90°</span></button>
+          <button id="btn-create-live-qr" class="btn-action btn-qr"><span class="ui-icon" data-icon="cube" data-size="15"></span><span>Probar con QR 3D en Vivo</span></button>
+          <a href="models/museo_tumbas_reales_sipan.glb" download="museo_tumbas_reales_sipan.glb" class="btn-action btn-dl"><span class="ui-icon" data-icon="download" data-size="15"></span><span>Descargar .GLB</span></a>
+          <a href="/example/" class="btn-action btn-back"><span class="ui-icon" data-icon="arrow-left" data-size="15"></span><span>Volver al Selector</span></a>
         </div>
       </div>
     </aside>
@@ -309,7 +325,10 @@
 
     mv.addEventListener('load', () => overlay.classList.add('hidden'));
     mv.addEventListener('error', () => {
-      overlay.querySelector('div:last-child').textContent = '⚠️ Error al cargar el modelo 3D';
+      const msgEl = overlay.querySelector('div:last-child');
+      msgEl.innerHTML = '<span class="ui-icon" data-icon="alert-triangle" data-size="16"></span><span>Error al cargar el modelo 3D</span>';
+      msgEl.classList.add('ui-inline');
+      if (window.__hydrateIcons) window.__hydrateIcons(msgEl);
     });
 
     // Clic corto sobre la maqueta abre la Vista Aérea 90° para escanear

@@ -7,6 +7,8 @@
  * además de perfiles Automático y Manual para iluminación, aristas, color y encuadre.
  */
 
+import { renderIcon } from './icons.js';
+
 export const VIEWER_PRESETS = {
   auto: {
     mode: 'auto',
@@ -943,20 +945,20 @@ class Qr3dViewer extends HTMLElement {
       </style>
 
       <div class="controls-toolbar">
-        <button id="btn-aerial" class="btn-tool">🛸 Escanear 90°</button>
-        <button id="btn-ar" class="btn-tool" title="Ver el modelo 3D en Realidad Aumentada desde celular">📱 AR</button>
-        <button id="btn-rotate" class="btn-tool">🔄 Auto-Giro: ON</button>
-        <button id="btn-edges" class="btn-tool active">✏️ Aristas: Auto</button>
-        <button id="btn-camera-mode" class="btn-tool" title="Alternar entre cámara cinematográfica suave y respuesta directa 1:1 sin inercia">🎬 Cámara: Cine</button>
-        <button id="btn-sun-mode" class="btn-tool" title="Alternar entre sol fijo al modelo (la sombra de la casa al suelo se mantiene) y sol dinámico en el escenario (actual)">☀️ Sol: Dinámico</button>
-        <button id="btn-reset" class="btn-tool">🎯 Centrar</button>
+        <button id="btn-aerial" class="btn-tool">${renderIcon('scan', { size: 14 })}<span>Escanear 90°</span></button>
+        <button id="btn-ar" class="btn-tool" title="Ver el modelo 3D en Realidad Aumentada desde celular">${renderIcon('smartphone', { size: 14 })}<span>AR</span></button>
+        <button id="btn-rotate" class="btn-tool">${renderIcon('refresh', { size: 14 })}<span>Auto-Giro: ON</span></button>
+        <button id="btn-edges" class="btn-tool active">${renderIcon('pencil', { size: 14 })}<span>Aristas: Auto</span></button>
+        <button id="btn-camera-mode" class="btn-tool" title="Alternar entre cámara cinematográfica suave y respuesta directa 1:1 sin inercia">${renderIcon('film', { size: 14 })}<span>Cámara: Cine</span></button>
+        <button id="btn-sun-mode" class="btn-tool" title="Alternar entre sol fijo al modelo (la sombra de la casa al suelo se mantiene) y sol dinámico en el escenario (actual)">${renderIcon('sun', { size: 14 })}<span>Sol: Dinámico</span></button>
+        <button id="btn-reset" class="btn-tool">${renderIcon('target', { size: 14 })}<span>Centrar</span></button>
       </div>
 
       <div class="scan-toast" id="scan-toast">
-        ✨ ¡QR escaneado! Nuevo código activo
+        ${renderIcon('sparkles', { size: 15 })}<span>¡QR escaneado! Nuevo código activo</span>
       </div>
 
-      <div class="hint-3d" id="hint-3d">🖱️ Clic en el modelo: Vista aérea 90° · Arrastra para girar</div>
+      <div class="hint-3d" id="hint-3d">${renderIcon('mouse-pointer', { size: 14 })}<span>Clic en el modelo: Vista aérea 90° · Arrastra para girar</span></div>
 
       <div class="loader" id="loader">
         <div class="spinner"></div>
@@ -1068,7 +1070,9 @@ class Qr3dViewer extends HTMLElement {
     if (!this.shadowRoot) return;
     const btn = this.shadowRoot.getElementById('btn-rotate');
     if (btn) {
-      btn.innerText = this.autoRotate ? '🔄 Auto-Giro: ON' : '⏸️ Auto-Giro: OFF';
+      btn.innerHTML = this.autoRotate
+        ? `${renderIcon('refresh', { size: 14 })}<span>Auto-Giro: ON</span>`
+        : `${renderIcon('pause', { size: 14 })}<span>Auto-Giro: OFF</span>`;
     }
   }
 
@@ -1079,13 +1083,13 @@ class Qr3dViewer extends HTMLElement {
     const mode = this.viewerConfig.edgeMode || 'smart';
     if (mode === 'off') {
       btn.classList.remove('active');
-      btn.innerText = '✏️ Aristas: OFF';
+      btn.innerHTML = `${renderIcon('pencil', { size: 14 })}<span>Aristas: OFF</span>`;
     } else if (mode === 'all') {
       btn.classList.add('active');
-      btn.innerText = '✏️ Aristas: Todas';
+      btn.innerHTML = `${renderIcon('pencil', { size: 14 })}<span>Aristas: Todas</span>`;
     } else {
       btn.classList.add('active');
-      btn.innerText = '✏️ Aristas: Auto';
+      btn.innerHTML = `${renderIcon('pencil', { size: 14 })}<span>Aristas: Auto</span>`;
     }
   }
 
@@ -1095,7 +1099,9 @@ class Qr3dViewer extends HTMLElement {
     if (!btn) return;
     const isDirect = this.viewerConfig.cameraMode === 'direct';
     btn.classList.toggle('active', isDirect);
-    btn.innerText = isDirect ? '⚡ Cámara: Directa' : '🎬 Cámara: Cine';
+    btn.innerHTML = isDirect
+      ? `${renderIcon('zap', { size: 14 })}<span>Cámara: Directa</span>`
+      : `${renderIcon('film', { size: 14 })}<span>Cámara: Cine</span>`;
   }
 
   updateSunModeButtonLabel() {
@@ -1104,7 +1110,9 @@ class Qr3dViewer extends HTMLElement {
     if (!btn) return;
     const isModel = this.viewerConfig.sunMode === 'model';
     btn.classList.toggle('active', isModel);
-    btn.innerText = isModel ? '📌 Sol: Fijo' : '☀️ Sol: Dinámico';
+    btn.innerHTML = isModel
+      ? `${renderIcon('pin', { size: 14 })}<span>Sol: Fijo</span>`
+      : `${renderIcon('sun', { size: 14 })}<span>Sol: Dinámico</span>`;
   }
 
   applyCameraMode() {
@@ -2540,12 +2548,12 @@ class Qr3dViewer extends HTMLElement {
 
     if (btnAerial) {
       btnAerial.classList.add('active');
-      btnAerial.innerText = '↩️ Volver a 3D';
+      btnAerial.innerHTML = `${renderIcon('undo', { size: 14 })}<span>Volver a 3D</span>`;
     }
     if (badge) badge.classList.add('aerial-active');
     if (badgeTitle) badgeTitle.innerText = useBlocks ? 'QR Bloques 90°' : 'QR Aéreo 90°';
     if (badgeSub) badgeSub.innerText = 'Colores tomados de la vista 90°';
-    if (hint) hint.innerText = '🛸 Vista Aérea 90° activa · Escanea el QR cromático o haz clic para volver';
+    if (hint) hint.innerHTML = `${renderIcon('scan', { size: 14 })}<span>Vista Aérea 90° activa · Escanea el QR cromático o haz clic para volver</span>`;
 
     // Generar muestras cenitales y aplicar los colores al QR (y bloques si corresponde)
     await this.applyAerialColoredQr({ buildBlocks: useBlocks });
@@ -2655,12 +2663,12 @@ class Qr3dViewer extends HTMLElement {
 
     if (btnAerial) {
       btnAerial.classList.remove('active');
-      btnAerial.innerText = '🛸 Escanear 90°';
+      btnAerial.innerHTML = `${renderIcon('scan', { size: 14 })}<span>Escanear 90°</span>`;
     }
     if (badge) badge.classList.remove('aerial-active');
     if (badgeTitle) badgeTitle.innerText = 'QR Dinámico';
     if (badgeSub) badgeSub.innerText = 'Clic para escanear 90°';
-    if (hint) hint.innerText = '🖱️ Clic en el modelo: Vista aérea 90° · Arrastra para girar';
+    if (hint) hint.innerHTML = `${renderIcon('mouse-pointer', { size: 14 })}<span>Clic en el modelo: Vista aérea 90° · Arrastra para girar</span>`;
 
     // Restaurar imagen estándar del QR
     const imageEndpoint = this.getEndpoint('image');
@@ -3315,13 +3323,13 @@ class Qr3dViewer extends HTMLElement {
           .then((r) => r.json().catch(() => null))
           .then((h) => {
             if (!h || h.serviceActive === false) {
-              loaderEl.innerHTML = `<span style="color:#f87171; text-align:center; padding:12px;">⛔ El servicio no se activó o la base de datos no está disponible</span>`;
+              loaderEl.innerHTML = `<span style="display:inline-flex;align-items:center;gap:8px;color:#f87171;text-align:center;padding:12px;">${renderIcon('alert-triangle', { size: 18 })}<span>El servicio no se activó o la base de datos no está disponible</span></span>`;
             } else {
-              loaderEl.innerHTML = `<span style="color:#f87171">⚠️ No se pudo cargar el modelo 3D</span>`;
+              loaderEl.innerHTML = `<span style="display:inline-flex;align-items:center;gap:8px;color:#f87171">${renderIcon('alert-triangle', { size: 18 })}<span>No se pudo cargar el modelo 3D</span></span>`;
             }
           })
           .catch(() => {
-            loaderEl.innerHTML = `<span style="color:#f87171; text-align:center; padding:12px;">⛔ El servicio no se activó o el servidor no responde</span>`;
+            loaderEl.innerHTML = `<span style="display:inline-flex;align-items:center;gap:8px;color:#f87171;text-align:center;padding:12px;">${renderIcon('alert-triangle', { size: 18 })}<span>El servicio no se activó o el servidor no responde</span></span>`;
           });
       }
     );
@@ -3413,7 +3421,7 @@ class Qr3dViewer extends HTMLElement {
   async launchAR() {
     const modelEndpoint = this.getEndpoint('model');
     if (!modelEndpoint) {
-      this.showToastMessage('⚠️ Aún no hay un modelo 3D disponible para AR');
+      this.showToastMessage('Aún no hay un modelo 3D disponible para AR', 3500, 'alert-triangle');
       return;
     }
 
@@ -3431,9 +3439,9 @@ class Qr3dViewer extends HTMLElement {
         `&mode=ar_preferred&title=${encodeURIComponent(arTitle)}&resizable=true` +
         `#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;end;`;
       const msg = window.location.protocol !== 'https:'
-        ? '📱 Abriendo Scene Viewer (recuerda que Android AR requiere URL pública HTTPS)'
-        : '📱 Abriendo Realidad Aumentada en Android...';
-      this.showToastMessage(msg, 4200);
+        ? 'Abriendo Scene Viewer (recuerda que Android AR requiere URL pública HTTPS)'
+        : 'Abriendo Realidad Aumentada en Android...';
+      this.showToastMessage(msg, 4200, 'smartphone');
       this.dispatchEvent(new CustomEvent('ar-status', { detail: { platform: 'android', message: msg } }));
       window.location.href = intentUrl;
       return;
@@ -3442,7 +3450,7 @@ class Qr3dViewer extends HTMLElement {
     if (isIOS && this.currentModel) {
       try {
         this.restoreModelRevealState();
-        this.showToastMessage('📱 Preparando modelo USDZ para AR Quick Look...', 3500);
+        this.showToastMessage('Preparando modelo USDZ para AR Quick Look...', 3500, 'smartphone');
         if (!window.THREE.USDZExporter) {
           await this.loadScript('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/USDZExporter.js');
         }
@@ -3474,25 +3482,29 @@ class Qr3dViewer extends HTMLElement {
         anchor.click();
         anchor.remove();
         setTimeout(() => URL.revokeObjectURL(usdzUrl), 12000);
-        this.dispatchEvent(new CustomEvent('ar-status', { detail: { platform: 'ios', message: '📱 Abriendo AR Quick Look en iOS' } }));
+        this.dispatchEvent(new CustomEvent('ar-status', { detail: { platform: 'ios', message: 'Abriendo AR Quick Look en iOS' } }));
         return;
       } catch (err) {
-        const errMsg = `⚠️ No se pudo abrir AR en iOS: ${err.message}`;
-        this.showToastMessage(errMsg, 4200);
+        const errMsg = `No se pudo abrir AR en iOS: ${err.message}`;
+        this.showToastMessage(errMsg, 4200, 'alert-triangle');
         this.dispatchEvent(new CustomEvent('ar-status', { detail: { platform: 'ios', error: err.message, message: errMsg } }));
         return;
       }
     }
 
-    const desktopMsg = '📱 AR funciona en celulares Android/iOS: escanea el QR desde tu teléfono y toca "Ver en AR"';
-    this.showToastMessage(desktopMsg, 4800);
+    const desktopMsg = 'AR funciona en celulares Android/iOS: escanea el QR desde tu teléfono y toca "Ver en AR"';
+    this.showToastMessage(desktopMsg, 4800, 'smartphone');
     this.dispatchEvent(new CustomEvent('ar-status', { detail: { platform: 'desktop', message: desktopMsg } }));
   }
 
-  showToastMessage(text, durationMs = 3500) {
+  showToastMessage(text, durationMs = 3500, iconName = null) {
     const toast = this.shadowRoot.getElementById('scan-toast');
     if (!toast) return;
-    if (text) toast.textContent = text;
+    if (text) {
+      toast.innerHTML = iconName
+        ? `${renderIcon(iconName, { size: 15 })}<span>${text}</span>`
+        : `<span>${text}</span>`;
+    }
     toast.classList.add('show');
     if (this._arToastTimer) clearTimeout(this._arToastTimer);
     this._arToastTimer = setTimeout(() => {
@@ -3501,7 +3513,7 @@ class Qr3dViewer extends HTMLElement {
   }
 
   showScanToast() {
-    this.showToastMessage('✨ ¡QR escaneado! Nuevo código activo', 3500);
+    this.showToastMessage('¡QR escaneado! Nuevo código activo', 3500, 'sparkles');
   }
 }
 

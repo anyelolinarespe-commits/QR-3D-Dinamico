@@ -11,7 +11,7 @@ import path from 'path';
 const CHROME_PATH = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 
 export async function generateAdvancedModel() {
-  console.log('🚀 Iniciando pipeline de reconstrucción 3D avanzada del Museo Tumbas Reales de Sipán...');
+  console.log('[START] Iniciando pipeline de reconstrucción 3D avanzada del Museo Tumbas Reales de Sipán...');
 
   const browser = await puppeteer.launch({
     executablePath: CHROME_PATH,
@@ -845,11 +845,11 @@ export async function generateAdvancedModel() {
   fs.writeFileSync(pathExample, buffer);
 
   const stats = fs.statSync(pathRoot);
-  console.log(`\n🎉 ¡Modelo 3D Avanzado Generado Exitosamente!`);
-  console.log(`📁 Rutas:`);
+  console.log(`\n[OK] ¡Modelo 3D Avanzado Generado Exitosamente!`);
+  console.log(`Rutas:`);
   console.log(`   - ${pathRoot}`);
   console.log(`   - ${pathExample}`);
-  console.log(`📊 Peso: ${stats.size} bytes (${(stats.size / (1024 * 1024)).toFixed(2)} MB)\n`);
+  console.log(`Peso: ${stats.size} bytes (${(stats.size / (1024 * 1024)).toFixed(2)} MB)\n`);
 
   return {
     pathRoot,

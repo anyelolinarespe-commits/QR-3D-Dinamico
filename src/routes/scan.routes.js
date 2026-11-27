@@ -1,4 +1,5 @@
 import { processQrScan } from '../services/scan.service.js';
+import { renderIcon } from '../../widget/icons.js';
 
 function escapeHtml(str) {
   return String(str || '')
@@ -37,7 +38,7 @@ export async function scanRoutes(fastify, options) {
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { background: #0f172a; color: #f8fafc; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
     .card { background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 32px; max-width: 420px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); }
-    .icon { font-size: 56px; margin-bottom: 16px; }
+    .icon { display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: 16px; background: rgba(239, 68, 68, 0.14); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); margin: 0 auto 16px; }
     h1 { font-size: 22px; font-weight: 700; color: #f87171; margin-bottom: 12px; }
     p { color: #94a3b8; font-size: 15px; line-height: 1.5; margin-bottom: 24px; }
     .badge { display: inline-block; background: rgba(239, 68, 68, 0.15); color: #f87171; padding: 6px 14px; border-radius: 9999px; font-size: 13px; font-weight: 600; border: 1px solid rgba(239, 68, 68, 0.3); }
@@ -45,7 +46,7 @@ export async function scanRoutes(fastify, options) {
 </head>
 <body>
   <div class="card">
-    <div class="icon">⌛</div>
+    <div class="icon">${renderIcon('hourglass', { size: 32 })}</div>
     <span class="badge">${badgeLabel}</span>
     <h1 style="margin-top: 16px;">QR Ya Utilizado o Expirado</h1>
     <p>${reasonText}</p>

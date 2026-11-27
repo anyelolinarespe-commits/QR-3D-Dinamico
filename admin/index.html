@@ -36,7 +36,9 @@
       border-bottom: 1px solid var(--card-border);
     }
     .brand { display: flex; align-items: center; gap: 12px; }
-    .brand-logo { font-size: 32px; }
+    .brand-logo { display: inline-flex; align-items: center; justify-content: center; color: #60a5fa; }
+    .ui-inline { display: inline-flex; align-items: center; gap: 6px; }
+    .ui-icon { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .brand h1 { font-size: 24px; font-weight: 800; background: linear-gradient(135deg, #60a5fa, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     .brand p { font-size: 13px; color: var(--text-muted); }
 
@@ -163,7 +165,7 @@
     .btn:active { transform: scale(0.98); }
     .btn-secondary { background: #1e293b; color: #cbd5e1; border: 1px solid #334155; }
     .btn-secondary:hover { background: #334155; color: #fff; }
-    .btn-sm { padding: 6px 12px; font-size: 12px; width: auto; }
+    .btn-sm { padding: 6px 12px; font-size: 12px; width: auto; gap: 5px; }
 
     /* SECCIÓN DE AYUDA Y GUÍA 3D / IA */
     .help-accordion {
@@ -262,11 +264,14 @@
     .qr-table tr:hover td { background: #131d2e; }
 
     .badge {
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
       padding: 3px 8px;
       border-radius: 9999px;
       font-size: 11px;
       font-weight: 600;
+      vertical-align: middle;
     }
     .badge-success { background: rgba(16, 185, 129, 0.15); color: #34d399; }
     .badge-info { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
@@ -305,8 +310,8 @@
       justify-content: space-between;
       align-items: center;
     }
-    .close-btn { background: none; border: none; color: #94a3b8; font-size: 24px; cursor: pointer; }
-    .close-btn:hover { color: #fff; }
+    .close-btn, .modal-close { background: none; border: none; color: #94a3b8; font-size: 20px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: 4px; border-radius: 6px; }
+    .close-btn:hover, .modal-close:hover { color: #fff; background: rgba(255,255,255,0.06); }
 
     /* Controles Visuales No-Code (Automático / Manual) */
     .mode-pills {
@@ -324,6 +329,9 @@
       font-weight: 600;
       cursor: pointer;
       transition: all 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
     .mode-pill:hover { border-color: #60a5fa; color: #fff; }
     .mode-pill.active {
@@ -375,6 +383,10 @@
       font-weight: 700;
       cursor: pointer;
       transition: all 0.15s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
     }
     .studio-tab.active {
       background: #2563eb;
@@ -408,6 +420,9 @@
       font-weight: 600;
       cursor: pointer;
       text-align: left;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
     .preset-chip:hover { border-color: #f59e0b; }
     .preset-chip.active {
@@ -894,6 +909,9 @@
       font-size: 13px;
       font-weight: 600;
       cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
     .mgmt-tab.active {
       background: linear-gradient(135deg, #2563eb, #3b82f6);
@@ -982,7 +1000,7 @@
   <div id="login-screen" class="login-screen" style="display: none;">
     <div class="login-card">
       <div class="login-brand">
-        <span style="font-size: 36px;">🧊</span>
+        <span class="ui-icon" data-icon="cube" data-size="34" style="color: #60a5fa;"></span>
         <div>
           <h2>API 3D-QR</h2>
           <p style="font-size: 12.5px; color: #94a3b8;">Inicia sesión para gestionar modelos 3D y QRs</p>
@@ -1000,11 +1018,11 @@
           <label for="login-password">Contraseña</label>
           <div class="password-field-wrap">
             <input type="password" id="login-password" class="form-control" autocomplete="current-password" placeholder="Ingresa tu contraseña" required />
-            <button type="button" class="btn-toggle-pwd" data-toggle-pwd="login-password" aria-label="Mostrar u ocultar contraseña" aria-pressed="false" title="Ver contraseña">👁️</button>
+            <button type="button" class="btn-toggle-pwd" data-toggle-pwd="login-password" aria-label="Mostrar u ocultar contraseña" aria-pressed="false" title="Ver contraseña"><span class="ui-icon" data-icon="eye" data-size="15"></span></button>
           </div>
         </div>
         <div id="login-error" class="inline-form-error" style="margin-top: 0;"></div>
-        <button type="submit" class="btn" id="btn-login">🔐 Iniciar Sesión</button>
+        <button type="submit" class="btn" id="btn-login"><span class="ui-icon" data-icon="lock" data-size="16"></span><span>Iniciar Sesión</span></button>
       </form>
 
       <div class="login-roles-note">
@@ -1012,7 +1030,7 @@
         • <strong>Superadmin:</strong> control global de sitios web, administradores, usuarios y modelos.<br />
         • <strong>Administrador de sitio web:</strong> gestiona su sitio, API Key y entrega cuentas a sus usuarios.<br />
         • <strong>Usuario 3D:</strong> aloja y gestiona sus propios modelos 3D y códigos QR en el servidor.<br />
-        <span style="display:inline-block;margin-top:6px;color:#7dd3fc;">ℹ️ Superadmin inicial: usuario/correo y clave configurados en <code>.env</code> (<code>SUPERADMIN_USERNAME</code> / <code>SUPERADMIN_PASSWORD</code>).</span>
+        <span class="ui-inline" style="margin-top:6px;color:#7dd3fc;"><span class="ui-icon" data-icon="info" data-size="14"></span><span>Superadmin inicial: usuario/correo y clave configurados en <code>.env</code> (<code>SUPERADMIN_USERNAME</code> / <code>SUPERADMIN_PASSWORD</code>).</span></span>
       </div>
     </div>
   </div>
@@ -1021,42 +1039,42 @@
     <!-- Header -->
     <header>
       <div class="brand">
-        <span class="brand-logo">🧊</span>
+        <span class="brand-logo" data-icon="cube" data-size="30"></span>
         <div>
           <h1>Panel de Control 3D-QR</h1>
           <p id="header-subtitle">Gestión de modelos 3D, códigos QR desechables y API multi-inquilino</p>
         </div>
       </div>
       <div class="user-session-bar">
-        <a href="/example/sipan-nuevo.html" target="_blank" class="btn btn-sm" style="background: linear-gradient(135deg, #0284c7, #2563eb); color: #fff; text-decoration: none; padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">🏛️ Sipán 3D</a>
+        <a href="/example/sipan-nuevo.html" target="_blank" class="btn btn-sm" style="background: linear-gradient(135deg, #0284c7, #2563eb); color: #fff; text-decoration: none; padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;"><span class="ui-icon" data-icon="landmark" data-size="14"></span><span>Sipán 3D</span></a>
         <span id="hdr-role-pill" class="role-pill role-user">—</span>
         <div style="display: flex; flex-direction: column; line-height: 1.25;">
           <strong id="hdr-user-name" style="font-size: 12.5px; color: #f8fafc;">Usuario</strong>
           <span id="hdr-site-label" style="font-size: 11px; color: #94a3b8;">Sitio</span>
         </div>
-        <button type="button" class="btn btn-secondary btn-sm" id="btn-open-change-password" title="Cambiar tu contraseña">🔑 Clave</button>
-        <button type="button" class="btn btn-secondary btn-sm" id="btn-logout" style="color: #fca5a5;">🚪 Salir</button>
+        <button type="button" class="btn btn-secondary btn-sm" id="btn-open-change-password" title="Cambiar tu contraseña"><span class="ui-icon" data-icon="key" data-size="13"></span><span>Clave</span></button>
+        <button type="button" class="btn btn-secondary btn-sm" id="btn-logout" style="color: #fca5a5;"><span class="ui-icon" data-icon="log-out" data-size="13"></span><span>Salir</span></button>
       </div>
     </header>
 
     <!-- Banner de Error si el servicio o la base de datos no se activó -->
     <div id="service-error-banner" class="service-banner" role="alert">
       <div>
-        <strong>⛔ El servicio no se activó</strong>
+        <strong class="ui-inline"><span class="ui-icon" data-icon="ban" data-size="15"></span><span>El servicio no se activó</span></strong>
         <span id="service-error-detail">No se pudo conectar con la API o la base de datos. Los archivos no se pueden enviar todavía.</span>
       </div>
-      <button type="button" class="btn btn-secondary btn-sm" id="btn-retry-health">🔄 Reintentar conexión</button>
+      <button type="button" class="btn btn-secondary btn-sm" id="btn-retry-health"><span class="ui-icon" data-icon="refresh" data-size="13"></span><span>Reintentar conexión</span></button>
     </div>
 
     <!-- Banner de Cola Local pendiente de envío al servidor -->
     <div id="pending-queue-banner" class="service-banner">
       <div>
-        <strong id="pending-queue-title">⏳ Hay envíos pendientes guardados localmente</strong>
+        <strong id="pending-queue-title" class="ui-inline"><span class="ui-icon" data-icon="hourglass" data-size="15"></span><span>Hay envíos pendientes guardados localmente</span></strong>
         <span id="pending-queue-desc">Se enviarán al servidor automáticamente en cuanto el servicio esté activo.</span>
       </div>
       <div style="display: flex; gap: 8px;">
-        <button type="button" class="btn btn-sm" id="btn-flush-queue" style="width:auto;">📤 Enviar al servidor ahora</button>
-        <button type="button" class="btn btn-secondary btn-sm" id="btn-clear-queue">🗑️ Descartar cola</button>
+        <button type="button" class="btn btn-sm" id="btn-flush-queue" style="width:auto;"><span class="ui-icon" data-icon="upload" data-size="13"></span><span>Enviar al servidor ahora</span></button>
+        <button type="button" class="btn btn-secondary btn-sm" id="btn-clear-queue"><span class="ui-icon" data-icon="trash" data-size="13"></span><span>Descartar cola</span></button>
       </div>
     </div>
 
@@ -1071,9 +1089,9 @@
         <div class="stat-value" id="stat-saved-files">0</div>
       </div>
       <div class="stat-card" style="border-color: rgba(16, 185, 129, 0.35); background: linear-gradient(145deg, rgba(16, 185, 129, 0.12), rgba(15, 23, 42, 0.92));">
-        <div class="stat-label" style="color: #86efac;">📅 Ingresos Hoy al Link</div>
+        <div class="stat-label ui-inline" style="color: #86efac;"><span class="ui-icon" data-icon="calendar" data-size="14"></span><span>Ingresos Hoy al Link</span></div>
         <div class="stat-value" id="stat-daily-scans" style="color: #ecfdf5;">0</div>
-        <div id="stat-daily-visitors" style="font-size: 12px; color: #94a3b8;">👥 0 personas únicas hoy</div>
+        <div id="stat-daily-visitors" class="ui-inline" style="font-size: 12px; color: #94a3b8;"><span class="ui-icon" data-icon="users" data-size="13"></span><span>0 personas únicas hoy</span></div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Escaneos Totales</div>
@@ -1088,13 +1106,13 @@
     <!-- Panel Exclusivo Superadmin: Sitios Web + Todos los Usuarios -->
     <section class="card" id="panel-superadmin" style="display: none; border-color: rgba(245, 158, 11, 0.35);">
       <div class="card-title" style="margin-bottom: 12px;">
-        <span>👑 Centro Global de Superadmin — Sitios Web y Usuarios</span>
-        <button type="button" class="btn btn-secondary btn-sm" id="btn-sa-refresh">🔄 Actualizar todo</button>
+        <span class="ui-inline"><span class="ui-icon" data-icon="crown" data-size="18" style="color:#fcd34d;"></span><span>Centro Global de Superadmin — Sitios Web y Usuarios</span></span>
+        <button type="button" class="btn btn-secondary btn-sm" id="btn-sa-refresh"><span class="ui-icon" data-icon="refresh" data-size="13"></span><span>Actualizar todo</span></button>
       </div>
 
       <div class="mgmt-tabs">
-        <button type="button" class="mgmt-tab active" id="sa-tab-tenants">🌐 Sitios Web (Administrados)</button>
-        <button type="button" class="mgmt-tab" id="sa-tab-users">👥 Administradores y Usuarios 3D</button>
+        <button type="button" class="mgmt-tab active" id="sa-tab-tenants"><span class="ui-icon" data-icon="globe" data-size="14"></span><span>Sitios Web (Administrados)</span></button>
+        <button type="button" class="mgmt-tab" id="sa-tab-users"><span class="ui-icon" data-icon="users" data-size="14"></span><span>Administradores y Usuarios 3D</span></button>
       </div>
 
       <!-- Subpanel Sitios Web / Tenants -->
@@ -1120,17 +1138,17 @@
             <label for="sa-tenant-admin-pass">Contraseña Admin (vacío = auto)</label>
             <div class="password-field-wrap">
               <input type="password" id="sa-tenant-admin-pass" class="form-control" placeholder="Mínimo 6 caracteres o vacío" />
-              <button type="button" class="btn-toggle-pwd" data-toggle-pwd="sa-tenant-admin-pass" aria-label="Mostrar u ocultar contraseña" aria-pressed="false" title="Ver contraseña">👁️</button>
+              <button type="button" class="btn-toggle-pwd" data-toggle-pwd="sa-tenant-admin-pass" aria-label="Mostrar u ocultar contraseña" aria-pressed="false" title="Ver contraseña"><span class="ui-icon" data-icon="eye" data-size="15"></span></button>
             </div>
           </div>
-          <button type="submit" class="btn" id="btn-sa-create-tenant">➕ Crear Sitio Web</button>
+          <button type="submit" class="btn" id="btn-sa-create-tenant"><span class="ui-icon" data-icon="plus" data-size="15"></span><span>Crear Sitio Web</span></button>
         </form>
 
         <div id="sa-credential-box" class="cred-box">
-          <div id="sa-credential-title" style="font-weight: 700;"></div>
+          <div id="sa-credential-title" class="ui-inline" style="font-weight: 700;"></div>
           <div class="cred-code">
             <span id="sa-credential-text"></span>
-            <button type="button" class="btn-copy-primary" id="btn-sa-copy-cred" style="padding: 5px 10px; font-size: 11.5px;">📋 Copiar</button>
+            <button type="button" class="btn-copy-primary" id="btn-sa-copy-cred" style="padding: 5px 10px; font-size: 11.5px;"><span class="ui-icon" data-icon="copy" data-size="13"></span><span>Copiar</span></button>
           </div>
         </div>
 
@@ -1159,9 +1177,9 @@
           <div class="form-group" style="margin-bottom: 0;">
             <label for="sa-user-role">Rol de Cuenta</label>
             <select id="sa-user-role" class="form-control">
-              <option value="admin">🌐 Administrador de Sitio Web</option>
-              <option value="user">🧊 Usuario 3D (Gestor de modelos)</option>
-              <option value="superadmin">👑 Superadmin</option>
+              <option value="admin">Administrador de Sitio Web</option>
+              <option value="user">Usuario 3D (Gestor de modelos)</option>
+              <option value="superadmin">Superadmin</option>
             </select>
           </div>
           <div class="form-group" style="margin-bottom: 0;" id="sa-user-tenant-wrap">
@@ -1184,17 +1202,17 @@
             <label for="sa-user-password">Contraseña (vacío = generar)</label>
             <div class="password-field-wrap">
               <input type="password" id="sa-user-password" class="form-control" placeholder="Auto-generar si queda vacío" />
-              <button type="button" class="btn-toggle-pwd" data-toggle-pwd="sa-user-password" aria-label="Mostrar u ocultar contraseña" aria-pressed="false" title="Ver contraseña">👁️</button>
+              <button type="button" class="btn-toggle-pwd" data-toggle-pwd="sa-user-password" aria-label="Mostrar u ocultar contraseña" aria-pressed="false" title="Ver contraseña"><span class="ui-icon" data-icon="eye" data-size="15"></span></button>
             </div>
           </div>
-          <button type="submit" class="btn" id="btn-sa-create-user">➕ Crear Cuenta</button>
+          <button type="submit" class="btn" id="btn-sa-create-user"><span class="ui-icon" data-icon="plus" data-size="15"></span><span>Crear Cuenta</span></button>
         </form>
 
         <div id="sa-user-cred-box" class="cred-box">
-          <div id="sa-user-cred-title" style="font-weight: 700;"></div>
+          <div id="sa-user-cred-title" class="ui-inline" style="font-weight: 700;"></div>
           <div class="cred-code">
             <span id="sa-user-cred-text"></span>
-            <button type="button" class="btn-copy-primary" id="btn-sa-copy-user-cred" style="padding: 5px 10px; font-size: 11.5px;">📋 Copiar Credenciales</button>
+            <button type="button" class="btn-copy-primary" id="btn-sa-copy-user-cred" style="padding: 5px 10px; font-size: 11.5px;"><span class="ui-icon" data-icon="copy" data-size="13"></span><span>Copiar Credenciales</span></button>
           </div>
         </div>
 
@@ -1229,14 +1247,14 @@
     <!-- Panel Administrador de Sitio Web: Sitio + API Key + Usuarios 3D -->
     <section class="card" id="panel-admin-site" style="display: none; border-color: rgba(56, 189, 248, 0.35);">
       <div class="card-title" style="margin-bottom: 14px;">
-        <span>🌐 Administración de mi Sitio Web y Usuarios 3D</span>
-        <button type="button" class="btn btn-secondary btn-sm" id="btn-adm-refresh">🔄 Actualizar</button>
+        <span class="ui-inline"><span class="ui-icon" data-icon="globe" data-size="18" style="color:#38bdf8;"></span><span>Administración de mi Sitio Web y Usuarios 3D</span></span>
+        <button type="button" class="btn btn-secondary btn-sm" id="btn-adm-refresh"><span class="ui-icon" data-icon="refresh" data-size="13"></span><span>Actualizar</span></button>
       </div>
 
       <div class="site-grid">
         <!-- Datos del Sitio e Integración API -->
         <div style="background: #0d1424; border: 1px solid #1e293b; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
-          <div style="font-weight: 700; font-size: 14px; color: #7dd3fc;">🔌 Configuración del Sitio Web e API Key</div>
+          <div class="ui-inline" style="font-weight: 700; font-size: 14px; color: #7dd3fc;"><span class="ui-icon" data-icon="plug" data-size="15"></span><span>Configuración del Sitio Web e API Key</span></div>
           <form id="adm-site-form" style="display: flex; flex-direction: column; gap: 10px;">
             <div class="form-group" style="margin-bottom: 0;">
               <label for="adm-site-name">Nombre del Sitio Web</label>
@@ -1249,20 +1267,20 @@
 
             <div style="background: rgba(15, 23, 42, 0.72); border: 1px solid #1e293b; border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px;">
               <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-                <span style="font-size: 12px; font-weight: 700; color: #bae6fd;">🎨 Tema Visual por Defecto del Sitio (opcional)</span>
-                <button type="button" class="btn btn-secondary btn-sm" id="btn-adm-reset-theme" style="padding: 3px 8px; font-size: 11px;">↺ Restablecer</button>
+                <span class="ui-inline" style="font-size: 12px; font-weight: 700; color: #bae6fd;"><span class="ui-icon" data-icon="palette" data-size="14"></span><span>Tema Visual por Defecto del Sitio (opcional)</span></span>
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-adm-reset-theme" style="padding: 3px 8px; font-size: 11px;"><span class="ui-icon" data-icon="rotate-ccw" data-size="12"></span><span>Restablecer</span></button>
               </div>
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                 <div>
                   <label for="adm-theme-preset" style="font-size: 11px; color: #94a3b8;">Estilo de Escenario</label>
                   <select id="adm-theme-preset" class="form-control" style="padding: 6px 8px; font-size: 12px;">
-                    <option value="">✨ Por defecto de la API</option>
-                    <option value="warm_sand">🏜️ Arena Cálida (Claro)</option>
-                    <option value="transparent">🪟 Transparente (Hereda fondo)</option>
-                    <option value="studio">📸 Estudio Claro</option>
-                    <option value="outdoor">☀️ Exterior Día</option>
-                    <option value="archaeological">🏺 Arqueológico</option>
-                    <option value="museum_night">🏛️ Museo Oscuro</option>
+                    <option value="">Por defecto de la API</option>
+                    <option value="warm_sand">Arena Cálida (Claro)</option>
+                    <option value="transparent">Transparente (Hereda fondo)</option>
+                    <option value="studio">Estudio Claro</option>
+                    <option value="outdoor">Exterior Día</option>
+                    <option value="archaeological">Arqueológico</option>
+                    <option value="museum_night">Museo Oscuro</option>
                   </select>
                 </div>
                 <div>
@@ -1283,7 +1301,7 @@
                 <div>
                   <label for="adm-qr-reveal" style="font-size: 11px; color: #94a3b8;">Animación QR 90°</label>
                   <select id="adm-qr-reveal" class="form-control" style="padding: 5px 8px; font-size: 12px;">
-                    <option value="blocks">🧱 Bloques 3D (Desarmar)</option>
+                    <option value="blocks">Bloques 3D (Desarmar)</option>
                     <option value="fade">Suave (Fade)</option>
                   </select>
                 </div>
@@ -1303,8 +1321,8 @@
             </div>
 
             <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-              <button type="submit" class="btn btn-sm" id="btn-adm-save-site">💾 Guardar Sitio</button>
-              <button type="button" class="btn btn-secondary btn-sm" id="btn-adm-rotate-key">🔑 Regenerar API Key</button>
+              <button type="submit" class="btn btn-sm" id="btn-adm-save-site"><span class="ui-icon" data-icon="save" data-size="13"></span><span>Guardar Sitio</span></button>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-adm-rotate-key"><span class="ui-icon" data-icon="key" data-size="13"></span><span>Regenerar API Key</span></button>
             </div>
           </form>
 
@@ -1313,17 +1331,17 @@
           </div>
 
           <div id="adm-new-key-box" class="cred-box" style="margin-bottom: 0;">
-            <div style="font-weight: 700;">🔑 Nueva API Key generada (guárdala ahora, no se volverá a mostrar):</div>
+            <div class="ui-inline" style="font-weight: 700;"><span class="ui-icon" data-icon="key" data-size="14"></span><span>Nueva API Key generada (guárdala ahora, no se volverá a mostrar):</span></div>
             <div class="cred-code">
               <span id="adm-new-key-val"></span>
-              <button type="button" class="btn-copy-primary" id="btn-adm-copy-key" style="padding: 5px 10px; font-size: 11.5px;">📋 Copiar API Key</button>
+              <button type="button" class="btn-copy-primary" id="btn-adm-copy-key" style="padding: 5px 10px; font-size: 11.5px;"><span class="ui-icon" data-icon="copy" data-size="13"></span><span>Copiar API Key</span></button>
             </div>
           </div>
         </div>
 
         <!-- Gestión de Usuarios 3D que alojan modelos en este sitio -->
         <div style="background: #0d1424; border: 1px solid #1e293b; border-radius: 10px; padding: 16px;">
-          <div style="font-weight: 700; font-size: 14px; color: #6ee7b7; margin-bottom: 10px;">👥 Entregar Usuario a Gestores de Modelos 3D</div>
+          <div class="ui-inline" style="font-weight: 700; font-size: 14px; color: #6ee7b7; margin-bottom: 10px;"><span class="ui-icon" data-icon="users" data-size="15"></span><span>Entregar Usuario a Gestores de Modelos 3D</span></div>
           <form id="adm-create-user-form" class="mgmt-form-grid" style="background: transparent; border: none; padding: 0; margin-bottom: 12px;">
             <div class="form-group" style="margin-bottom: 0;">
               <label for="adm-user-username">Usuario</label>
@@ -1341,17 +1359,17 @@
               <label for="adm-user-password">Contraseña (vacío = generar)</label>
               <div class="password-field-wrap">
                 <input type="password" id="adm-user-password" class="form-control" placeholder="Auto-generar si queda vacío" />
-                <button type="button" class="btn-toggle-pwd" data-toggle-pwd="adm-user-password" aria-label="Mostrar u ocultar contraseña" aria-pressed="false" title="Ver contraseña">👁️</button>
+                <button type="button" class="btn-toggle-pwd" data-toggle-pwd="adm-user-password" aria-label="Mostrar u ocultar contraseña" aria-pressed="false" title="Ver contraseña"><span class="ui-icon" data-icon="eye" data-size="15"></span></button>
               </div>
             </div>
-            <button type="submit" class="btn" id="btn-adm-create-user">➕ Crear y Entregar Usuario</button>
+            <button type="submit" class="btn" id="btn-adm-create-user"><span class="ui-icon" data-icon="plus" data-size="15"></span><span>Crear y Entregar Usuario</span></button>
           </form>
 
           <div id="adm-user-cred-box" class="cred-box">
-            <div id="adm-user-cred-title" style="font-weight: 700;"></div>
+            <div id="adm-user-cred-title" class="ui-inline" style="font-weight: 700;"></div>
             <div class="cred-code">
               <span id="adm-user-cred-text"></span>
-              <button type="button" class="btn-copy-primary" id="btn-adm-copy-user-cred" style="padding: 5px 10px; font-size: 11.5px;">📋 Copiar Credenciales</button>
+              <button type="button" class="btn-copy-primary" id="btn-adm-copy-user-cred" style="padding: 5px 10px; font-size: 11.5px;"><span class="ui-icon" data-icon="copy" data-size="13"></span><span>Copiar Credenciales</span></button>
             </div>
           </div>
 
@@ -1379,7 +1397,7 @@
     <section class="share-hub-card" id="share-hub-card">
       <button type="button" class="share-hub-header" id="share-hub-toggle" aria-expanded="true">
         <div class="share-hub-title-wrap">
-          <span class="share-hub-icon">🔗</span>
+          <span class="share-hub-icon" data-icon="link" data-size="20"></span>
           <div>
             <h2>Compartir Vista Pública (Modelo 3D + QR)</h2>
             <p>Selecciona un QR del desplegable y copia el link único de solo lectura para sistemas o empresas externas</p>
@@ -1387,15 +1405,21 @@
         </div>
         <div class="share-hub-header-right">
           <span class="share-hub-pill" id="share-hub-count">0 vistas disponibles</span>
-          <span class="share-hub-chevron" aria-hidden="true">▾</span>
+          <span class="share-hub-chevron" aria-hidden="true" data-icon="chevron-down" data-size="16"></span>
         </div>
       </button>
 
       <div class="share-hub-body" id="share-hub-body">
         <div class="share-hub-grid">
-          <div class="share-qr-thumb-box" id="share-qr-thumb-box">
-            <img id="share-hub-qr-img" src="" alt="Vista previa QR" style="display: none;" />
-            <span id="share-hub-qr-empty" class="share-qr-empty">Sin QR seleccionado</span>
+          <div style="display: flex; flex-direction: column; gap: 8px; align-items: stretch;">
+            <div class="share-qr-thumb-box" id="share-qr-thumb-box">
+              <img id="share-hub-qr-img" src="" alt="Vista previa QR" style="display: none;" />
+              <span id="share-hub-qr-empty" class="share-qr-empty">Sin QR seleccionado</span>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+              <button type="button" class="btn btn-secondary btn-sm active" id="btn-share-qr-scan" title="Mostrar QR del enlace dinámico configurado" style="padding: 5px 6px; font-size: 11px; justify-content: center; border-color: rgba(56, 189, 248, 0.55); background: rgba(14, 165, 233, 0.18); color: #bae6fd;">QR Enlace</button>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-share-qr-ar" title="Mostrar QR directo para ver el modelo 3D y AR en celular" style="padding: 5px 6px; font-size: 11px; justify-content: center;">QR 3D + AR</button>
+            </div>
           </div>
 
           <div class="share-controls-col">
@@ -1404,31 +1428,33 @@
                 <select id="share-qr-select" class="share-select" aria-label="Seleccionar QR 3D para copiar su enlace público">
                   <option value="">Cargando códigos QR 3D...</option>
                 </select>
-                <span class="share-select-arrow">▾</span>
+                <span class="share-select-arrow" data-icon="chevron-down" data-size="15"></span>
               </div>
               <div class="share-meta-pills" id="share-hub-pills"></div>
             </div>
 
             <div class="share-link-bar">
               <input type="text" id="share-hub-url" class="share-link-input" readonly placeholder="Selecciona o crea un QR 3D para obtener su link público..." />
-              <button type="button" class="btn-copy-primary" id="btn-share-copy">📋 Copiar Link</button>
-              <button type="button" class="btn btn-secondary btn-sm" id="btn-share-iframe" title="Copia código iframe listo para incrustar">🧩 Iframe</button>
-              <a id="btn-share-open" href="#" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" style="text-decoration: none;">🌐 Abrir Vista</a>
-              <button type="button" class="btn btn-secondary btn-sm" id="btn-share-edit-slug" title="Editar la ruta personalizada de la vista pública">✏️ Editar Ruta</button>
-              <button type="button" class="btn btn-secondary btn-sm" id="btn-share-rotate-link" title="Revoca el enlace actual y genera uno nuevo">🔁 Nuevo Link</button>
+              <button type="button" class="btn-copy-primary" id="btn-share-copy"><span class="ui-icon" data-icon="copy" data-size="14"></span><span>Copiar Link</span></button>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-share-iframe" title="Copia código iframe listo para incrustar"><span class="ui-icon" data-icon="code" data-size="13"></span><span>Iframe</span></button>
+              <a id="btn-share-open" href="#" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" style="text-decoration: none;"><span class="ui-icon" data-icon="globe" data-size="13"></span><span>Abrir Vista</span></a>
+              <a id="btn-share-open-ar" href="#" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" style="text-decoration: none;" title="Previsualizar lo que ve quien escanea en celular"><span class="ui-icon" data-icon="smartphone" data-size="13"></span><span>Vista Escáner (AR)</span></a>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-share-edit-slug" title="Editar la ruta personalizada de la vista pública"><span class="ui-icon" data-icon="pencil" data-size="13"></span><span>Editar Ruta</span></button>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-share-rotate-link" title="Revoca el enlace actual y genera uno nuevo"><span class="ui-icon" data-icon="repeat" data-size="13"></span><span>Nuevo Link</span></button>
             </div>
 
             <div id="share-slug-editor" class="share-link-bar" style="display: none; border-color: rgba(56, 189, 248, 0.45); background: #0d1526;">
               <span id="share-slug-prefix" style="font-family: monospace; font-size: 12px; color: #94a3b8; padding-left: 6px; white-space: nowrap;">/view/</span>
               <input type="text" id="share-slug-input" class="share-link-input" placeholder="mi-ruta-personalizada" style="color: #fde68a;" />
-              <button type="button" class="btn-copy-primary" id="btn-share-save-slug" style="padding: 7px 12px; font-size: 12px;">💾 Guardar Ruta</button>
-              <button type="button" class="btn btn-secondary btn-sm" id="btn-share-cancel-slug">✖</button>
+              <button type="button" class="btn-copy-primary" id="btn-share-save-slug" style="padding: 7px 12px; font-size: 12px;"><span class="ui-icon" data-icon="save" data-size="13"></span><span>Guardar Ruta</span></button>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-share-cancel-slug" aria-label="Cancelar edición"><span class="ui-icon" data-icon="x" data-size="13"></span></button>
             </div>
 
             <div class="share-link-bar" style="border-color: rgba(16, 185, 129, 0.28);">
-              <span style="font-size: 12px; font-weight: 700; color: #86efac; padding-left: 6px; white-space: nowrap;">🎯 Destino del QR:</span>
+              <span class="ui-inline" style="font-size: 12px; font-weight: 700; color: #86efac; padding-left: 6px; white-space: nowrap;"><span class="ui-icon" data-icon="target" data-size="14"></span><span>Destino del QR:</span></span>
               <input type="text" id="share-target-url" list="target-url-suggestions" class="share-link-input" placeholder="https://otra-pagina.com o /example/sipan-nuevo.html" style="color: #e2e8f0;" />
-              <button type="button" class="btn-copy-primary" id="btn-share-save-target" style="background: linear-gradient(135deg, #059669, #10b981); padding: 7px 12px; font-size: 12px;">💾 Cambiar Destino</button>
+              <button type="button" class="btn-copy-primary" id="btn-share-save-target" style="background: linear-gradient(135deg, #059669, #10b981); padding: 7px 12px; font-size: 12px;"><span class="ui-icon" data-icon="save" data-size="13"></span><span>Cambiar Destino</span></button>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-share-toggle-scan-mode" style="white-space: nowrap;" title="Cambiar si al escanear el QR se abre el Visor 3D + AR o redirige al link configurado"><span class="ui-icon" data-icon="smartphone" data-size="13"></span><span>Escáner: 3D + AR</span></button>
             </div>
 
             <datalist id="target-url-suggestions">
@@ -1447,15 +1473,15 @@
       <!-- Creador de Nuevo QR 3D -->
       <div class="card">
         <div class="card-title">
-          <span>✨ Crear Nuevo QR 3D</span>
+          <span class="ui-inline"><span class="ui-icon" data-icon="sparkles" data-size="18" style="color:#60a5fa;"></span><span>Crear Nuevo QR 3D</span></span>
         </div>
         <form id="create-qr-form">
           <div id="create-tenant-group" class="form-group" style="display: none;">
-            <label for="create-tenant-id">🌐 Sitio Web Destino (Superadmin)</label>
+            <label for="create-tenant-id"><span class="ui-inline"><span class="ui-icon" data-icon="globe" data-size="14"></span><span>Sitio Web Destino (Superadmin)</span></span></label>
             <select id="create-tenant-id" class="form-control"></select>
           </div>
           <div id="create-owner-group" class="form-group" style="display: none;">
-            <label for="create-owner-user-id">👤 Asignar Propietario (Opcional)</label>
+            <label for="create-owner-user-id"><span class="ui-inline"><span class="ui-icon" data-icon="user" data-size="14"></span><span>Asignar Propietario (Opcional)</span></span></label>
             <select id="create-owner-user-id" class="form-control">
               <option value="">Mi cuenta actual</option>
             </select>
@@ -1475,7 +1501,7 @@
 
           <div class="form-group">
             <label for="qr-view-slug">
-              <span>🔗 Ruta de Vista Pública personalizada</span>
+              <span class="ui-inline"><span class="ui-icon" data-icon="link" data-size="14"></span><span>Ruta de Vista Pública personalizada</span></span>
               <span style="font-size: 11px; color: #94a3b8;">Opcional (/view/tu-ruta)</span>
             </label>
             <input type="text" id="qr-view-slug" class="form-control" placeholder="Ej: museo-sipan-vip (vacío = automático)" />
@@ -1484,22 +1510,30 @@
           <div class="form-group">
             <label for="qr-strategy">Comportamiento del Enlace QR</label>
             <select id="qr-strategy" class="form-control">
-              <option value="one_time" selected>⚡ Dinámico — 1 solo uso (Cambia tras cada escaneo)</option>
-              <option value="timed">🔄 Dinámico — Cambia constantemente por tiempo (Cada N seg)</option>
-              <option value="dynamic">🔄⚡ Dinámico total — Por tiempo y por cada escaneo</option>
-              <option value="static">🔒 Estático — Enlace fijo permanente</option>
-              <option value="continuous">🔒 Continuo — Estático sin descarte</option>
+              <option value="one_time" selected>Dinámico — 1 solo uso (Cambia tras cada escaneo)</option>
+              <option value="timed">Dinámico — Cambia constantemente por tiempo (Cada N seg)</option>
+              <option value="dynamic">Dinámico total — Por tiempo y por cada escaneo</option>
+              <option value="static">Estático — Enlace fijo permanente</option>
+              <option value="continuous">Continuo — Estático sin descarte</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="qr-scan-mode"><span class="ui-inline"><span class="ui-icon" data-icon="smartphone" data-size="14"></span><span>Qué abre quien escanea el QR en su celular</span></span></label>
+            <select id="qr-scan-mode" class="form-control">
+              <option value="ar" selected>Experiencia 3D + Realidad Aumentada (AR) (+ botón al enlace web)</option>
+              <option value="redirect">Redirección directa al enlace destino (302)</option>
             </select>
           </div>
 
           <div id="create-rotation-interval-group" style="display: none; background: #0f172a; border: 1px solid #1e293b; border-radius: 10px; padding: 12px; margin-bottom: 16px;">
             <div class="form-group" style="margin-bottom: 10px;">
-              <label for="qr-rotation-interval">⏱️ Intervalo de cambio automático (segundos)</label>
+              <label for="qr-rotation-interval"><span class="ui-inline"><span class="ui-icon" data-icon="clock" data-size="14"></span><span>Intervalo de cambio automático (segundos)</span></span></label>
               <input type="number" id="qr-rotation-interval" class="form-control" min="2" max="86400" value="30" />
             </div>
             <div class="form-group" style="margin-bottom: 0;">
               <label for="qr-rotating-urls">
-                <span>🔁 Lista de URLs rotativas (opcional)</span>
+                <span class="ui-inline"><span class="ui-icon" data-icon="repeat" data-size="14"></span><span>Lista de URLs rotativas (opcional)</span></span>
                 <span style="font-size: 11px; color: #94a3b8;">1 por línea</span>
               </label>
               <textarea id="qr-rotating-urls" class="form-control" rows="2" placeholder="https://ejemplo.com/link-1&#10;https://ejemplo.com/link-2"></textarea>
@@ -1509,7 +1543,7 @@
           <!-- Archivo Imagen / Textura (Extrae color automáticamente) -->
           <div class="form-group">
             <label>
-              <span>🖼️ Imagen / Logo (Alinea los colores del QR)</span>
+              <span class="ui-inline"><span class="ui-icon" data-icon="image" data-size="14"></span><span>Imagen / Logo (Alinea los colores del QR)</span></span>
               <span style="font-size: 11px; color: #94a3b8;">Max 20 MB</span>
             </label>
             <label class="file-input-wrapper" id="image-dropzone" for="image-file">
@@ -1517,8 +1551,8 @@
               <div id="image-preview-container" style="display:none; margin-bottom:8px;">
                 <img id="image-preview" src="" style="max-height:90px; max-width:180px; object-fit:contain; border-radius:6px; border:1px solid #334155; background:#1e293b; padding:4px;" />
               </div>
-              <div id="image-label">📎 <strong>Haz clic aquí</strong> o arrastra una imagen/logo (PNG, JPG, WebP)</div>
-              <button type="button" id="btn-clear-image" class="btn btn-secondary btn-sm" style="display:none; margin:8px auto 0 auto; width:auto;">✖ Quitar imagen</button>
+              <div id="image-label" class="ui-inline" style="justify-content:center;"><span class="ui-icon" data-icon="paperclip" data-size="15"></span><span><strong>Haz clic aquí</strong> o arrastra una imagen/logo (PNG, JPG, WebP)</span></div>
+              <button type="button" id="btn-clear-image" class="btn btn-secondary btn-sm" style="display:none; margin:8px auto 0 auto; width:auto;"><span class="ui-icon" data-icon="x" data-size="13"></span><span>Quitar imagen</span></button>
             </label>
             <div style="display: flex; align-items: center; gap: 10px; margin-top: 8px; flex-wrap: wrap; font-size: 12px; color: #cbd5e1;">
               <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
@@ -1535,34 +1569,34 @@
           <!-- Archivo Modelo 3D -->
           <div class="form-group">
             <label>
-              <span>🧊 Modelo 3D (Elige uno integrado o sube tu propio GLB)</span>
+              <span class="ui-inline"><span class="ui-icon" data-icon="cube" data-size="14"></span><span>Modelo 3D (Elige uno integrado o sube tu propio GLB)</span></span>
               <span style="font-size: 11px; color: #94a3b8;">Max 100 MB</span>
             </label>
             <select id="model-preset" class="form-control" style="margin-bottom: 10px;">
-              <option value="">✨ Automático (Generar Totem 3D por defecto)</option>
-              <option value="museo_tumbas_reales_sipan.glb">🏛️ Museo Tumbas Reales de Sipán — Integrado (386.9 KB)</option>
+              <option value="">Automático (Generar Totem 3D por defecto)</option>
+              <option value="museo_tumbas_reales_sipan.glb">Museo Tumbas Reales de Sipán — Integrado (386.9 KB)</option>
             </select>
             <label class="file-input-wrapper" id="model-dropzone" for="model-file">
               <input type="file" id="model-file" accept=".glb,.gltf,.obj,.fbx,.stl" />
-              <div id="model-label">📦 <strong>Haz clic aquí</strong> o arrastra un modelo (.glb, .gltf, .obj, .fbx, .stl)</div>
-              <button type="button" id="btn-clear-model" class="btn btn-secondary btn-sm" style="display:none; margin:8px auto 0 auto; width:auto;">✖ Quitar modelo</button>
+              <div id="model-label" class="ui-inline" style="justify-content:center;"><span class="ui-icon" data-icon="package" data-size="15"></span><span><strong>Haz clic aquí</strong> o arrastra un modelo (.glb, .gltf, .obj, .fbx, .stl)</span></div>
+              <button type="button" id="btn-clear-model" class="btn btn-secondary btn-sm" style="display:none; margin:8px auto 0 auto; width:auto;"><span class="ui-icon" data-icon="x" data-size="13"></span><span>Quitar modelo</span></button>
             </label>
           </div>
 
           <!-- Estilo Visual 3D Inicial (Sin Código) -->
           <div class="form-group">
             <label>
-              <span>🎨 Configuración Visual del Visor</span>
+              <span class="ui-inline"><span class="ui-icon" data-icon="palette" data-size="14"></span><span>Configuración Visual del Visor</span></span>
               <span style="font-size: 11px; color: #94a3b8;">Sin código · Editable después</span>
             </label>
             <div class="mode-pills" id="create-mode-pills">
-              <button type="button" class="mode-pill active" data-create-preset="auto">✨ Auto / Sitio</button>
-              <button type="button" class="mode-pill" data-create-preset="warm_sand">🏜️ Arena Cálida</button>
-              <button type="button" class="mode-pill" data-create-preset="transparent">🪟 Transparente</button>
-              <button type="button" class="mode-pill" data-create-preset="archaeological">🏺 Arqueológico</button>
-              <button type="button" class="mode-pill" data-create-preset="museum_night">🏛️ Museo Oscuro</button>
-              <button type="button" class="mode-pill" data-create-preset="studio">📸 Estudio Claro</button>
-              <button type="button" class="mode-pill" data-create-preset="manual_after">🎛️ Ajustar Manual</button>
+              <button type="button" class="mode-pill active" data-create-preset="auto"><span class="ui-icon" data-icon="sparkles" data-size="13"></span><span>Auto / Sitio</span></button>
+              <button type="button" class="mode-pill" data-create-preset="warm_sand"><span class="ui-icon" data-icon="mountain" data-size="13"></span><span>Arena Cálida</span></button>
+              <button type="button" class="mode-pill" data-create-preset="transparent"><span class="ui-icon" data-icon="layers" data-size="13"></span><span>Transparente</span></button>
+              <button type="button" class="mode-pill" data-create-preset="archaeological"><span class="ui-icon" data-icon="compass" data-size="13"></span><span>Arqueológico</span></button>
+              <button type="button" class="mode-pill" data-create-preset="museum_night"><span class="ui-icon" data-icon="landmark" data-size="13"></span><span>Museo Oscuro</span></button>
+              <button type="button" class="mode-pill" data-create-preset="studio"><span class="ui-icon" data-icon="camera" data-size="13"></span><span>Estudio Claro</span></button>
+              <button type="button" class="mode-pill" data-create-preset="manual_after"><span class="ui-icon" data-icon="sliders" data-size="13"></span><span>Ajustar Manual</span></button>
             </div>
             <div id="create-mode-desc" style="font-size: 12px; color: #94a3b8; margin-top: 6px;">
               Calibra automáticamente luz lateral cálida, colores reales y aristas limpias para tu modelo.
@@ -1570,7 +1604,7 @@
           </div>
 
           <button type="submit" class="btn" id="btn-submit">
-            🚀 Generar QR 3D Interactivo
+            <span class="ui-icon" data-icon="rocket" data-size="16"></span><span>Generar QR 3D Interactivo</span>
           </button>
           <div id="form-service-error" class="inline-form-error"></div>
         </form>
@@ -1579,7 +1613,7 @@
       <!-- SECCIÓN DE AYUDA Y GUÍA TÉCNICA 3D / IA -->
       <div class="card" style="display: flex; flex-direction: column;">
         <div class="card-title">
-          <span>📚 Guía de Formatos 3D y Creación con IA</span>
+          <span class="ui-inline"><span class="ui-icon" data-icon="book" data-size="18" style="color:#60a5fa;"></span><span>Guía de Formatos 3D y Creación con IA</span></span>
         </div>
 
         <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">
@@ -1589,8 +1623,8 @@
         <!-- Bloque 1: Formatos 3D -->
         <div class="help-accordion">
           <div class="help-header">
-            <span>🗂️ Formatos 3D — Qué son y quién los crea</span>
-            <span>▼</span>
+            <span class="ui-inline"><span class="ui-icon" data-icon="folder" data-size="15"></span><span>Formatos 3D — Qué son y quién los crea</span></span>
+            <span class="ui-icon" data-icon="chevron-down" data-size="15"></span>
           </div>
           <div class="help-body">
             <table class="format-table">
@@ -1605,27 +1639,28 @@
                 <tr>
                   <td><strong>GLB</strong> <span class="badge badge-success">Recomendado</span></td>
                   <td>Blender, Sketchfab</td>
-                  <td>✅ Meshy, Tripo AI</td>
+                  <td><span class="ui-inline" style="color:#34d399;"><span class="ui-icon" data-icon="check-circle" data-size="14"></span><span>Meshy, Tripo AI</span></span></td>
                 </tr>
                 <tr>
                   <td><strong>OBJ</strong></td>
                   <td>Blender, Maya, ZBrush</td>
-                  <td>✅ Meshy, CSM AI</td>
+                  <td><span class="ui-inline" style="color:#34d399;"><span class="ui-icon" data-icon="check-circle" data-size="14"></span><span>Meshy, CSM AI</span></span></td>
                 </tr>
                 <tr>
                   <td><strong>FBX</strong></td>
                   <td>Maya, Cinema 4D</td>
-                  <td>✅ Meshy (export)</td>
+                  <td><span class="ui-inline" style="color:#34d399;"><span class="ui-icon" data-icon="check-circle" data-size="14"></span><span>Meshy (export)</span></span></td>
                 </tr>
                 <tr>
                   <td><strong>STL</strong></td>
                   <td>Fusion 360, Tinkercad</td>
-                  <td>⚠️ Solo geometría (sin textura)</td>
+                  <td><span class="ui-inline" style="color:#fbbf24;"><span class="ui-icon" data-icon="alert-triangle" data-size="14"></span><span>Solo geometría (sin textura)</span></span></td>
                 </tr>
               </tbody>
             </table>
-            <div class="info-callout">
-              💡 <strong>Conversión Automática:</strong> Nuestra API normaliza e incrusta el código QR en formato GLB binario optimizado para que cualquier navegador lo ejecute a 60 FPS sin pérdida de datos.
+            <div class="info-callout" style="display:flex;align-items:flex-start;gap:8px;">
+              <span class="ui-icon" data-icon="lightbulb" data-size="15" style="margin-top:2px;"></span>
+              <div><strong>Conversión Automática:</strong> Nuestra API normaliza e incrusta el código QR en formato GLB binario optimizado para que cualquier navegador lo ejecute a 60 FPS sin pérdida de datos.</div>
             </div>
           </div>
         </div>
@@ -1633,8 +1668,8 @@
         <!-- Bloque 2: IA para crear modelos 3D -->
         <div class="help-accordion" style="margin-top: 14px;">
           <div class="help-header">
-            <span>🤖 IA para crear modelos 3D desde imágenes</span>
-            <span>▼</span>
+            <span class="ui-inline"><span class="ui-icon" data-icon="bot" data-size="15"></span><span>IA para crear modelos 3D desde imágenes</span></span>
+            <span class="ui-icon" data-icon="chevron-down" data-size="15"></span>
           </div>
           <div class="help-body">
             <div class="ai-tools-grid">
@@ -1644,7 +1679,7 @@
                   <span class="badge badge-info">Web / API</span>
                 </div>
                 <div class="ai-card-desc">Sube 1 foto o boceto y genera un GLB con materiales PBR en segundos.</div>
-                <a href="https://meshy.ai" target="_blank" rel="noopener">Ir a Meshy.ai →</a>
+                <a href="https://meshy.ai" target="_blank" rel="noopener" class="ui-inline"><span>Ir a Meshy.ai</span><span class="ui-icon" data-icon="arrow-right" data-size="12"></span></a>
               </div>
 
               <div class="ai-card">
@@ -1653,7 +1688,7 @@
                   <span class="badge badge-info">Web / API</span>
                 </div>
                 <div class="ai-card-desc">Reconstrucción 3D instantánea con texturizado listo para Three.js.</div>
-                <a href="https://tripo3d.ai" target="_blank" rel="noopener">Ir a Tripo3D →</a>
+                <a href="https://tripo3d.ai" target="_blank" rel="noopener" class="ui-inline"><span>Ir a Tripo3D</span><span class="ui-icon" data-icon="arrow-right" data-size="12"></span></a>
               </div>
             </div>
 
@@ -1669,11 +1704,11 @@
     <!-- Biblioteca de Archivos Guardados en Base de Datos -->
     <div class="card">
       <div class="card-title">
-        <span>💾 Archivos Subidos Guardados en Base de Datos</span>
+        <span class="ui-inline"><span class="ui-icon" data-icon="save" data-size="18" style="color:#60a5fa;"></span><span>Archivos Subidos Guardados en Base de Datos</span></span>
         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
           <input type="file" id="direct-upload-file" accept=".glb,.gltf,.obj,.fbx,.stl,image/png,image/jpeg,image/webp,image/svg+xml" style="display:none;" />
-          <button type="button" class="btn btn-sm" id="btn-direct-upload" style="width:auto;">📤 Guardar Archivo en BD</button>
-          <button type="button" class="btn btn-secondary btn-sm" id="btn-refresh-files">🔄 Actualizar</button>
+          <button type="button" class="btn btn-sm" id="btn-direct-upload" style="width:auto;"><span class="ui-icon" data-icon="upload" data-size="13"></span><span>Guardar Archivo en BD</span></button>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-refresh-files"><span class="ui-icon" data-icon="refresh" data-size="13"></span><span>Actualizar</span></button>
         </div>
       </div>
       <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 10px;">
@@ -1706,8 +1741,8 @@
     <!-- Lista de QRs del Inquilino -->
     <div class="card">
       <div class="card-title">
-        <span>📋 Códigos QR 3D Activos</span>
-        <button class="btn btn-secondary btn-sm" id="btn-refresh-list">🔄 Actualizar</button>
+        <span class="ui-inline"><span class="ui-icon" data-icon="clipboard" data-size="18" style="color:#60a5fa;"></span><span>Códigos QR 3D Activos</span></span>
+        <button class="btn btn-secondary btn-sm" id="btn-refresh-list"><span class="ui-icon" data-icon="refresh" data-size="13"></span><span>Actualizar</span></button>
       </div>
 
       <div class="table-responsive">
@@ -1741,7 +1776,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h2 id="modal-title" style="font-size: 18px; font-weight: 700;">Visor 3D Interactivo</h2>
-        <button class="close-btn" id="modal-close">&times;</button>
+        <button class="close-btn" id="modal-close" type="button" aria-label="Cerrar"><span class="ui-icon" data-icon="x" data-size="18"></span></button>
       </div>
 
       <div class="modal-studio-grid">
@@ -1751,13 +1786,13 @@
             <!-- Se inserta dinámicamente <qr-3d-viewer> -->
           </div>
           <div style="background: #0f172a; padding: 12px; border-radius: 8px; font-size: 13px; border: 1px solid #1e3a5f;">
-            <div style="font-weight: 700; color: #7dd3fc; margin-bottom: 6px;">🔗 Link Público de Vista (Solo lectura — Modelo 3D + QR, sin acceso administrativo):</div>
+            <div class="ui-inline" style="font-weight: 700; color: #7dd3fc; margin-bottom: 6px;"><span class="ui-icon" data-icon="link" data-size="14"></span><span>Link Público de Vista (Solo lectura — Modelo 3D + QR, sin acceso administrativo):</span></div>
             <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
               <input type="text" id="view-link-area" class="form-control" readonly style="flex: 1; min-width: 220px; font-family: monospace; font-size: 12px; color: #7dd3fc;" />
-              <button type="button" class="btn-copy-primary" id="btn-copy-view-link" style="padding: 7px 12px; font-size: 12px;">📋 Copiar Link</button>
-              <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-view-iframe" style="width: auto;">🧩 Iframe</button>
-              <a id="btn-open-view-link" href="#" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" style="width: auto; text-decoration: none;">🌐 Abrir Vista</a>
-              <button type="button" class="btn btn-secondary btn-sm" id="btn-rotate-view-link" style="width: auto;" title="Revoca el enlace actual y genera uno nuevo">🔁 Regenerar</button>
+              <button type="button" class="btn-copy-primary" id="btn-copy-view-link" style="padding: 7px 12px; font-size: 12px;"><span class="ui-icon" data-icon="copy" data-size="13"></span><span>Copiar Link</span></button>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-view-iframe" style="width: auto;"><span class="ui-icon" data-icon="code" data-size="13"></span><span>Iframe</span></button>
+              <a id="btn-open-view-link" href="#" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" style="width: auto; text-decoration: none;"><span class="ui-icon" data-icon="globe" data-size="13"></span><span>Abrir Vista</span></a>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-rotate-view-link" style="width: auto;" title="Revoca el enlace actual y genera uno nuevo"><span class="ui-icon" data-icon="repeat" data-size="13"></span><span>Regenerar</span></button>
             </div>
           </div>
           <div style="background: #0f172a; padding: 12px; border-radius: 8px; font-size: 13px;">
@@ -1765,16 +1800,16 @@
             <textarea id="embed-code-area" class="form-control" rows="2" readonly style="font-family: monospace; font-size: 12px;"></textarea>
           </div>
           <div style="display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap;">
-            <button class="btn btn-secondary btn-sm" id="btn-test-scan">📱 Simular Escaneo Móvil (Test)</button>
-            <button class="btn btn-secondary btn-sm" id="btn-copy-embed">📋 Copiar Código</button>
+            <button class="btn btn-secondary btn-sm" id="btn-test-scan"><span class="ui-icon" data-icon="smartphone" data-size="13"></span><span>Simular Escaneo Móvil (Test)</span></button>
+            <button class="btn btn-secondary btn-sm" id="btn-copy-embed"><span class="ui-icon" data-icon="copy" data-size="13"></span><span>Copiar Código</span></button>
           </div>
         </div>
 
         <!-- Panel Automático / Manual (Sin Código) -->
         <div class="studio-panel" id="studio-panel">
           <div class="studio-tabs">
-            <button type="button" class="studio-tab active" id="tab-mode-auto">✨ Automático</button>
-            <button type="button" class="studio-tab" id="tab-mode-manual">🎛️ Manual</button>
+            <button type="button" class="studio-tab active" id="tab-mode-auto"><span class="ui-icon" data-icon="sparkles" data-size="14"></span><span>Automático</span></button>
+            <button type="button" class="studio-tab" id="tab-mode-manual"><span class="ui-icon" data-icon="sliders" data-size="14"></span><span>Manual</span></button>
           </div>
 
           <div id="studio-auto-pane">
@@ -1787,7 +1822,7 @@
                 <li>Aristas inteligentes: marca la arquitectura y evita rayar terrenos orgánicos.</li>
               </ul>
               <button type="button" class="btn btn-secondary btn-sm" id="btn-switch-to-manual" style="margin-top: 4px;">
-                🎛️ Ajustar luz, color y ángulo manualmente
+                <span class="ui-icon" data-icon="sliders" data-size="13"></span><span>Ajustar luz, color y ángulo manualmente</span>
               </button>
             </div>
           </div>
@@ -1795,46 +1830,46 @@
           <div id="studio-manual-pane" style="display: none; flex-direction: column; gap: 11px;">
             <div class="studio-section-label">Estilos Rápidos (1 clic)</div>
             <div class="preset-grid">
-              <button type="button" class="preset-chip" data-preset="warm_sand">🏜️ Arena Cálida</button>
-              <button type="button" class="preset-chip" data-preset="transparent">🪟 Transparente</button>
-              <button type="button" class="preset-chip" data-preset="archaeological">🏺 Arqueológico</button>
-              <button type="button" class="preset-chip" data-preset="museum_night">🏛️ Museo Oscuro</button>
-              <button type="button" class="preset-chip" data-preset="studio">📸 Estudio Claro</button>
-              <button type="button" class="preset-chip" data-preset="outdoor">☀️ Exterior Día</button>
+              <button type="button" class="preset-chip" data-preset="warm_sand"><span class="ui-icon" data-icon="mountain" data-size="13"></span><span>Arena Cálida</span></button>
+              <button type="button" class="preset-chip" data-preset="transparent"><span class="ui-icon" data-icon="layers" data-size="13"></span><span>Transparente</span></button>
+              <button type="button" class="preset-chip" data-preset="archaeological"><span class="ui-icon" data-icon="compass" data-size="13"></span><span>Arqueológico</span></button>
+              <button type="button" class="preset-chip" data-preset="museum_night"><span class="ui-icon" data-icon="landmark" data-size="13"></span><span>Museo Oscuro</span></button>
+              <button type="button" class="preset-chip" data-preset="studio"><span class="ui-icon" data-icon="camera" data-size="13"></span><span>Estudio Claro</span></button>
+              <button type="button" class="preset-chip" data-preset="outdoor"><span class="ui-icon" data-icon="sun" data-size="13"></span><span>Exterior Día</span></button>
             </div>
 
             <div class="studio-section-label">Iluminación y Sol</div>
             <div class="slider-row">
-              <div class="slider-head"><span>☀️ Azimut solar</span><span class="slider-val" id="val-azimuth">-108°</span></div>
+              <div class="slider-head"><span class="ui-inline"><span class="ui-icon" data-icon="sun" data-size="13"></span><span>Azimut solar</span></span><span class="slider-val" id="val-azimuth">-108°</span></div>
               <input type="range" id="ctrl-azimuth" min="-180" max="180" step="1" value="-108" />
             </div>
             <div class="slider-row">
-              <div class="slider-head"><span>📐 Altura del sol</span><span class="slider-val" id="val-elevation">38°</span></div>
+              <div class="slider-head"><span class="ui-inline"><span class="ui-icon" data-icon="ruler" data-size="13"></span><span>Altura del sol</span></span><span class="slider-val" id="val-elevation">38°</span></div>
               <input type="range" id="ctrl-elevation" min="10" max="85" step="1" value="38" />
             </div>
             <div class="slider-row">
-              <div class="slider-head"><span>💡 Fuerza del sol</span><span class="slider-val" id="val-sun-intensity">1.65</span></div>
+              <div class="slider-head"><span class="ui-inline"><span class="ui-icon" data-icon="lightbulb" data-size="13"></span><span>Fuerza del sol</span></span><span class="slider-val" id="val-sun-intensity">1.65</span></div>
               <input type="range" id="ctrl-sun-intensity" min="0.2" max="2.8" step="0.05" value="1.65" />
             </div>
             <div class="slider-row">
-              <div class="slider-head"><span>🔆 Exposición / Brillo</span><span class="slider-val" id="val-exposure">0.92</span></div>
+              <div class="slider-head"><span class="ui-inline"><span class="ui-icon" data-icon="sun-dim" data-size="13"></span><span>Exposición / Brillo</span></span><span class="slider-val" id="val-exposure">0.92</span></div>
               <input type="range" id="ctrl-exposure" min="0.45" max="1.7" step="0.02" value="0.92" />
             </div>
             <div class="slider-row">
-              <div class="slider-head"><span>🌫️ Luz ambiental (sombras)</span><span class="slider-val" id="val-ambient">0.14</span></div>
+              <div class="slider-head"><span class="ui-inline"><span class="ui-icon" data-icon="cloud-sun" data-size="13"></span><span>Luz ambiental (sombras)</span></span><span class="slider-val" id="val-ambient">0.14</span></div>
               <input type="range" id="ctrl-ambient" min="0" max="0.85" step="0.02" value="0.14" />
             </div>
             <div>
               <div class="slider-head" style="margin-bottom: 4px;"><span>Comportamiento del sol al girar</span></div>
               <select id="ctrl-sun-mode" class="studio-select" title="Elige si el sol y la sombra de la casa al suelo se mantienen fijos con el modelo o si todo se mueve al girar">
-                <option value="scene">🌐 Dinámico — Se mueve todo al girar (actual)</option>
-                <option value="model">📌 Fijo al modelo — De casa a suelo inmóvil</option>
+                <option value="scene">Dinámico — Se mueve todo al girar (actual)</option>
+                <option value="model">Fijo al modelo — De casa a suelo inmóvil</option>
               </select>
             </div>
 
             <div class="studio-section-label">Color y Nitidez</div>
             <div class="slider-row">
-              <div class="slider-head"><span>🎨 Intensidad de color</span><span class="slider-val" id="val-color-boost">1.12</span></div>
+              <div class="slider-head"><span class="ui-inline"><span class="ui-icon" data-icon="palette" data-size="13"></span><span>Intensidad de color</span></span><span class="slider-val" id="val-color-boost">1.12</span></div>
               <input type="range" id="ctrl-color-boost" min="0.65" max="1.55" step="0.02" value="1.12" />
             </div>
             <div>
@@ -1879,53 +1914,53 @@
               <div>
                 <div class="slider-head" style="margin-bottom: 4px;"><span>Animación QR 90°</span></div>
                 <select id="ctrl-qr-reveal" class="studio-select">
-                  <option value="blocks">🧱 Bloques 3D</option>
+                  <option value="blocks">Bloques 3D</option>
                   <option value="fade">Suave (Fade)</option>
                 </select>
               </div>
             </div>
             <label class="switch-row">
-              <span>🎨 Color de acento propio</span>
+              <span class="ui-inline"><span class="ui-icon" data-icon="palette" data-size="13"></span><span>Color de acento propio</span></span>
               <span style="display: flex; align-items: center; gap: 6px;">
                 <input type="checkbox" id="ctrl-use-accent" />
                 <input type="color" id="ctrl-accent-color" value="#0f3d2e" style="width: 28px; height: 22px; border: 1px solid #334155; border-radius: 4px; background: transparent;" />
               </span>
             </label>
             <label class="switch-row">
-              <span>🧰 Mostrar barra de herramientas</span>
+              <span class="ui-inline"><span class="ui-icon" data-icon="wrench" data-size="13"></span><span>Mostrar barra de herramientas</span></span>
               <input type="checkbox" id="ctrl-show-toolbar" checked />
             </label>
             <label class="switch-row">
-              <span>💬 Mostrar hint inferior</span>
+              <span class="ui-inline"><span class="ui-icon" data-icon="message-square" data-size="13"></span><span>Mostrar hint inferior</span></span>
               <input type="checkbox" id="ctrl-show-hint" checked />
             </label>
 
             <div class="studio-section-label">Escena y Encuadre</div>
             <div>
-              <div class="slider-head" style="margin-bottom: 4px;"><span>🎥 Estilo de Cámara</span></div>
+              <div class="slider-head" style="margin-bottom: 4px;"><span class="ui-inline"><span class="ui-icon" data-icon="video" data-size="13"></span><span>Estilo de Cámara</span></span></div>
               <select id="ctrl-camera-mode" class="studio-select">
-                <option value="smooth">🎬 Cinematográfica (suave con inercia)</option>
-                <option value="direct">⚡ Directa 1:1 (sin inercia)</option>
+                <option value="smooth">Cinematográfica (suave con inercia)</option>
+                <option value="direct">Directa 1:1 (sin inercia)</option>
               </select>
             </div>
             <label class="switch-row">
-              <span>🔄 Auto-giro al abrir</span>
+              <span class="ui-inline"><span class="ui-icon" data-icon="refresh" data-size="13"></span><span>Auto-giro al abrir</span></span>
               <input type="checkbox" id="ctrl-auto-rotate" checked />
             </label>
             <label class="switch-row">
-              <span>🪧 Mostrar Tótem QR 3D</span>
+              <span class="ui-inline"><span class="ui-icon" data-icon="qr-code" data-size="13"></span><span>Mostrar Tótem QR 3D</span></span>
               <input type="checkbox" id="ctrl-show-totem" checked />
             </label>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-              <button type="button" class="btn btn-secondary btn-sm" id="btn-save-pose" title="Fija la vista actual como ángulo inicial">📷 Fijar vista</button>
-              <button type="button" class="btn btn-secondary btn-sm" id="btn-reset-pose">↺ Vista auto</button>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-save-pose" title="Fija la vista actual como ángulo inicial"><span class="ui-icon" data-icon="camera" data-size="13"></span><span>Fijar vista</span></button>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-reset-pose"><span class="ui-icon" data-icon="rotate-ccw" data-size="13"></span><span>Vista auto</span></button>
             </div>
             <div id="pose-indicator" style="font-size: 11px; color: #94a3b8;">Encuadre: automático</div>
           </div>
 
-          <button type="button" class="btn" id="btn-save-viewer-config">💾 Guardar Estilo Visual</button>
-          <button type="button" class="btn btn-secondary btn-sm" id="btn-inherit-tenant-theme">↩️ Heredar tema del sitio</button>
+          <button type="button" class="btn" id="btn-save-viewer-config"><span class="ui-icon" data-icon="save" data-size="15"></span><span>Guardar Estilo Visual</span></button>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-inherit-tenant-theme"><span class="ui-icon" data-icon="undo" data-size="13"></span><span>Heredar tema del sitio</span></button>
           <div class="studio-save-status" id="studio-save-status"></div>
         </div>
       </div>
@@ -1937,12 +1972,12 @@
     <div class="modal-content modal-content-sm">
       <div class="modal-header">
         <div>
-          <h2 style="font-size: 18px; font-weight: 700;">✏️ Editar Información del QR 3D</h2>
+          <h2 class="ui-inline" style="font-size: 18px; font-weight: 700;"><span class="ui-icon" data-icon="pencil" data-size="17" style="color:#60a5fa;"></span><span>Editar Información del QR 3D</span></h2>
           <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">
             ID: <code id="edit-qr-id-badge" style="color: #38bdf8;"></code>
           </div>
         </div>
-        <button class="close-btn" id="edit-modal-close" type="button">&times;</button>
+        <button class="close-btn" id="edit-modal-close" type="button" aria-label="Cerrar"><span class="ui-icon" data-icon="x" data-size="18"></span></button>
       </div>
 
       <form id="edit-qr-form" style="display: flex; flex-direction: column; gap: 12px;">
@@ -1968,7 +2003,7 @@
 
         <div class="form-group" style="margin-bottom: 0;">
           <label for="edit-qr-view-slug">
-            <span>🔗 Ruta de Vista Pública (/view/...)</span>
+            <span class="ui-inline"><span class="ui-icon" data-icon="link" data-size="14"></span><span>Ruta de Vista Pública (/view/...)</span></span>
             <span style="font-size: 11px; color: #94a3b8;">Editable</span>
           </label>
           <input type="text" id="edit-qr-view-slug" class="form-control" placeholder="vw_... o ruta-personalizada" />
@@ -1978,52 +2013,60 @@
           <div class="form-group" style="margin-bottom: 0;">
             <label for="edit-qr-strategy">Comportamiento del Enlace</label>
             <select id="edit-qr-strategy" class="form-control">
-              <option value="one_time">⚡ Dinámico — 1 solo uso</option>
-              <option value="timed">🔄 Dinámico — Por tiempo (Cada N seg)</option>
-              <option value="dynamic">🔄⚡ Dinámico total — Tiempo + 1 uso</option>
-              <option value="static">🔒 Estático — Enlace fijo</option>
-              <option value="continuous">🔒 Continuo — Estático sin descarte</option>
+              <option value="one_time">Dinámico — 1 solo uso</option>
+              <option value="timed">Dinámico — Por tiempo (Cada N seg)</option>
+              <option value="dynamic">Dinámico total — Tiempo + 1 uso</option>
+              <option value="static">Estático — Enlace fijo</option>
+              <option value="continuous">Continuo — Estático sin descarte</option>
             </select>
           </div>
           <div class="form-group" style="margin-bottom: 0;">
             <label for="edit-qr-active">Estado del QR</label>
             <select id="edit-qr-active" class="form-control">
-              <option value="true">🟢 Activo</option>
-              <option value="false">⏸️ Pausado / Inactivo</option>
+              <option value="true">Activo</option>
+              <option value="false">Pausado / Inactivo</option>
             </select>
           </div>
         </div>
 
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="edit-qr-scan-mode"><span class="ui-inline"><span class="ui-icon" data-icon="smartphone" data-size="14"></span><span>Qué abre quien escanea el QR</span></span></label>
+          <select id="edit-qr-scan-mode" class="form-control">
+            <option value="ar">Experiencia 3D + Realidad Aumentada (AR) (+ botón al enlace web)</option>
+            <option value="redirect">Redirección directa al enlace destino (302)</option>
+          </select>
+        </div>
+
         <div id="edit-rotation-interval-group" style="display: none; background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 10px 12px;">
           <div class="form-group" style="margin-bottom: 8px;">
-            <label for="edit-qr-interval">⏱️ Intervalo de rotación automática (segundos)</label>
+            <label for="edit-qr-interval"><span class="ui-inline"><span class="ui-icon" data-icon="clock" data-size="14"></span><span>Intervalo de rotación automática (segundos)</span></span></label>
             <input type="number" id="edit-qr-interval" class="form-control" min="2" max="86400" value="30" />
           </div>
           <div class="form-group" style="margin-bottom: 0;">
-            <label for="edit-qr-rotating-urls">🔁 URLs rotativas opcionales (1 por línea)</label>
+            <label for="edit-qr-rotating-urls"><span class="ui-inline"><span class="ui-icon" data-icon="repeat" data-size="14"></span><span>URLs rotativas opcionales (1 por línea)</span></span></label>
             <textarea id="edit-qr-rotating-urls" class="form-control" rows="2" placeholder="https://ejemplo.com/a&#10;https://ejemplo.com/b"></textarea>
           </div>
         </div>
 
         <label class="switch-row" style="background: #0f172a; padding: 10px 12px; border-radius: 8px; border: 1px solid #1e293b;">
-          <span>🌐 Habilitar Link Público de Vista (Solo lectura)</span>
+          <span class="ui-inline"><span class="ui-icon" data-icon="globe" data-size="14"></span><span>Habilitar Link Público de Vista (Solo lectura)</span></span>
           <input type="checkbox" id="edit-view-enabled" checked />
         </label>
 
         <div class="form-group" style="margin-bottom: 0;">
           <label for="edit-model-preset">
-            <span>🧊 Modelo 3D (opcional: reemplazar)</span>
+            <span class="ui-inline"><span class="ui-icon" data-icon="cube" data-size="14"></span><span>Modelo 3D (opcional: reemplazar)</span></span>
             <span style="font-size: 11px; color: #94a3b8;" id="edit-current-model-label"></span>
           </label>
           <select id="edit-model-preset" class="form-control" style="margin-bottom: 8px;">
-            <option value="">🔒 Mantener modelo actual</option>
+            <option value="">Mantener modelo actual</option>
           </select>
           <input type="file" id="edit-model-file" class="form-control" accept=".glb,.gltf,.obj,.fbx,.stl" style="padding: 8px;" />
         </div>
 
         <div class="form-group" style="margin-bottom: 0;">
           <label for="edit-image-file">
-            <span>🖼️ Imagen / Logo (opcional: actualizar paleta y QR)</span>
+            <span class="ui-inline"><span class="ui-icon" data-icon="image" data-size="14"></span><span>Imagen / Logo (opcional: actualizar paleta y QR)</span></span>
           </label>
           <input type="file" id="edit-image-file" class="form-control" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="padding: 8px;" />
         </div>
@@ -2031,7 +2074,7 @@
         <div style="background: #0f172a; padding: 10px 12px; border-radius: 8px; border: 1px solid #1e293b; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
           <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer;">
             <input type="checkbox" id="edit-use-custom-colors" />
-            <span>🎨 Personalizar colores del QR</span>
+            <span class="ui-inline"><span class="ui-icon" data-icon="palette" data-size="14"></span><span>Personalizar colores del QR</span></span>
           </label>
           <div style="display: flex; align-items: center; gap: 8px;">
             <input type="color" id="edit-color-primary" value="#1e293b" title="Color principal del QR" style="width: 30px; height: 24px; border: 1px solid #334155; border-radius: 4px; background: transparent;" />
@@ -2040,7 +2083,7 @@
         </div>
 
         <label class="switch-row" style="background: #0f172a; padding: 10px 12px; border-radius: 8px; border: 1px solid #1e293b;">
-          <span>🔄 Regenerar / rotar código QR al guardar</span>
+          <span class="ui-inline"><span class="ui-icon" data-icon="refresh" data-size="14"></span><span>Regenerar / rotar código QR al guardar</span></span>
           <input type="checkbox" id="edit-rotate-now" />
         </label>
 
@@ -2048,7 +2091,7 @@
 
         <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px;">
           <button type="button" class="btn btn-secondary" id="btn-edit-cancel" style="width: auto;">Cancelar</button>
-          <button type="submit" class="btn" id="btn-edit-save" style="width: auto;">💾 Guardar Cambios</button>
+          <button type="submit" class="btn" id="btn-edit-save" style="width: auto;"><span class="ui-icon" data-icon="save" data-size="15"></span><span>Guardar Cambios</span></button>
         </div>
       </form>
     </div>
@@ -2059,10 +2102,10 @@
     <div class="modal-content" style="max-width: 680px; width: 95%;">
       <div class="modal-header">
         <div>
-          <h3 id="daily-modal-title">📅 Estadísticas Diarias de Ingresos</h3>
+          <h3 id="daily-modal-title" class="ui-inline"><span class="ui-icon" data-icon="calendar" data-size="17" style="color:#38bdf8;"></span><span>Estadísticas Diarias de Ingresos</span></h3>
           <p id="daily-modal-subtitle" style="font-size: 12px; color: #94a3b8; margin-top: 2px;">Personas que escanearon el QR y entraron al link por día</p>
         </div>
-        <button class="modal-close" id="btn-daily-close">✕</button>
+        <button class="modal-close" id="btn-daily-close" type="button" aria-label="Cerrar"><span class="ui-icon" data-icon="x" data-size="18"></span></button>
       </div>
 
       <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 16px;">
@@ -2101,28 +2144,28 @@
   <div class="modal-overlay" id="change-password-modal">
     <div class="modal-content" style="max-width: 420px; width: 95%;">
       <div class="modal-header">
-        <h3 style="font-size: 17px; font-weight: 700;">🔑 Cambiar mi Contraseña</h3>
-        <button type="button" class="close-btn" id="btn-pwd-close">&times;</button>
+        <h3 class="ui-inline" style="font-size: 17px; font-weight: 700;"><span class="ui-icon" data-icon="key" data-size="17" style="color:#60a5fa;"></span><span>Cambiar mi Contraseña</span></h3>
+        <button type="button" class="close-btn" id="btn-pwd-close" aria-label="Cerrar"><span class="ui-icon" data-icon="x" data-size="18"></span></button>
       </div>
       <form id="change-password-form" style="display: flex; flex-direction: column; gap: 12px;">
         <div class="form-group" style="margin-bottom: 0;">
           <label for="pwd-current">Contraseña actual</label>
           <div class="password-field-wrap">
             <input type="password" id="pwd-current" class="form-control" required />
-            <button type="button" class="btn-toggle-pwd" data-toggle-pwd="pwd-current" aria-label="Mostrar u ocultar contraseña" aria-pressed="false" title="Ver contraseña">👁️</button>
+            <button type="button" class="btn-toggle-pwd" data-toggle-pwd="pwd-current" aria-label="Mostrar u ocultar contraseña" aria-pressed="false" title="Ver contraseña"><span class="ui-icon" data-icon="eye" data-size="15"></span></button>
           </div>
         </div>
         <div class="form-group" style="margin-bottom: 0;">
           <label for="pwd-new">Nueva contraseña (mín. 6 caracteres)</label>
           <div class="password-field-wrap">
             <input type="password" id="pwd-new" class="form-control" minlength="6" required />
-            <button type="button" class="btn-toggle-pwd" data-toggle-pwd="pwd-new" aria-label="Mostrar u ocultar contraseña" aria-pressed="false" title="Ver contraseña">👁️</button>
+            <button type="button" class="btn-toggle-pwd" data-toggle-pwd="pwd-new" aria-label="Mostrar u ocultar contraseña" aria-pressed="false" title="Ver contraseña"><span class="ui-icon" data-icon="eye" data-size="15"></span></button>
           </div>
         </div>
         <div id="pwd-status" class="studio-save-status"></div>
         <div style="display: flex; justify-content: flex-end; gap: 8px;">
           <button type="button" class="btn btn-secondary btn-sm" id="btn-pwd-cancel">Cancelar</button>
-          <button type="submit" class="btn btn-sm" id="btn-pwd-save">💾 Actualizar Contraseña</button>
+          <button type="submit" class="btn btn-sm" id="btn-pwd-save"><span class="ui-icon" data-icon="save" data-size="13"></span><span>Actualizar Contraseña</span></button>
         </div>
       </form>
     </div>
@@ -2131,6 +2174,10 @@
   <!-- Script de Interacción del Panel -->
   <script type="module">
     import { VIEWER_PRESETS } from '/widget/3dqr-viewer.js';
+    import { renderIcon, hydrateIcons } from '/widget/icons.js';
+
+    const icon = (name, size = 14, color = '') => renderIcon(name, { size, color });
+    hydrateIcons(document);
 
     const CREATE_MODE_DESCRIPTIONS = {
       auto: 'Hereda el tema configurado para tu sitio o calibra automáticamente luz lateral cálida y aristas limpias.',
@@ -2227,7 +2274,9 @@
 
       const rolePill = document.getElementById('hdr-role-pill');
       rolePill.className = `role-pill role-${role}`;
-      rolePill.textContent = isSuper ? '👑 Superadmin' : (isAdmin ? '🌐 Admin de Sitio' : '🧊 Usuario 3D');
+      rolePill.innerHTML = isSuper
+        ? `${icon('crown', 13)}<span>Superadmin</span>`
+        : (isAdmin ? `${icon('globe', 13)}<span>Admin de Sitio</span>` : `${icon('cube', 13)}<span>Usuario 3D</span>`);
 
       document.getElementById('hdr-user-name').textContent = `${user.full_name || user.username} (@${user.username})`;
       document.getElementById('hdr-site-label').textContent = isSuper
@@ -2247,19 +2296,19 @@
       const wasActive = state.serviceActive;
       state.serviceActive = false;
       state.serviceError = reason || 'El servidor o la base de datos no está disponible.';
-      statStatusEl.textContent = '🔴 No activado';
+      statStatusEl.innerHTML = `<span class="ui-inline" style="color:#f87171;">${icon('dot-inactive', 14)}<span>No activado</span></span>`;
       statStatusEl.style.color = '#f87171';
       serviceErrorDetail.textContent = `${state.serviceError} Los archivos quedarán en cola local hasta que el servicio se active.`;
       serviceErrorBanner.classList.add('error');
       if (loginServiceWarn) {
-        loginServiceWarn.textContent = `⛔ El servicio no se activó: ${state.serviceError}`;
+        loginServiceWarn.innerHTML = `<span class="ui-inline">${icon('ban', 14)}<span>El servicio no se activó: ${escapeHtml(state.serviceError)}</span></span>`;
         loginServiceWarn.style.display = 'block';
       }
       if (wasActive !== false) {
         document.getElementById('files-table-body').innerHTML =
-          `<tr><td colspan="7" style="text-align:center;color:#f87171;padding:20px;">⛔ El servicio no se activó: ${escapeHtml(state.serviceError)}</td></tr>`;
+          `<tr><td colspan="7" style="text-align:center;color:#f87171;padding:20px;"><span class="ui-inline" style="justify-content:center;">${icon('ban', 15)}<span>El servicio no se activó: ${escapeHtml(state.serviceError)}</span></span></td></tr>`;
         document.getElementById('qr-table-body').innerHTML =
-          `<tr><td colspan="8" style="text-align:center;color:#f87171;padding:20px;">⛔ El servicio no se activó: ${escapeHtml(state.serviceError)}</td></tr>`;
+          `<tr><td colspan="8" style="text-align:center;color:#f87171;padding:20px;"><span class="ui-inline" style="justify-content:center;">${icon('ban', 15)}<span>El servicio no se activó: ${escapeHtml(state.serviceError)}</span></span></td></tr>`;
       }
     }
 
@@ -2268,7 +2317,7 @@
       state.serviceActive = true;
       state.serviceError = null;
       const engineLabel = healthData.databaseEngine === 'postgresql' ? 'PostgreSQL' : 'SQLite';
-      statStatusEl.textContent = `🟢 Activo (${engineLabel})`;
+      statStatusEl.innerHTML = `<span class="ui-inline" style="color:#34d399;">${icon('dot-active', 14)}<span>Activo (${escapeHtml(engineLabel)})</span></span>`;
       statStatusEl.style.color = '#34d399';
       serviceErrorBanner.classList.remove('error');
       formServiceError.style.display = 'none';
@@ -2345,7 +2394,7 @@
         return pending;
       }
       pendingQueueBanner.classList.add('pending');
-      pendingQueueTitle.textContent = `⏳ ${pending.length} archivo(s) / envío(s) pendiente(s) por enviar al servidor`;
+      pendingQueueTitle.innerHTML = `${icon('hourglass', 15)}<span>${pending.length} archivo(s) / envío(s) pendiente(s) por enviar al servidor</span>`;
       pendingQueueDesc.textContent = state.serviceActive
         ? 'El servidor ya está activo. Pulsa enviar o espera la sincronización automática.'
         : 'Guardados localmente mientras el servicio no esté activo; se enviarán cuando el servidor responda.';
@@ -2383,6 +2432,7 @@
             fd.append('title', job.title || 'QR 3D Interactivo');
             fd.append('target_url', job.targetUrl || 'https://google.com');
             fd.append('rotation_strategy', job.rotationStrategy || 'one_time');
+            fd.append('scan_mode', job.scanMode || 'ar');
             if (job.tenantId) fd.append('tenant_id', job.tenantId);
             if (job.ownerUserId) fd.append('owner_user_id', job.ownerUserId);
             if (job.rotationIntervalSeconds) fd.append('rotation_interval_seconds', String(job.rotationIntervalSeconds));
@@ -2409,12 +2459,12 @@
         if (sentCount > 0) {
           await Promise.all([loadSavedFiles(), loadQrs()]);
           if (!silent) {
-            alert(`✅ Se enviaron ${sentCount} archivo(s) pendiente(s) al servidor y quedaron guardados en la base de datos.`);
+            alert(`Se enviaron ${sentCount} archivo(s) pendiente(s) al servidor y quedaron guardados en la base de datos.`);
           }
         }
       } catch (err) {
         if (!silent) {
-          alert(`⛔ Error: El servicio no se activó (${err.message})`);
+          alert(`Error: El servicio no se activó (${err.message})`);
         }
       } finally {
         state.isFlushingQueue = false;
@@ -2488,22 +2538,22 @@
 
     function renderModelPresetOptions() {
       const currentVal = modelPresetSelect.value;
-      modelPresetSelect.innerHTML = '<option value="">✨ Automático (Generar Totem 3D por defecto)</option>';
+      modelPresetSelect.innerHTML = '<option value="">Automático (Generar Totem 3D por defecto)</option>';
 
       const editModelSelect = document.getElementById('edit-model-preset');
       const editCurrentVal = editModelSelect ? editModelSelect.value : '';
       if (editModelSelect) {
-        editModelSelect.innerHTML = '<option value="">🔒 Mantener modelo actual</option>';
+        editModelSelect.innerHTML = '<option value="">Mantener modelo actual</option>';
       }
 
       const savedModels = state.savedFiles.filter((f) => f.file_kind === 'model');
       if (savedModels.length > 0) {
         const grpSaved = document.createElement('optgroup');
-        grpSaved.label = '💾 Mis Modelos Guardados en Base de Datos';
+        grpSaved.label = 'Mis Modelos Guardados en Base de Datos';
         for (const f of savedModels) {
           const opt = document.createElement('option');
           opt.value = `saved:${f.id}`;
-          opt.textContent = `📦 ${f.filename} (${f.sizeFormatted})`;
+          opt.textContent = `${f.filename} (${f.sizeFormatted})`;
           grpSaved.appendChild(opt);
         }
         modelPresetSelect.appendChild(grpSaved);
@@ -2512,11 +2562,11 @@
 
       if (state.systemModels.length > 0) {
         const grpSys = document.createElement('optgroup');
-        grpSys.label = '🏛️ Modelos Integrados del Sistema';
+        grpSys.label = 'Modelos Integrados del Sistema';
         for (const m of state.systemModels) {
           const opt = document.createElement('option');
           opt.value = m.filename;
-          opt.textContent = `🏛️ ${m.name} (${m.sizeFormatted})`;
+          opt.textContent = `${m.name} (${m.sizeFormatted})`;
           grpSys.appendChild(opt);
         }
         modelPresetSelect.appendChild(grpSys);
@@ -2572,20 +2622,20 @@
           const isModel = file.file_kind === 'model';
           const dateStr = file.created_at ? new Date(file.created_at).toLocaleString() : '—';
           const ownerHtml = canSeeOwners
-            ? `<td><div style="font-size:12px;">${escapeHtml(file.tenant_name || file.tenant_id || '—')}</div><div style="font-size:11px;color:#94a3b8;">${file.owner_username ? `👤 @${escapeHtml(file.owner_username)}` : '🔌 API / Sitio'}</div></td>`
+            ? `<td><div style="font-size:12px;">${escapeHtml(file.tenant_name || file.tenant_id || '—')}</div><div class="ui-inline" style="font-size:11px;color:#94a3b8;">${file.owner_username ? `${icon('user', 11)}<span>@${escapeHtml(file.owner_username)}</span>` : `${icon('plug', 11)}<span>API / Sitio</span>`}</div></td>`
             : '';
           return `
             <tr>
               <td><strong>${escapeHtml(file.filename)}</strong></td>
-              <td><span class="badge ${isModel ? 'badge-info' : 'badge-success'}">${isModel ? '🧊 Modelo 3D' : '🖼️ Imagen'}</span></td>
+              <td><span class="badge ${isModel ? 'badge-info' : 'badge-success'}">${isModel ? `${icon('cube', 12)}<span>Modelo 3D</span>` : `${icon('image', 12)}<span>Imagen</span>`}</span></td>
               <td><code>${escapeHtml((file.format || '').toUpperCase())}</code></td>
               <td>${escapeHtml(file.sizeFormatted)}</td>
               ${ownerHtml}
               <td style="font-size:12px; color:#94a3b8;">${escapeHtml(dateStr)}</td>
               <td>
-                <button type="button" class="btn btn-secondary btn-sm" onclick="useSavedFile('${escapeHtml(file.id)}')">🎯 Usar</button>
-                <button type="button" class="btn btn-secondary btn-sm" onclick="downloadSavedFile('${escapeHtml(file.id)}')">⬇️</button>
-                <button type="button" class="btn btn-secondary btn-sm" style="color:#f87171;" onclick="deleteSavedFile('${escapeHtml(file.id)}')">🗑️</button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="useSavedFile('${escapeHtml(file.id)}')">${icon('target', 12)}<span>Usar</span></button>
+                <button type="button" class="btn btn-secondary btn-sm" aria-label="Descargar archivo" title="Descargar" onclick="downloadSavedFile('${escapeHtml(file.id)}')">${icon('download', 13)}</button>
+                <button type="button" class="btn btn-secondary btn-sm" aria-label="Eliminar archivo" title="Eliminar" style="color:#f87171;" onclick="deleteSavedFile('${escapeHtml(file.id)}')">${icon('trash', 13)}</button>
               </td>
             </tr>
           `;
@@ -2601,15 +2651,15 @@
       if (file.file_kind === 'model') {
         modelInput.value = '';
         modelPresetSelect.value = `saved:${file.id}`;
-        modelLabel.innerHTML = `💾 Modelo guardado seleccionado: <strong>${escapeHtml(file.filename)}</strong> (${escapeHtml(file.sizeFormatted)})`;
-        btnClearModel.style.display = 'inline-block';
+        modelLabel.innerHTML = `${icon('save', 15)}<span>Modelo guardado seleccionado: <strong>${escapeHtml(file.filename)}</strong> (${escapeHtml(file.sizeFormatted)})</span>`;
+        btnClearModel.style.display = 'inline-flex';
       } else {
         imageInput.value = '';
         state.selectedSavedImageId = file.id;
         imagePreview.src = `/api/files/${file.id}/download`;
         imagePreviewContainer.style.display = 'block';
-        imageLabel.innerHTML = `💾 Imagen guardada seleccionada: <strong>${escapeHtml(file.filename)}</strong>`;
-        btnClearImage.style.display = 'inline-block';
+        imageLabel.innerHTML = `${icon('save', 15)}<span>Imagen guardada seleccionada: <strong>${escapeHtml(file.filename)}</strong></span>`;
+        btnClearImage.style.display = 'inline-flex';
       }
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
@@ -2627,7 +2677,7 @@
         if (res.status === 503) {
           const d = await res.json().catch(() => ({}));
           setServiceInactiveUI(d.message || 'El servicio no se activó');
-          alert('⛔ Error: El servicio no se activó.');
+          alert('Error: El servicio no se activó.');
           return;
         }
         if (res.ok) {
@@ -2635,7 +2685,7 @@
         }
       } catch (err) {
         setServiceInactiveUI('Servidor sin conexión');
-        alert('⛔ Error: El servicio no se activó.');
+        alert('Error: El servicio no se activó.');
       }
     };
 
@@ -2643,8 +2693,8 @@
     function handleImageFile(file) {
       if (!file) return;
       state.selectedSavedImageId = null;
-      imageLabel.innerHTML = `✅ <strong>${file.name}</strong> (${(file.size / 1024).toFixed(1)} KB)`;
-      btnClearImage.style.display = 'inline-block';
+      imageLabel.innerHTML = `${icon('check-circle', 15, '#34d399')}<span><strong>${escapeHtml(file.name)}</strong> (${(file.size / 1024).toFixed(1)} KB)</span>`;
+      btnClearImage.style.display = 'inline-flex';
 
       if (file.type.startsWith('image/')) {
         const reader = new FileReader();
@@ -2669,7 +2719,7 @@
       state.selectedSavedImageId = null;
       imagePreview.src = '';
       imagePreviewContainer.style.display = 'none';
-      imageLabel.innerHTML = '📎 <strong>Haz clic aquí</strong> o arrastra una imagen/logo (PNG, JPG, WebP)';
+      imageLabel.innerHTML = `${icon('paperclip', 15)}<span><strong>Haz clic aquí</strong> o arrastra una imagen/logo (PNG, JPG, WebP)</span>`;
       btnClearImage.style.display = 'none';
     });
 
@@ -2679,8 +2729,8 @@
       modelPresetSelect.value = '';
       const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
       const ext = file.name.split('.').pop().toUpperCase();
-      modelLabel.innerHTML = `✅ <strong>${file.name}</strong> <span class="badge badge-info">${ext}</span> (${sizeMb} MB)`;
-      btnClearModel.style.display = 'inline-block';
+      modelLabel.innerHTML = `${icon('check-circle', 15, '#34d399')}<span><strong>${escapeHtml(file.name)}</strong> <span class="badge badge-info">${escapeHtml(ext)}</span> (${sizeMb} MB)</span>`;
+      btnClearModel.style.display = 'inline-flex';
     }
 
     modelPresetSelect.addEventListener('change', () => {
@@ -2689,13 +2739,13 @@
         const val = modelPresetSelect.value;
         if (val.startsWith('saved:')) {
           const labelText = modelPresetSelect.options[modelPresetSelect.selectedIndex]?.textContent || val;
-          modelLabel.innerHTML = `💾 Modelo guardado seleccionado: <strong>${labelText}</strong>`;
+          modelLabel.innerHTML = `${icon('save', 15)}<span>Modelo guardado seleccionado: <strong>${escapeHtml(labelText)}</strong></span>`;
         } else {
-          modelLabel.innerHTML = `🏛️ Modelo del sistema seleccionado: <strong>${val}</strong>`;
+          modelLabel.innerHTML = `${icon('landmark', 15)}<span>Modelo del sistema seleccionado: <strong>${escapeHtml(val)}</strong></span>`;
         }
-        btnClearModel.style.display = 'inline-block';
+        btnClearModel.style.display = 'inline-flex';
       } else {
-        modelLabel.innerHTML = '📦 <strong>Haz clic aquí</strong> o arrastra un modelo (.glb, .gltf, .obj, .fbx, .stl)';
+        modelLabel.innerHTML = `${icon('package', 15)}<span><strong>Haz clic aquí</strong> o arrastra un modelo (.glb, .gltf, .obj, .fbx, .stl)</span>`;
         btnClearModel.style.display = 'none';
       }
     });
@@ -2711,7 +2761,7 @@
       e.stopPropagation();
       modelInput.value = '';
       modelPresetSelect.value = '';
-      modelLabel.innerHTML = '📦 <strong>Haz clic aquí</strong> o arrastra un modelo (.glb, .gltf, .obj, .fbx, .stl)';
+      modelLabel.innerHTML = `${icon('package', 15)}<span><strong>Haz clic aquí</strong> o arrastra un modelo (.glb, .gltf, .obj, .fbx, .stl)</span>`;
       btnClearModel.style.display = 'none';
     });
 
@@ -2776,8 +2826,8 @@
       state.selectedSavedImageId = null;
       imagePreview.src = '';
       imagePreviewContainer.style.display = 'none';
-      imageLabel.innerHTML = '📎 <strong>Haz clic aquí</strong> o arrastra una imagen/logo (PNG, JPG, WebP)';
-      modelLabel.innerHTML = '📦 <strong>Haz clic aquí</strong> o arrastra un modelo (.glb, .gltf, .obj, .fbx, .stl)';
+      imageLabel.innerHTML = `${icon('paperclip', 15)}<span><strong>Haz clic aquí</strong> o arrastra una imagen/logo (PNG, JPG, WebP)</span>`;
+      modelLabel.innerHTML = `${icon('package', 15)}<span><strong>Haz clic aquí</strong> o arrastra un modelo (.glb, .gltf, .obj, .fbx, .stl)</span>`;
       btnClearImage.style.display = 'none';
       btnClearModel.style.display = 'none';
       if (createCustomColorsWrapEl) createCustomColorsWrapEl.style.display = 'none';
@@ -2810,7 +2860,7 @@
           filename: file.name,
           tenantId: selectedTenantId || undefined
         });
-        alert('⛔ Error: El servicio no se activó. Tu archivo quedó en cola local y se enviará al servidor cuando esté activo.');
+        alert('Error: El servicio no se activó. Tu archivo quedó en cola local y se enviará al servidor cuando esté activo.');
         return;
       }
 
@@ -2826,7 +2876,7 @@
         if (res.status === 503) {
           setServiceInactiveUI(data.message || 'El servicio no se activó');
           await enqueuePendingUpload({ kind: 'file', fileBlob: file, filename: file.name, tenantId: selectedTenantId || undefined });
-          alert('⛔ Error: El servicio no se activó. Archivo guardado en espera local.');
+          alert('Error: El servicio no se activó. Archivo guardado en espera local.');
           return;
         }
         if (!res.ok) {
@@ -2834,11 +2884,11 @@
           return;
         }
         await loadSavedFiles();
-        alert(`💾 Archivo "${data.file.filename}" guardado en la base de datos.`);
+        alert(`Archivo "${data.file.filename}" guardado en la base de datos.`);
       } catch (err) {
         setServiceInactiveUI('No hay conexión con el servidor API');
         await enqueuePendingUpload({ kind: 'file', fileBlob: file, filename: file.name, tenantId: selectedTenantId || undefined });
-        alert('⛔ Error: El servicio no se activó. Archivo guardado en espera local.');
+        alert('Error: El servicio no se activó. Archivo guardado en espera local.');
       }
     });
 
@@ -2855,11 +2905,12 @@
       formServiceError.style.display = 'none';
       const btn = document.getElementById('btn-submit');
       btn.disabled = true;
-      btn.innerText = '⏳ Verificando servicio y subiendo...';
+      btn.innerHTML = `${icon('hourglass', 16)}<span>Verificando servicio y subiendo...</span>`;
 
       const titleVal = document.getElementById('qr-title').value;
       const targetUrlVal = document.getElementById('qr-target-url').value;
       const strategyVal = document.getElementById('qr-strategy').value;
+      const scanModeVal = document.getElementById('qr-scan-mode')?.value || 'ar';
       const intervalVal = document.getElementById('qr-rotation-interval').value;
       const rotatingUrlsVal = document.getElementById('qr-rotating-urls').value.trim();
 
@@ -2882,13 +2933,14 @@
 
       const queueCurrentSubmission = async (reasonMsg) => {
         setServiceInactiveUI(reasonMsg);
-        formServiceError.innerHTML = `<strong>⛔ El servicio no se activó.</strong> ${reasonMsg} Tu envío se guardó en cola local para enviarlo al servidor cuando esté activo.`;
+        formServiceError.innerHTML = `<strong class="ui-inline">${icon('ban', 14)}<span>El servicio no se activó.</span></strong> ${escapeHtml(reasonMsg)} Tu envío se guardó en cola local para enviarlo al servidor cuando esté activo.`;
         formServiceError.style.display = 'block';
         await enqueuePendingUpload({
           kind: 'qr',
           title: titleVal,
           targetUrl: targetUrlVal,
           rotationStrategy: strategyVal,
+          scanMode: scanModeVal,
           rotationIntervalSeconds: (strategyVal === 'timed' || strategyVal === 'dynamic') ? Number(intervalVal || 30) : 0,
           rotatingUrls: (strategyVal === 'timed' || strategyVal === 'dynamic') ? rotatingUrlsVal : '',
           viewerConfig: initialPreset,
@@ -2908,7 +2960,7 @@
       if (!isActive) {
         await queueCurrentSubmission(state.serviceError || 'El servidor o base de datos no está activo.');
         btn.disabled = false;
-        btn.innerText = '🚀 Generar QR 3D Interactivo';
+        btn.innerHTML = `${icon('rocket', 16)}<span>Generar QR 3D Interactivo</span>`;
         return;
       }
 
@@ -2922,6 +2974,7 @@
         formData.append('view_slug', viewSlugVal);
       }
       formData.append('rotation_strategy', strategyVal);
+      formData.append('scan_mode', scanModeVal);
       if (strategyVal === 'timed' || strategyVal === 'dynamic') {
         formData.append('rotation_interval_seconds', String(Math.max(2, parseInt(intervalVal || '30', 10) || 30)));
         if (rotatingUrlsVal) {
@@ -2969,7 +3022,7 @@
           }
           resetCreateForm();
           await Promise.all([loadSavedFiles(), loadQrs()]);
-          showAdminToast('🎉 ¡QR 3D creado y link público listo para compartir!');
+          showAdminToast('¡QR 3D creado y link público listo para compartir!', 'sparkles');
           openPreview(data.qr.id, { openManual: openManualAfter });
         } else {
           formServiceError.textContent = 'Error: ' + (data.message || data.error);
@@ -2979,7 +3032,7 @@
         await queueCurrentSubmission('No se pudo conectar con el servidor (' + err.message + ').');
       } finally {
         btn.disabled = false;
-        btn.innerText = '🚀 Generar QR 3D Interactivo';
+        btn.innerHTML = `${icon('rocket', 16)}<span>Generar QR 3D Interactivo</span>`;
       }
     });
 
@@ -3021,7 +3074,7 @@
         if (statDailyScansEl) statDailyScansEl.innerText = dailyScans;
         if (statDailyVisitorsEl) {
           const visitorWord = dailyVisitors === 1 ? 'persona única' : 'personas únicas';
-          statDailyVisitorsEl.innerText = `👥 ${dailyVisitors} ${visitorWord} hoy${todayDateLabel}`;
+          statDailyVisitorsEl.innerHTML = `${icon('users', 13)}<span>${dailyVisitors} ${visitorWord} hoy${escapeHtml(todayDateLabel)}</span>`;
         }
 
         syncShareHub();
@@ -3033,7 +3086,7 @@
 
         tbody.innerHTML = state.currentItems.map(item => {
           const isManual = item.viewerConfig && item.viewerConfig.mode === 'manual';
-          const visualLabel = isManual ? '🎛️ Manual' : '✨ Auto';
+          const visualLabel = isManual ? `${icon('sliders', 11)}<span>Manual</span>` : `${icon('sparkles', 11)}<span>Auto</span>`;
           const safeId = escapeHtml(item.id);
           const safeTitle = escapeHtml(item.title || 'Sin título');
           const safeDesc = item.description ? escapeHtml(item.description) : '';
@@ -3041,24 +3094,24 @@
           const shortUrl = safeUrl.length > 34 ? `${safeUrl.slice(0, 34)}...` : safeUrl;
           const safeViewUrl = escapeHtml(resolveItemViewUrl(item));
           const inactiveBadge = item.is_active === false
-            ? '<span class="badge badge-paused" style="margin-left:6px;">⏸️ Pausado</span>'
+            ? `<span class="badge badge-paused" style="margin-left:6px;">${icon('pause', 11)}<span>Pausado</span></span>`
             : '';
           const ownerColHtml = canSeeOwners
-            ? `<td><div style="font-size:12px;">${escapeHtml(item.tenant_name || item.tenant_id || '—')}</div><div style="font-size:11px;color:#94a3b8;">${item.owner_username ? `👤 @${escapeHtml(item.owner_username)}` : '🔌 API / Sitio'}</div></td>`
+            ? `<td><div style="font-size:12px;">${escapeHtml(item.tenant_name || item.tenant_id || '—')}</div><div class="ui-inline" style="font-size:11px;color:#94a3b8;">${item.owner_username ? `${icon('user', 11)}<span>@${escapeHtml(item.owner_username)}</span>` : `${icon('plug', 11)}<span>API / Sitio</span>`}</div></td>`
             : '';
           let strategyLabel = escapeHtml(item.rotation_strategy);
           let strategyBadgeClass = 'badge-info';
           if (item.rotation_strategy === 'static' || item.rotation_strategy === 'continuous') {
-            strategyLabel = '🔒 Estático';
+            strategyLabel = `${icon('lock', 11)}<span>Estático</span>`;
             strategyBadgeClass = 'badge-info';
           } else if (item.rotation_strategy === 'timed') {
-            strategyLabel = `🔄 Cada ${Number(item.rotationIntervalSeconds || 30)}s`;
+            strategyLabel = `${icon('refresh', 11)}<span>Cada ${Number(item.rotationIntervalSeconds || 30)}s</span>`;
             strategyBadgeClass = 'badge-success';
           } else if (item.rotation_strategy === 'dynamic') {
-            strategyLabel = `🔄⚡ ${Number(item.rotationIntervalSeconds || 30)}s + 1 uso`;
+            strategyLabel = `${icon('zap', 11)}<span>${Number(item.rotationIntervalSeconds || 30)}s + 1 uso</span>`;
             strategyBadgeClass = 'badge-success';
           } else {
-            strategyLabel = '⚡ 1 uso';
+            strategyLabel = `${icon('zap', 11)}<span>1 uso</span>`;
             strategyBadgeClass = 'badge-success';
           }
           return `
@@ -3075,8 +3128,8 @@
             <td><span class="badge ${strategyBadgeClass}">${strategyLabel}</span></td>
             <td>
               <button type="button" onclick="openDailyStatsModal('${safeId}')" title="Ver detalle diario e historial" style="background:rgba(16,185,129,0.12);border:1px solid rgba(52,211,153,0.3);color:#ecfdf5;border-radius:8px;padding:5px 9px;cursor:pointer;text-align:left;display:inline-flex;flex-direction:column;gap:2px;">
-                <span style="font-size:12.5px;font-weight:700;">📅 ${Number(item.dailyScans || 0)} hoy <span style="font-weight:500;color:#86efac;">(${Number(item.dailyUniqueVisitors || 0)} pers.)</span></span>
-                <span style="font-size:11px;color:#94a3b8;">Total: ${Number(item.scan_count || 0)} · Ver días ▸</span>
+                <span class="ui-inline" style="font-size:12.5px;font-weight:700;">${icon('calendar', 12, '#86efac')}<span>${Number(item.dailyScans || 0)} hoy <span style="font-weight:500;color:#86efac;">(${Number(item.dailyUniqueVisitors || 0)} pers.)</span></span></span>
+                <span class="ui-inline" style="font-size:11px;color:#94a3b8;"><span>Total: ${Number(item.scan_count || 0)} · Ver días</span>${icon('chevron-right', 11)}</span>
               </button>
             </td>
             <td>
@@ -3084,11 +3137,11 @@
               <span style="font-family:monospace;font-size:11px;">${escapeHtml(item.color_primary)}</span>
             </td>
             <td>
-              ${safeViewUrl ? `<button class="btn btn-secondary btn-sm" onclick="copyViewLink('${safeId}', this)">🔗 Link Vista</button> <a class="btn btn-secondary btn-sm" href="${safeViewUrl}" target="_blank" rel="noopener" style="text-decoration:none;">🌐</a>` : ''}
-              <button class="btn btn-secondary btn-sm" onclick="openEditModal('${safeId}')">✏️ Editar</button>
-              <button class="btn btn-secondary btn-sm" onclick="openPreview('${safeId}')">👁️ Ver / Ajustar 3D</button>
-              <button class="btn btn-secondary btn-sm" onclick="rotateQr('${safeId}')">🔄 Rotar</button>
-              <button class="btn btn-secondary btn-sm" style="color:#f87171;" onclick="deleteQr('${safeId}')">🗑️</button>
+              ${safeViewUrl ? `<button class="btn btn-secondary btn-sm" onclick="copyViewLink('${safeId}', this)">${icon('link', 12)}<span>Link Vista</span></button> <a class="btn btn-secondary btn-sm" aria-label="Abrir vista pública" title="Abrir vista pública" href="${safeViewUrl}" target="_blank" rel="noopener" style="text-decoration:none;">${icon('globe', 13)}</a>` : ''}
+              <button class="btn btn-secondary btn-sm" onclick="openEditModal('${safeId}')">${icon('pencil', 12)}<span>Editar</span></button>
+              <button class="btn btn-secondary btn-sm" onclick="openPreview('${safeId}')">${icon('eye', 12)}<span>Ver / Ajustar 3D</span></button>
+              <button class="btn btn-secondary btn-sm" onclick="rotateQr('${safeId}')">${icon('refresh', 12)}<span>Rotar</span></button>
+              <button class="btn btn-secondary btn-sm" aria-label="Eliminar QR" title="Eliminar QR" style="color:#f87171;" onclick="deleteQr('${safeId}')">${icon('trash', 13)}</button>
             </td>
           </tr>
         `;
@@ -3122,14 +3175,21 @@
     document.body.appendChild(adminToastEl);
     let adminToastTimer = null;
 
-    function showAdminToast(message) {
-      adminToastEl.textContent = message;
+    function showAdminToast(message, iconName = 'check-circle') {
+      adminToastEl.innerHTML = '';
+      if (iconName) {
+        const iconSpan = document.createElement('span');
+        iconSpan.className = 'ui-icon';
+        iconSpan.innerHTML = icon(iconName, 16);
+        adminToastEl.appendChild(iconSpan);
+      }
+      adminToastEl.appendChild(document.createTextNode(message));
       adminToastEl.classList.add('show');
       if (adminToastTimer) clearTimeout(adminToastTimer);
       adminToastTimer = setTimeout(() => adminToastEl.classList.remove('show'), 2600);
     }
 
-    function flashCopiedButton(btnEl, copiedLabel = '✅ ¡Copiado!') {
+    function flashCopiedButton(btnEl, copiedLabel = `${icon('check', 13)}<span>¡Copiado!</span>`) {
       if (!btnEl) return;
       const origHtml = btnEl.dataset.origHtml || btnEl.innerHTML;
       btnEl.dataset.origHtml = origHtml;
@@ -3142,19 +3202,19 @@
       }, 1700);
     }
 
-    async function copyToClipboard(text, btnEl, toastMessage) {
+    async function copyToClipboard(text, btnEl, toastMessage, toastIcon = 'check-circle') {
       if (!text) return;
       try {
         await navigator.clipboard.writeText(text);
         flashCopiedButton(btnEl);
-        showAdminToast(toastMessage || '✅ Copiado al portapapeles');
+        showAdminToast(toastMessage || 'Copiado al portapapeles', toastIcon);
       } catch {
         prompt('Copia el enlace:', text);
       }
     }
 
     function buildIframeSnippet(viewUrl) {
-      return `<iframe src="${viewUrl}" width="100%" height="620" style="border:0;border-radius:16px;" allowfullscreen loading="lazy"></iframe>`;
+      return `<iframe src="${viewUrl}" width="100%" height="620" style="border:0;border-radius:16px;" allow="camera; xr-spatial-tracking; gyroscope; accelerometer; fullscreen" allowfullscreen loading="lazy"></iframe>`;
     }
 
     function resolveItemViewUrl(item) {
@@ -3182,6 +3242,7 @@
     const btnShareOpen = document.getElementById('btn-share-open');
     const btnShareEditSlug = document.getElementById('btn-share-edit-slug');
     const btnShareRotate = document.getElementById('btn-share-rotate-link');
+    const btnShareOpenAr = document.getElementById('btn-share-open-ar');
     const shareSlugEditor = document.getElementById('share-slug-editor');
     const shareSlugPrefix = document.getElementById('share-slug-prefix');
     const shareSlugInput = document.getElementById('share-slug-input');
@@ -3189,6 +3250,54 @@
     const btnShareCancelSlug = document.getElementById('btn-share-cancel-slug');
     const shareTargetUrlInput = document.getElementById('share-target-url');
     const btnShareSaveTarget = document.getElementById('btn-share-save-target');
+    const btnShareToggleScanMode = document.getElementById('btn-share-toggle-scan-mode');
+    const btnShareQrScan = document.getElementById('btn-share-qr-scan');
+    const btnShareQrAr = document.getElementById('btn-share-qr-ar');
+    let shareQrPreviewKind = 'scan';
+
+    if (btnShareQrScan) {
+      btnShareQrScan.addEventListener('click', () => {
+        shareQrPreviewKind = 'scan';
+        renderShareHubSelected();
+      });
+    }
+    if (btnShareQrAr) {
+      btnShareQrAr.addEventListener('click', () => {
+        shareQrPreviewKind = 'ar';
+        renderShareHubSelected();
+      });
+    }
+    if (btnShareToggleScanMode) {
+      btnShareToggleScanMode.addEventListener('click', async () => {
+        const item = (state.currentItems || []).find((q) => q.id === state.shareSelectedQrId);
+        if (!item) return;
+        const nextScanMode = btnShareToggleScanMode.dataset.nextScanMode || ((item.scanMode || item.metadata?.scanMode) === 'ar' ? 'redirect' : 'ar');
+        btnShareToggleScanMode.disabled = true;
+        try {
+          const res = await apiFetch('/api/qr/' + encodeURIComponent(item.id) + '/link', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ scan_mode: nextScanMode })
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            throw new Error(data.error || 'No se pudo actualizar el modo de escaneo');
+          }
+          await loadQrs();
+          showAdminToast(
+            nextScanMode === 'ar'
+              ? 'Escáner actualizado: ahora abre Visor 3D + AR en celular'
+              : 'Escáner actualizado: ahora redirige directo al enlace',
+            nextScanMode === 'ar' ? 'smartphone' : 'link'
+          );
+        } catch (err) {
+          showAdminToast(err.message || 'Error cambiando modo de escaneo', 'x');
+        } finally {
+          btnShareToggleScanMode.disabled = false;
+          renderShareHubSelected();
+        }
+      });
+    }
 
     shareHubToggle.addEventListener('click', () => {
       const collapsed = shareHubCard.classList.toggle('collapsed');
@@ -3196,19 +3305,19 @@
     });
 
     function getStrategyBadgeMeta(item) {
-      if (!item) return { label: '—', cls: 'badge-info', short: '—' };
+      if (!item) return { labelHtml: '<span>—</span>', cls: 'badge-info', short: '—' };
       if (item.rotation_strategy === 'static' || item.rotation_strategy === 'continuous') {
-        return { label: '🔒 Estático · Fijo', cls: 'badge-info', short: 'Estático' };
+        return { labelHtml: `${icon('lock', 11)}<span>Estático · Fijo</span>`, cls: 'badge-info', short: 'Estático' };
       }
       if (item.rotation_strategy === 'timed') {
         const sec = Number(item.rotationIntervalSeconds || 30);
-        return { label: `🔄 Dinámico · Cada ${sec}s`, cls: 'badge-success', short: `Cada ${sec}s` };
+        return { labelHtml: `${icon('refresh', 11)}<span>Dinámico · Cada ${sec}s</span>`, cls: 'badge-success', short: `Cada ${sec}s` };
       }
       if (item.rotation_strategy === 'dynamic') {
         const sec = Number(item.rotationIntervalSeconds || 30);
-        return { label: `🔄⚡ Dinámico · ${sec}s + 1 uso`, cls: 'badge-success', short: `${sec}s + 1 uso` };
+        return { labelHtml: `${icon('zap', 11)}<span>Dinámico · ${sec}s + 1 uso</span>`, cls: 'badge-success', short: `${sec}s + 1 uso` };
       }
-      return { label: '⚡ Dinámico · 1 uso', cls: 'badge-success', short: '1 uso' };
+      return { labelHtml: `${icon('zap', 11)}<span>Dinámico · 1 uso</span>`, cls: 'badge-success', short: '1 uso' };
     }
 
     function renderShareHubSelected() {
@@ -3231,11 +3340,17 @@
         btnShareOpen.href = '#';
         btnShareOpen.style.pointerEvents = 'none';
         btnShareOpen.style.opacity = '0.5';
+        if (btnShareOpenAr) {
+          btnShareOpenAr.href = '#';
+          btnShareOpenAr.style.pointerEvents = 'none';
+          btnShareOpenAr.style.opacity = '0.5';
+        }
         return;
       }
 
       const meta = getStrategyBadgeMeta(item);
       const isEnabled = item.is_active !== false && item.viewEnabled !== false;
+      const isArScan = item.scanMode === 'ar';
       const resolvedUrl = resolveItemViewUrl(item);
       shareHubUrl.value = resolvedUrl;
       if (document.activeElement !== shareTargetUrlInput) {
@@ -3244,21 +3359,49 @@
       if (document.activeElement !== shareSlugInput) {
         shareSlugInput.value = item.viewToken || '';
       }
-      const qrImgKey = `${item.id}:${item.rotationCount || 0}:${item.viewToken || ''}:${item.target_url || ''}`;
+      const effectivePreviewKind = (shareQrPreviewKind === 'ar' && item.viewToken) ? 'ar' : 'scan';
+      const qrImgKey = `${effectivePreviewKind}:${item.id}:${item.rotationCount || 0}:${item.viewToken || ''}:${item.target_url || ''}`;
       if (shareHubQrImg.dataset.qrKey !== qrImgKey) {
         shareHubQrImg.dataset.qrKey = qrImgKey;
-        shareHubQrImg.src = item.viewToken
-          ? `/view/${encodeURIComponent(item.viewToken)}/image?t=${Date.now()}`
-          : `${item.imageUrl}?t=${Date.now()}`;
+        if (effectivePreviewKind === 'ar' && item.viewToken) {
+          shareHubQrImg.src = `/view/${encodeURIComponent(item.viewToken)}/view-qr?t=${Date.now()}`;
+        } else {
+          shareHubQrImg.src = item.viewToken
+            ? `/view/${encodeURIComponent(item.viewToken)}/image?t=${Date.now()}`
+            : `${item.imageUrl}?t=${Date.now()}`;
+        }
       }
       shareHubQrImg.style.display = 'block';
       shareHubQrEmpty.style.display = 'none';
 
       shareHubPills.innerHTML = `
-        <span class="badge ${meta.cls}">${escapeHtml(meta.label)}</span>
-        <span class="badge ${isEnabled ? 'badge-success' : 'badge-paused'}">${isEnabled ? '🟢 Vista Activa' : '⏸️ Pausada / Oculta'}</span>
-        <span class="badge badge-info">📅 Hoy: ${Number(item.dailyScans || 0)} ingreso(s) · ${Number(item.dailyUniqueVisitors || 0)} pers.</span>
+        <span class="badge ${meta.cls}">${meta.labelHtml}</span>
+        <span class="badge ${isArScan ? 'badge-success' : 'badge-info'}">${icon(isArScan ? 'smartphone' : 'link', 11)}<span>${isArScan ? 'Escáner: 3D + AR' : 'Escáner: Redirección'}</span></span>
+        <span class="badge ${isEnabled ? 'badge-success' : 'badge-paused'}">${isEnabled ? `${icon('dot-active', 11)}<span>Vista Activa</span>` : `${icon('pause', 11)}<span>Pausada / Oculta</span>`}</span>
+        <span class="badge badge-info">${icon('calendar', 11)}<span>Hoy: ${Number(item.dailyScans || 0)} ingreso(s) · ${Number(item.dailyUniqueVisitors || 0)} pers.</span></span>
       `;
+      if (btnShareQrScan && btnShareQrAr) {
+        btnShareQrScan.style.borderColor = effectivePreviewKind === 'scan' ? 'rgba(56, 189, 248, 0.55)' : '';
+        btnShareQrScan.style.background = effectivePreviewKind === 'scan' ? 'rgba(14, 165, 233, 0.18)' : '';
+        btnShareQrScan.style.color = effectivePreviewKind === 'scan' ? '#bae6fd' : '';
+        btnShareQrAr.disabled = !item.viewToken;
+        btnShareQrAr.style.borderColor = effectivePreviewKind === 'ar' ? 'rgba(16, 185, 129, 0.55)' : '';
+        btnShareQrAr.style.background = effectivePreviewKind === 'ar' ? 'rgba(16, 185, 129, 0.18)' : '';
+        btnShareQrAr.style.color = effectivePreviewKind === 'ar' ? '#86efac' : '';
+      }
+      if (btnShareToggleScanMode) {
+        btnShareToggleScanMode.disabled = false;
+        btnShareToggleScanMode.dataset.nextScanMode = isArScan ? 'redirect' : 'ar';
+        btnShareToggleScanMode.innerHTML = isArScan
+          ? `${icon('smartphone', 13)}<span>Escáner: 3D + AR</span>`
+          : `${icon('link', 13)}<span>Cambiar QR a 3D + AR</span>`;
+        btnShareToggleScanMode.style.borderColor = isArScan ? 'rgba(16, 185, 129, 0.5)' : 'rgba(245, 158, 11, 0.55)';
+        btnShareToggleScanMode.style.background = isArScan ? 'rgba(16, 185, 129, 0.16)' : 'rgba(245, 158, 11, 0.18)';
+        btnShareToggleScanMode.style.color = isArScan ? '#86efac' : '#fde68a';
+        btnShareToggleScanMode.title = isArScan
+          ? 'Al escanear este QR desde celular abre 3D + AR. Clic para cambiar a Redirección directa.'
+          : 'Ahora este QR redirige al link configurado. Clic para cambiarlo a Visor 3D + AR en celular.';
+      }
 
       btnShareCopy.disabled = !resolvedUrl;
       btnShareIframe.disabled = !resolvedUrl;
@@ -3269,6 +3412,12 @@
       btnShareOpen.href = resolvedUrl || '#';
       btnShareOpen.style.pointerEvents = resolvedUrl ? 'auto' : 'none';
       btnShareOpen.style.opacity = resolvedUrl ? '1' : '0.5';
+      if (btnShareOpenAr) {
+        const arUrl = resolvedUrl ? `${resolvedUrl}/ar` : '#';
+        btnShareOpenAr.href = arUrl;
+        btnShareOpenAr.style.pointerEvents = resolvedUrl ? 'auto' : 'none';
+        btnShareOpenAr.style.opacity = resolvedUrl ? '1' : '0.5';
+      }
     }
 
     function syncShareHub() {
@@ -3307,7 +3456,8 @@
       copyToClipboard(
         shareHubUrl.value,
         btnShareCopy,
-        '🔗 Link de vista pública (solo lectura) copiado al portapapeles'
+        'Link de vista pública (solo lectura) copiado al portapapeles',
+        'link'
       );
     });
 
@@ -3316,7 +3466,8 @@
       copyToClipboard(
         buildIframeSnippet(shareHubUrl.value),
         btnShareIframe,
-        '🧩 Código iframe copiado para incrustar en sitios externos'
+        'Código iframe copiado para incrustar en sitios externos',
+        'code'
       );
     });
 
@@ -3353,7 +3504,7 @@
         if (!res.ok) throw new Error(data.error || 'No se pudo cambiar la ruta');
         shareSlugEditor.style.display = 'none';
         await loadQrs();
-        showAdminToast(`✅ Ruta actualizada a /view/${data.viewToken}`);
+        showAdminToast(`Ruta actualizada a /view/${data.viewToken}`, 'check-circle');
       } catch (err) {
         alert('Error: ' + err.message);
       } finally {
@@ -3380,8 +3531,8 @@
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || 'No se pudo cambiar el enlace destino');
         await loadQrs();
-        flashCopiedButton(btnShareSaveTarget, '✅ ¡Actualizado!');
-        showAdminToast('🎯 Enlace de destino cambiado y QR actualizado en vivo');
+        flashCopiedButton(btnShareSaveTarget, `${icon('check', 13)}<span>¡Actualizado!</span>`);
+        showAdminToast('Enlace de destino cambiado y QR actualizado en vivo', 'target');
       } catch (err) {
         alert('Error: ' + err.message);
       } finally {
@@ -3399,7 +3550,7 @@
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || 'No se pudo regenerar');
         await loadQrs();
-        showAdminToast('🔁 Nuevo link público generado correctamente');
+        showAdminToast('Nuevo link público generado correctamente', 'repeat');
       } catch (err) {
         alert('Error: ' + err.message);
       }
@@ -3412,7 +3563,8 @@
       await copyToClipboard(
         url,
         btnEl,
-        `🔗 Link copiado: ${item.title || qrId} (solo lectura)`
+        `Link copiado: ${item.title || qrId} (solo lectura)`,
+        'link'
       );
     };
 
@@ -3434,6 +3586,10 @@
         ? item.rotatingUrls.join('\n')
         : '';
       document.getElementById('edit-qr-active').value = item.is_active === false ? 'false' : 'true';
+      const editScanModeEl = document.getElementById('edit-qr-scan-mode');
+      if (editScanModeEl) {
+        editScanModeEl.value = item.scanMode === 'ar' ? 'ar' : 'redirect';
+      }
       document.getElementById('edit-view-enabled').checked = item.viewEnabled !== false;
       document.getElementById('edit-current-model-label').textContent = item.model_filename ? `Actual: ${item.model_filename}` : '';
       document.getElementById('edit-use-custom-colors').checked = false;
@@ -3498,6 +3654,7 @@
       const targetUrlVal = document.getElementById('edit-qr-target-url').value.trim();
       const viewSlugVal = document.getElementById('edit-qr-view-slug').value.trim();
       const strategyVal = document.getElementById('edit-qr-strategy').value;
+      const scanModeVal = document.getElementById('edit-qr-scan-mode')?.value || 'redirect';
       const intervalVal = document.getElementById('edit-qr-interval').value;
       const rotatingUrlsVal = document.getElementById('edit-qr-rotating-urls').value.trim();
       const viewEnabledVal = document.getElementById('edit-view-enabled').checked;
@@ -3520,6 +3677,7 @@
           fd.append('target_url', targetUrlVal);
           if (viewSlugVal) fd.append('view_slug', viewSlugVal);
           fd.append('rotation_strategy', strategyVal);
+          fd.append('scan_mode', scanModeVal);
           fd.append('view_enabled', String(viewEnabledVal));
           if (strategyVal === 'timed' || strategyVal === 'dynamic') {
             fd.append('rotation_interval_seconds', String(Math.max(2, parseInt(intervalVal || '30', 10) || 30)));
@@ -3554,6 +3712,7 @@
             target_url: targetUrlVal,
             view_slug: viewSlugVal || undefined,
             rotation_strategy: strategyVal,
+            scan_mode: scanModeVal,
             rotation_interval_seconds: (strategyVal === 'timed' || strategyVal === 'dynamic')
               ? Math.max(2, parseInt(intervalVal || '30', 10) || 30)
               : 0,
@@ -3590,12 +3749,12 @@
         }
 
         editStatusEl.style.color = '#34d399';
-        editStatusEl.textContent = '✅ Información actualizada correctamente';
+        editStatusEl.innerHTML = `<span class="ui-inline" style="justify-content:center;">${icon('check-circle', 14)}<span>Información actualizada correctamente</span></span>`;
         await Promise.all([loadSavedFiles(), loadQrs()]);
         setTimeout(() => closeEditModal(), 450);
       } catch (err) {
         editStatusEl.style.color = '#f87171';
-        editStatusEl.textContent = `⚠️ ${err.message}`;
+        editStatusEl.innerHTML = `<span class="ui-inline" style="justify-content:center;">${icon('alert-triangle', 14)}<span>${escapeHtml(err.message)}</span></span>`;
       } finally {
         btnSave.disabled = false;
       }
@@ -3859,11 +4018,11 @@
             pushStudioToViewer({ applyCamera: true });
           }
           saveStatusEl.style.color = '#34d399';
-          saveStatusEl.textContent = '✅ Heredando tema del sitio web';
+          saveStatusEl.innerHTML = `<span class="ui-inline" style="justify-content:center;">${icon('check-circle', 14)}<span>Heredando tema del sitio web</span></span>`;
           loadQrs();
         } catch (err) {
           saveStatusEl.style.color = '#f87171';
-          saveStatusEl.textContent = `⚠️ ${err.message}`;
+          saveStatusEl.innerHTML = `<span class="ui-inline" style="justify-content:center;">${icon('alert-triangle', 14)}<span>${escapeHtml(err.message)}</span></span>`;
         }
       });
     }
@@ -3916,11 +4075,11 @@
           syncStudioUI();
         }
         saveStatusEl.style.color = '#34d399';
-        saveStatusEl.textContent = '✅ Estilo guardado para el visor y embeds';
+        saveStatusEl.innerHTML = `<span class="ui-inline" style="justify-content:center;">${icon('check-circle', 14)}<span>Estilo guardado para el visor y embeds</span></span>`;
         loadQrs();
       } catch (err) {
         saveStatusEl.style.color = '#f87171';
-        saveStatusEl.textContent = `⚠️ ${err.message}`;
+        saveStatusEl.innerHTML = `<span class="ui-inline" style="justify-content:center;">${icon('alert-triangle', 14)}<span>${escapeHtml(err.message)}</span></span>`;
       } finally {
         btnSave.disabled = false;
       }
@@ -4014,7 +4173,8 @@
       copyToClipboard(
         input.value,
         e.currentTarget,
-        '🔗 Link público de vista copiado al portapapeles'
+        'Link público de vista copiado al portapapeles',
+        'link'
       );
     });
 
@@ -4024,7 +4184,8 @@
       copyToClipboard(
         buildIframeSnippet(input.value),
         e.currentTarget,
-        '🧩 Código iframe de la vista pública copiado'
+        'Código iframe de la vista pública copiado',
+        'code'
       );
     });
 
@@ -4043,7 +4204,7 @@
         if (viewLinkArea) viewLinkArea.value = nextViewUrl;
         if (openViewBtn) openViewBtn.href = nextViewUrl;
         await loadQrs();
-        showAdminToast('🔁 Nuevo link público generado correctamente');
+        showAdminToast('Nuevo link público generado correctamente', 'repeat');
       } catch (err) {
         alert('Error: ' + err.message);
       }
@@ -4058,7 +4219,7 @@
     document.getElementById('btn-copy-embed').addEventListener('click', (e) => {
       const area = document.getElementById('embed-code-area');
       if (!area || !area.value) return;
-      copyToClipboard(area.value, e.currentTarget, '📋 Código para embeber copiado al portapapeles');
+      copyToClipboard(area.value, e.currentTarget, 'Código para embeber copiado al portapapeles', 'copy');
     });
 
     // Simular Escaneo
@@ -4079,7 +4240,7 @@
 
     window.openDailyStatsModal = async function(qrId) {
       const item = state.currentItems.find((i) => i.id === qrId);
-      document.getElementById('daily-modal-title').textContent = `📅 Ingresos Diarios — ${item?.title || qrId}`;
+      document.getElementById('daily-modal-title').innerHTML = `${icon('calendar', 17, '#38bdf8')}<span>Ingresos Diarios — ${escapeHtml(item?.title || qrId)}</span>`;
       document.getElementById('daily-modal-subtitle').textContent = `Personas que escanearon el QR y entraron al link (${item?.todayDate || 'hoy'})`;
       document.getElementById('daily-modal-visitors').textContent = String(item?.dailyUniqueVisitors || 0);
       document.getElementById('daily-modal-scans').textContent = String(item?.dailyScans || 0);
@@ -4118,12 +4279,12 @@
     // Autenticación, Gestión de Sitios (Superadmin) y Gestión de Usuarios 3D
     // =========================================================================
 
-    function revealCredentialBox(boxId, titleId, textId, title, text) {
+    function revealCredentialBox(boxId, titleId, textId, title, text, iconName = 'check-circle') {
       const box = document.getElementById(boxId);
       const tEl = document.getElementById(titleId);
       const cEl = document.getElementById(textId);
       if (!box || !tEl || !cEl) return;
-      tEl.textContent = title;
+      tEl.innerHTML = `${icon(iconName, 15, '#34d399')}<span>${escapeHtml(title)}</span>`;
       cEl.textContent = text;
       box.classList.add('show');
     }
@@ -4208,18 +4369,18 @@
             </td>
             <td><code>${escapeHtml(t.api_key_prefix || '—')}...</code></td>
             <td style="font-size:12px;">
-              <div>🌐 ${Number(t.adminCount || 0)} admin(s)</div>
-              <div style="color:#94a3b8;">🧊 ${Number(t.userCount || 0)} usuario(s) 3D</div>
+              <div class="ui-inline">${icon('globe', 12, '#7dd3fc')}<span>${Number(t.adminCount || 0)} admin(s)</span></div>
+              <div class="ui-inline" style="color:#94a3b8;">${icon('cube', 12)}<span>${Number(t.userCount || 0)} usuario(s) 3D</span></div>
             </td>
             <td style="font-size:12px;">
-              <div>📦 ${Number(t.qrCount || 0)} QR(s) · ${Number(t.fileCount || 0)} archivo(s)</div>
-              <div style="color:#94a3b8;">👁️ ${Number(t.totalScans || 0)} escaneos</div>
+              <div class="ui-inline">${icon('package', 12)}<span>${Number(t.qrCount || 0)} QR(s) · ${Number(t.fileCount || 0)} archivo(s)</span></div>
+              <div class="ui-inline" style="color:#94a3b8;">${icon('eye', 12)}<span>${Number(t.totalScans || 0)} escaneos</span></div>
             </td>
-            <td><span class="badge ${t.is_active ? 'badge-success' : 'badge-paused'}">${t.is_active ? '🟢 Activo' : '⏸️ Pausado'}</span></td>
+            <td><span class="badge ${t.is_active ? 'badge-success' : 'badge-paused'}">${t.is_active ? `${icon('dot-active', 11)}<span>Activo</span>` : `${icon('pause', 11)}<span>Pausado</span>`}</span></td>
             <td>
-              <button type="button" class="btn btn-secondary btn-sm" onclick="saRotateTenantKey('${safeId}')">🔑 Rotar Key</button>
-              <button type="button" class="btn btn-secondary btn-sm" onclick="saToggleTenant('${safeId}', ${!t.is_active})">${t.is_active ? '⏸️ Pausar' : '▶️ Activar'}</button>
-              ${isDef ? '' : `<button type="button" class="btn btn-secondary btn-sm" style="color:#f87171;" onclick="saDeleteTenant('${safeId}')">🗑️</button>`}
+              <button type="button" class="btn btn-secondary btn-sm" onclick="saRotateTenantKey('${safeId}')">${icon('key', 12)}<span>Rotar Key</span></button>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="saToggleTenant('${safeId}', ${!t.is_active})">${t.is_active ? `${icon('pause', 12)}<span>Pausar</span>` : `${icon('play', 12)}<span>Activar</span>`}</button>
+              ${isDef ? '' : `<button type="button" class="btn btn-secondary btn-sm" aria-label="Eliminar sitio" title="Eliminar sitio" style="color:#f87171;" onclick="saDeleteTenant('${safeId}')">${icon('trash', 13)}</button>`}
             </td>
           </tr>
         `;
@@ -4240,7 +4401,9 @@
       tbody.innerHTML = users.map((u) => {
         const safeId = escapeHtml(u.id);
         const isSelf = state.currentUser && u.id === state.currentUser.id;
-        const roleLabel = u.role === 'superadmin' ? '👑 Superadmin' : (u.role === 'admin' ? '🌐 Admin' : '🧊 Usuario 3D');
+        const roleLabel = u.role === 'superadmin'
+          ? `${icon('crown', 12)}<span>Superadmin</span>`
+          : (u.role === 'admin' ? `${icon('globe', 12)}<span>Admin</span>` : `${icon('cube', 12)}<span>Usuario 3D</span>`);
         return `
           <tr>
             <td><strong>@${escapeHtml(u.username)}</strong></td>
@@ -4250,13 +4413,13 @@
             </td>
             <td><span class="role-pill role-${escapeHtml(u.role)}">${roleLabel}</span></td>
             <td style="font-size:12px;">${escapeHtml(u.tenant_name || (u.role === 'superadmin' ? 'Global' : '—'))}</td>
-            <td style="font-size:12px;">📦 ${Number(u.qrCount || 0)} QR · ${Number(u.fileCount || 0)} arch.</td>
-            <td><span class="badge ${u.is_active ? 'badge-success' : 'badge-paused'}">${u.is_active ? '🟢 Activo' : '⏸️ Pausado'}</span></td>
+            <td style="font-size:12px;"><span class="ui-inline">${icon('package', 12)}<span>${Number(u.qrCount || 0)} QR · ${Number(u.fileCount || 0)} arch.</span></span></td>
+            <td><span class="badge ${u.is_active ? 'badge-success' : 'badge-paused'}">${u.is_active ? `${icon('dot-active', 11)}<span>Activo</span>` : `${icon('pause', 11)}<span>Pausado</span>`}</span></td>
             <td>
-              <button type="button" class="btn btn-secondary btn-sm" onclick="saResetUserPassword('${safeId}', '${escapeHtml(u.username)}')">🔑 Reset Clave</button>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="saResetUserPassword('${safeId}', '${escapeHtml(u.username)}')">${icon('key', 12)}<span>Reset Clave</span></button>
               ${isSelf ? '' : `
-                <button type="button" class="btn btn-secondary btn-sm" onclick="saToggleUserActive('${safeId}', ${!u.is_active})">${u.is_active ? '⏸️' : '▶️'}</button>
-                <button type="button" class="btn btn-secondary btn-sm" style="color:#f87171;" onclick="saDeleteUser('${safeId}')">🗑️</button>
+                <button type="button" class="btn btn-secondary btn-sm" aria-label="${u.is_active ? 'Pausar usuario' : 'Activar usuario'}" title="${u.is_active ? 'Pausar' : 'Activar'}" onclick="saToggleUserActive('${safeId}', ${!u.is_active})">${u.is_active ? icon('pause', 12) : icon('play', 12)}</button>
+                <button type="button" class="btn btn-secondary btn-sm" aria-label="Eliminar usuario" title="Eliminar" style="color:#f87171;" onclick="saDeleteUser('${safeId}')">${icon('trash', 13)}</button>
               `}
             </td>
           </tr>
@@ -4304,12 +4467,12 @@
               <div>${escapeHtml(u.full_name || u.username)}</div>
               <div style="font-size:11px;color:#94a3b8;">${u.email ? escapeHtml(u.email) : 'Sin correo'}</div>
             </td>
-            <td style="font-size:12px;">📦 ${Number(u.qrCount || 0)} QR · ${Number(u.fileCount || 0)} arch.</td>
-            <td><span class="badge ${u.is_active ? 'badge-success' : 'badge-paused'}">${u.is_active ? '🟢 Activo' : '⏸️ Pausado'}</span></td>
+            <td style="font-size:12px;"><span class="ui-inline">${icon('package', 12)}<span>${Number(u.qrCount || 0)} QR · ${Number(u.fileCount || 0)} arch.</span></span></td>
+            <td><span class="badge ${u.is_active ? 'badge-success' : 'badge-paused'}">${u.is_active ? `${icon('dot-active', 11)}<span>Activo</span>` : `${icon('pause', 11)}<span>Pausado</span>`}</span></td>
             <td>
-              <button type="button" class="btn btn-secondary btn-sm" onclick="admResetUserPassword('${safeId}', '${escapeHtml(u.username)}')">🔑 Clave</button>
-              <button type="button" class="btn btn-secondary btn-sm" onclick="admToggleUserActive('${safeId}', ${!u.is_active})">${u.is_active ? '⏸️' : '▶️'}</button>
-              <button type="button" class="btn btn-secondary btn-sm" style="color:#f87171;" onclick="admDeleteUser('${safeId}')">🗑️</button>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="admResetUserPassword('${safeId}', '${escapeHtml(u.username)}')">${icon('key', 12)}<span>Clave</span></button>
+              <button type="button" class="btn btn-secondary btn-sm" aria-label="${u.is_active ? 'Pausar usuario' : 'Activar usuario'}" title="${u.is_active ? 'Pausar' : 'Activar'}" onclick="admToggleUserActive('${safeId}', ${!u.is_active})">${u.is_active ? icon('pause', 12) : icon('play', 12)}</button>
+              <button type="button" class="btn btn-secondary btn-sm" aria-label="Eliminar usuario" title="Eliminar" style="color:#f87171;" onclick="admDeleteUser('${safeId}')">${icon('trash', 13)}</button>
             </td>
           </tr>
         `;
@@ -4420,8 +4583,9 @@
         'sa-credential-box',
         'sa-credential-title',
         'sa-credential-text',
-        `✅ Sitio "${data.tenant.name}" creado — guarda estas credenciales:`,
-        parts.join('  ||  ')
+        `Sitio "${data.tenant.name}" creado — guarda estas credenciales:`,
+        parts.join('  ||  '),
+        'check-circle'
       );
       await loadSuperadminData();
     });
@@ -4462,8 +4626,9 @@
         'sa-user-cred-box',
         'sa-user-cred-title',
         'sa-user-cred-text',
-        `✅ Cuenta "${data.user.username}" (${data.user.role}) lista para entregar:`,
-        `Acceso: ${window.location.origin}/admin/ | Usuario: ${data.user.username} | Contraseña: ${pwdShown}`
+        `Cuenta "${data.user.username}" (${data.user.role}) lista para entregar:`,
+        `Acceso: ${window.location.origin}/admin/ | Usuario: ${data.user.username} | Contraseña: ${pwdShown}`,
+        'check-circle'
       );
       await loadSuperadminData();
     });
@@ -4477,8 +4642,9 @@
         'sa-credential-box',
         'sa-credential-title',
         'sa-credential-text',
-        `🔑 Nueva API Key para ${tenantId}:`,
-        data.apiKey
+        `Nueva API Key para ${tenantId}:`,
+        data.apiKey,
+        'key'
       );
       await loadSuperadminData();
     };
@@ -4517,8 +4683,9 @@
         'sa-user-cred-box',
         'sa-user-cred-title',
         'sa-user-cred-text',
-        `🔑 Nueva contraseña generada para @${username}:`,
-        `Acceso: ${window.location.origin}/admin/ | Usuario: ${username} | Contraseña: ${d.generatedPassword}`
+        `Nueva contraseña generada para @${username}:`,
+        `Acceso: ${window.location.origin}/admin/ | Usuario: ${username} | Contraseña: ${d.generatedPassword}`,
+        'key'
       );
     };
 
@@ -4615,7 +4782,7 @@
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) return alert('Error: ' + (d.error || 'No se pudo actualizar el sitio'));
-      showAdminToast('✅ Datos y tema visual del sitio actualizados');
+      showAdminToast('Datos y tema visual del sitio actualizados', 'check-circle');
       await Promise.all([loadAdminSiteData(), loadQrs()]);
     });
 
@@ -4657,8 +4824,9 @@
         'adm-user-cred-box',
         'adm-user-cred-title',
         'adm-user-cred-text',
-        `✅ Usuario 3D "@${d.user.username}" creado — entrega estas credenciales:`,
-        `Panel: ${window.location.origin}/admin/ | Usuario: ${d.user.username} | Contraseña: ${pwdShown}`
+        `Usuario 3D "@${d.user.username}" creado — entrega estas credenciales:`,
+        `Panel: ${window.location.origin}/admin/ | Usuario: ${d.user.username} | Contraseña: ${pwdShown}`,
+        'check-circle'
       );
       await loadAdminSiteData();
     });
@@ -4676,8 +4844,9 @@
         'adm-user-cred-box',
         'adm-user-cred-title',
         'adm-user-cred-text',
-        `🔑 Nueva contraseña para @${username}:`,
-        `Panel: ${window.location.origin}/admin/ | Usuario: ${username} | Contraseña: ${d.generatedPassword}`
+        `Nueva contraseña para @${username}:`,
+        `Panel: ${window.location.origin}/admin/ | Usuario: ${username} | Contraseña: ${d.generatedPassword}`,
+        'key'
       );
     };
 
@@ -4704,16 +4873,16 @@
 
     // Botones copiar credenciales
     document.getElementById('btn-sa-copy-cred').addEventListener('click', (e) => {
-      copyToClipboard(document.getElementById('sa-credential-text').textContent, e.currentTarget, '📋 Credenciales copiadas');
+      copyToClipboard(document.getElementById('sa-credential-text').textContent, e.currentTarget, 'Credenciales copiadas', 'copy');
     });
     document.getElementById('btn-sa-copy-user-cred').addEventListener('click', (e) => {
-      copyToClipboard(document.getElementById('sa-user-cred-text').textContent, e.currentTarget, '📋 Credenciales de usuario copiadas');
+      copyToClipboard(document.getElementById('sa-user-cred-text').textContent, e.currentTarget, 'Credenciales de usuario copiadas', 'copy');
     });
     document.getElementById('btn-adm-copy-key').addEventListener('click', (e) => {
-      copyToClipboard(document.getElementById('adm-new-key-val').textContent, e.currentTarget, '🔑 API Key copiada');
+      copyToClipboard(document.getElementById('adm-new-key-val').textContent, e.currentTarget, 'API Key copiada', 'key');
     });
     document.getElementById('btn-adm-copy-user-cred').addEventListener('click', (e) => {
-      copyToClipboard(document.getElementById('adm-user-cred-text').textContent, e.currentTarget, '📋 Credenciales de usuario copiadas');
+      copyToClipboard(document.getElementById('adm-user-cred-text').textContent, e.currentTarget, 'Credenciales de usuario copiadas', 'copy');
     });
 
     // Toggle Mostrar / Ocultar contraseña en todos los campos de contraseña
@@ -4721,7 +4890,7 @@
       rootEl.querySelectorAll('.btn-toggle-pwd[data-toggle-pwd]').forEach((btn) => {
         const input = document.getElementById(btn.dataset.togglePwd);
         if (input) input.type = 'password';
-        btn.textContent = '👁️';
+        btn.innerHTML = icon('eye', 15);
         btn.title = 'Ver contraseña';
         btn.setAttribute('aria-pressed', 'false');
       });
@@ -4734,7 +4903,7 @@
       if (!input) return;
       const show = input.type === 'password';
       input.type = show ? 'text' : 'password';
-      btn.textContent = show ? '🙈' : '👁️';
+      btn.innerHTML = icon(show ? 'eye-off' : 'eye', 15);
       btn.title = show ? 'Ocultar contraseña' : 'Ver contraseña';
       btn.setAttribute('aria-pressed', String(show));
     });
@@ -4769,11 +4938,11 @@
       const d = await res.json().catch(() => ({}));
       if (!res.ok) {
         pwdStatusEl.style.color = '#f87171';
-        pwdStatusEl.textContent = `⚠️ ${d.error || 'No se pudo cambiar la contraseña'}`;
+        pwdStatusEl.innerHTML = `<span class="ui-inline" style="justify-content:center;">${icon('alert-triangle', 14)}<span>${escapeHtml(d.error || 'No se pudo cambiar la contraseña')}</span></span>`;
         return;
       }
       pwdStatusEl.style.color = '#34d399';
-      pwdStatusEl.textContent = '✅ Contraseña actualizada';
+      pwdStatusEl.innerHTML = `<span class="ui-inline" style="justify-content:center;">${icon('check-circle', 14)}<span>Contraseña actualizada</span></span>`;
       setTimeout(closePwdModal, 600);
     });
 
@@ -4783,7 +4952,7 @@
       loginErrorEl.style.display = 'none';
       const btn = document.getElementById('btn-login');
       btn.disabled = true;
-      btn.textContent = '⏳ Verificando...';
+      btn.innerHTML = `${icon('hourglass', 16)}<span>Verificando...</span>`;
       try {
         const res = await fetch('/api/auth/login', {
           method: 'POST',
@@ -4808,7 +4977,7 @@
         loginErrorEl.style.display = 'block';
       } finally {
         btn.disabled = false;
-        btn.textContent = '🔐 Iniciar Sesión';
+        btn.innerHTML = `${icon('lock', 16)}<span>Iniciar Sesión</span>`;
       }
     });
 

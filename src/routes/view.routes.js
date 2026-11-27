@@ -16,6 +16,7 @@ import {
   sendCachedGlbModel,
   serializePublicViewData
 } from '../services/qrLink.service.js';
+import { renderIcon } from '../../widget/icons.js';
 
 function escapeHtml(val) {
   return String(val ?? '')
@@ -26,7 +27,7 @@ function escapeHtml(val) {
     .replace(/'/g, '&#39;');
 }
 
-function renderStatusPage({ statusTitle, badgeText, message, icon = '🔒' }) {
+function renderStatusPage({ statusTitle, badgeText, message, iconName = 'lock' }) {
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -55,7 +56,7 @@ function renderStatusPage({ statusTitle, badgeText, message, icon = '🔒' }) {
       text-align: center;
       box-shadow: 0 24px 48px rgba(0, 0, 0, 0.55);
     }
-    .icon { font-size: 52px; margin-bottom: 14px; }
+    .icon { display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: 16px; background: rgba(59, 130, 246, 0.12); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.25); margin: 0 auto 16px; }
     .badge {
       display: inline-block;
       background: rgba(239, 68, 68, 0.14);
@@ -73,7 +74,7 @@ function renderStatusPage({ statusTitle, badgeText, message, icon = '🔒' }) {
 </head>
 <body>
   <div class="card">
-    <div class="icon">${icon}</div>
+    <div class="icon">${renderIcon(iconName, { size: 36 })}</div>
     <span class="badge">${escapeHtml(badgeText)}</span>
     <h1>${escapeHtml(statusTitle)}</h1>
     <p>${escapeHtml(message)}</p>
@@ -294,20 +295,24 @@ function renderUnifiedViewPage(viewData, query = {}) {
     viewEnabled: viewData.viewEnabled
   }).replace(/</g, '\\u003c');
 
-  let modeBadgeText = '🔒 QR Estático · Enlace Fijo';
+  let modeBadgeText = 'QR Estático · Enlace Fijo';
   let modeHelpText = 'Este código QR es estático: su enlace permanece fijo de forma permanente.';
   if (!isStatic) {
     if (viewData.rotationStrategy === 'timed') {
-      modeBadgeText = `🔄 QR Dinámico · Cambia cada ${viewData.rotationIntervalSeconds}s`;
+      modeBadgeText = `QR Dinámico · Cambia cada ${viewData.rotationIntervalSeconds}s`;
       modeHelpText = `Este enlace cambia automáticamente cada ${viewData.rotationIntervalSeconds} segundos en tiempo real.`;
     } else if (viewData.rotationStrategy === 'dynamic') {
-      modeBadgeText = `🔄⚡ QR Dinámico · Cada ${viewData.rotationIntervalSeconds}s y por escaneo`;
+      modeBadgeText = `QR Dinámico · Cada ${viewData.rotationIntervalSeconds}s y por escaneo`;
       modeHelpText = `El código rota automáticamente cada ${viewData.rotationIntervalSeconds}s y también tras cada escaneo.`;
     } else {
-      modeBadgeText = '⚡ QR Dinámico · 1 Solo Uso';
+      modeBadgeText = 'QR Dinámico · 1 Solo Uso';
       modeHelpText = 'Este código cambia automáticamente cada vez que es escaneado.';
     }
   }
+
+  const iconScanJson = JSON.stringify(renderIcon('scan', { size: 14 }));
+  const iconUndoJson = JSON.stringify(renderIcon('undo', { size: 14 }));
+  const iconRefreshJson = JSON.stringify(renderIcon('refresh', { size: 14 }));
 
   return `<!DOCTYPE html>
 <html lang="es">
@@ -758,7 +763,7 @@ function renderUnifiedViewPage(viewData, query = {}) {
         <div>
           <div class="daily-counter-card" id="daily-counter-card">
             <div class="daily-counter-head">
-              <span>📊 Ingresos de hoy</span>
+              <span style="display:inline-flex;align-items:center;gap:6px;">${renderIcon('bar-chart', { size: 14 })}<span>Ingresos de hoy</span></span>
               <span class="daily-date-chip" id="meta-today-date">${escapeHtml(viewData.todayDate || '')}</span>
             </div>
             <div class="daily-counter-grid">
@@ -791,22 +796,22 @@ function renderUnifiedViewPage(viewData, query = {}) {
             </div>
           </div>
 
-          <button type="button" id="btn-toggle-aerial" class="btn-aerial-toggle" style="margin-top: 12px;">
-            🛸 Ver QR sobre el Modelo (90°)
+          <button type="button" id="btn-toggle-aerial" class="btn-aerial-toggle" style="margin-top: 12px; display:inline-flex; align-items:center; justify-content:center; gap:8px;">
+            ${renderIcon('scan', { size: 14 })}<span>Ver QR sobre el Modelo (90°)</span>
           </button>
-          <button type="button" id="btn-view-ar" class="btn-aerial-toggle" style="margin-top: 8px; background: linear-gradient(135deg, #059669, #10b981);">
-            📱 Ver en Realidad Aumentada (AR)
+          <button type="button" id="btn-view-ar" class="btn-aerial-toggle" style="margin-top: 8px; background: linear-gradient(135deg, #059669, #10b981); display:inline-flex; align-items:center; justify-content:center; gap:8px;">
+            ${renderIcon('smartphone', { size: 14 })}<span>Ver en Realidad Aumentada (AR)</span>
           </button>
         </div>
       </aside>
     </main>
   </div>
 
-  <div class="toast-banner" id="view-toast">🔄 Nuevo enlace QR activo</div>
+  <div class="toast-banner" id="view-toast">${renderIcon('refresh', { size: 14 })}<span>Nuevo enlace QR activo</span></div>
 
   <div class="paused-overlay" id="paused-overlay">
     <div class="paused-card">
-      <div style="font-size:48px; margin-bottom:12px;">⏸️</div>
+      <div style="display:inline-flex; align-items:center; justify-content:center; margin-bottom:12px; color:#f59e0b;">${renderIcon('pause', { size: 48 })}</div>
       <h2>Vista Temporalmente Desactivada</h2>
       <p id="paused-reason">Esta vista 3D-QR ha sido pausada o deshabilitada por su propietario.</p>
     </div>
@@ -814,6 +819,11 @@ function renderUnifiedViewPage(viewData, query = {}) {
 
   <script>
     const state = ${initialDataJson};
+    const dockIcons = {
+      scan: ${iconScanJson},
+      undo: ${iconUndoJson},
+      refresh: ${iconRefreshJson}
+    };
     const viewerEl = document.getElementById('unified-viewer');
     const dockImg = document.getElementById('dock-qr-img');
     const qrFrameBox = document.getElementById('qr-frame-box');
@@ -841,7 +851,7 @@ function renderUnifiedViewPage(viewData, query = {}) {
     }
 
     function showUpdateToast(text) {
-      toastEl.textContent = text || '🔄 Nuevo enlace QR activo';
+      toastEl.innerHTML = text ? ('<span>' + text + '</span>') : ((dockIcons.refresh || '') + '<span>Nuevo enlace QR activo</span>');
       toastEl.classList.add('show');
       if (toastTimer) clearTimeout(toastTimer);
       toastTimer = setTimeout(() => toastEl.classList.remove('show'), 3000);
@@ -858,16 +868,16 @@ function renderUnifiedViewPage(viewData, query = {}) {
       qrTagMode.textContent = isStatic ? 'Estático' : 'Dinámico';
       metaRotationsRow.style.display = isStatic ? 'none' : '';
       if (isStatic) {
-        modePill.textContent = '🔒 QR Estático · Enlace Fijo';
+        modePill.textContent = 'QR Estático · Enlace Fijo';
         modeHelpText.textContent = 'Este código QR es estático: su enlace permanece fijo de forma permanente.';
       } else if (state.rotationStrategy === 'timed') {
-        modePill.textContent = '🔄 QR Dinámico · Cambia cada ' + state.rotationIntervalSeconds + 's';
+        modePill.textContent = 'QR Dinámico · Cambia cada ' + state.rotationIntervalSeconds + 's';
         modeHelpText.textContent = 'Este enlace cambia automáticamente cada ' + state.rotationIntervalSeconds + ' segundos en tiempo real.';
       } else if (state.rotationStrategy === 'dynamic') {
-        modePill.textContent = '🔄⚡ QR Dinámico · Cada ' + state.rotationIntervalSeconds + 's y por escaneo';
+        modePill.textContent = 'QR Dinámico · Cada ' + state.rotationIntervalSeconds + 's y por escaneo';
         modeHelpText.textContent = 'El código rota automáticamente cada ' + state.rotationIntervalSeconds + 's y también tras cada escaneo.';
       } else {
-        modePill.textContent = '⚡ QR Dinámico · 1 Solo Uso';
+        modePill.textContent = 'QR Dinámico · 1 Solo Uso';
         modeHelpText.textContent = 'Este código cambia automáticamente cada vez que es escaneado.';
       }
     }
@@ -901,11 +911,11 @@ function renderUnifiedViewPage(viewData, query = {}) {
       if (viewerEl.isAerialMode) {
         viewerEl.exitAerialScanMode();
         btnAerial.classList.remove('active');
-        btnAerial.textContent = '🛸 Ver QR sobre el Modelo (90°)';
+        btnAerial.innerHTML = (dockIcons.scan || '') + '<span>Ver QR sobre el Modelo (90°)</span>';
       } else {
         viewerEl.enterAerialScanMode();
         btnAerial.classList.add('active');
-        btnAerial.textContent = '↩️ Volver a Vista 3D';
+        btnAerial.innerHTML = (dockIcons.undo || '') + '<span>Volver a Vista 3D</span>';
       }
     });
 
@@ -929,9 +939,9 @@ function renderUnifiedViewPage(viewData, query = {}) {
       }
       if (typeof detail.isAerial === 'boolean') {
         btnAerial.classList.toggle('active', detail.isAerial);
-        btnAerial.textContent = detail.isAerial
-          ? '↩️ Volver a Vista 3D'
-          : '🛸 Ver QR sobre el Modelo (90°)';
+        btnAerial.innerHTML = detail.isAerial
+          ? ((dockIcons.undo || '') + '<span>Volver a Vista 3D</span>')
+          : ((dockIcons.scan || '') + '<span>Ver QR sobre el Modelo (90°)</span>');
       }
     });
 
@@ -979,7 +989,7 @@ function renderUnifiedViewPage(viewData, query = {}) {
 
     viewerEl.addEventListener('qr-scan-recorded', (e) => {
       applyScanCounters(e.detail || {});
-      showUpdateToast('👤 Nuevo ingreso registrado al link');
+      showUpdateToast('Nuevo ingreso registrado al link');
     });
 
     viewerEl.addEventListener('qr-rotated', (e) => {
@@ -1004,7 +1014,7 @@ function renderUnifiedViewPage(viewData, query = {}) {
         }, 160);
       }
       flashQrCard();
-      showUpdateToast('🔄 Código QR actualizado en vivo');
+      showUpdateToast('Código QR actualizado en vivo');
     });
 
     viewerEl.addEventListener('qr-status-change', (e) => {
@@ -1055,7 +1065,7 @@ export async function viewRoutes(fastify) {
           statusTitle: 'Vista 3D-QR No Encontrada',
           badgeText: 'Enlace inválido',
           message: 'El enlace de visualización solicitado no existe o fue reemplazado.',
-          icon: '🔍'
+          iconName: 'search'
         })
       );
     }
@@ -1066,7 +1076,7 @@ export async function viewRoutes(fastify) {
           statusTitle: 'Vista Temporalmente Desactivada',
           badgeText: 'Vista Pausada',
           message: 'Esta vista pública de modelo 3D y código QR fue desactivada por su propietario.',
-          icon: '⏸️'
+          iconName: 'pause'
         })
       );
     }

@@ -17,7 +17,7 @@ const CHROME_PATH = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
 const OUTPUT_PATH = path.join(__dirname, '..', 'example-project', 'models', 'sipan_v2.glb');
 
 export async function generateEjemplo2Model() {
-  console.log('🏛️  Iniciando Ejemplo 2 – Museo Tumbas Reales de Sipán (HD Mejorado)...');
+  console.log('[START] Iniciando Ejemplo 2 – Museo Tumbas Reales de Sipán (HD Mejorado)...');
 
   const browser = await puppeteer.launch({
     executablePath: CHROME_PATH,
@@ -54,7 +54,7 @@ export async function generateEjemplo2Model() {
       document.head.appendChild(s);
     });
 
-    console.log('✅ Three.js r128 y GLTFExporter cargados');
+    console.log('[OK] Three.js r128 y GLTFExporter cargados');
 
     // ══════════════════════════════════════════════════════════════════════════
     // A. GENERADOR DE TEXTURAS PROCEDURALES PBR
@@ -795,7 +795,7 @@ export async function generateEjemplo2Model() {
   fs.writeFileSync(OUTPUT_PATH, glbBuffer);
 
   const sizeMB = (glbBuffer.length / 1024 / 1024).toFixed(2);
-  console.log(`✅ sipan_v2.glb generado: ${sizeMB} MB → ${OUTPUT_PATH}`);
+  console.log(`[OK] sipan_v2.glb generado: ${sizeMB} MB -> ${OUTPUT_PATH}`);
 
   if (glbBuffer.length < 1000) {
     throw new Error(`El GLB es sospechosamente pequeño (${glbBuffer.length} bytes). Algo falló.`);
@@ -807,6 +807,6 @@ export async function generateEjemplo2Model() {
 // Ejecutar si es el módulo principal
 if (process.argv[1] && process.argv[1].replace(/\\/g, '/').endsWith('generate_sipan_ejemplo2.js')) {
   generateEjemplo2Model()
-    .then(p => console.log('🎉 Listo:', p))
-    .catch(e => { console.error('❌ Error:', e.message); process.exit(1); });
+    .then(p => console.log('[OK] Listo:', p))
+    .catch(e => { console.error('[ERROR]', e.message); process.exit(1); });
 }

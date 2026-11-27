@@ -12,7 +12,7 @@ class RealtimeEventBus extends EventEmitter {
 
   async init() {
     if (config.nodeEnv === 'production' && !process.env.REDIS_URL) {
-      console.log('📦 REDIS_URL no configurado: usando EventEmitter local para SSE en tiempo real');
+      console.log('[REDIS] REDIS_URL no configurado: usando EventEmitter local para SSE en tiempo real');
       this.isRedisConnected = false;
       return;
     }
@@ -25,14 +25,14 @@ class RealtimeEventBus extends EventEmitter {
 
       this.redisPublisher.on('connect', () => {
         this.isRedisConnected = true;
-        console.log('✅ Conectado a Redis para Pub/Sub y Rate-Limit distribuido');
+        console.log('[OK] Conectado a Redis para Pub/Sub y Rate-Limit distribuido');
       });
 
       this.redisPublisher.on('error', (err) => {
         if (!this.isRedisConnected) {
           // Expected when offline
         } else {
-          console.warn('⚠️ Error en conexión Redis:', err.message);
+          console.warn('[WARN] Error en conexión Redis:', err.message);
         }
       });
 
@@ -55,7 +55,7 @@ class RealtimeEventBus extends EventEmitter {
         }
       });
     } catch (e) {
-      console.log('📦 Redis offline: Usando EventEmitter local para tiempo real');
+      console.log('[REDIS] Redis offline: Usando EventEmitter local para tiempo real');
       this.isRedisConnected = false;
     }
   }

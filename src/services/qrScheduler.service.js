@@ -40,13 +40,13 @@ export async function runRotationTickNow() {
           await rotateQrItemLink(item, { reason: 'auto_interval' });
           rotatedCount++;
         } catch (err) {
-          console.warn(`⚠️ Fallo al rotar automáticamente QR ${item.id}:`, err.message);
+          console.warn(`[WARN] Fallo al rotar automáticamente QR ${item.id}:`, err.message);
         }
       }
     }
   } catch (err) {
     if (err.code !== 'DB_SERVICE_INACTIVE') {
-      console.warn('⚠️ Error en el planificador de rotación de QRs:', err.message);
+      console.warn('[WARN] Error en el planificador de rotación de QRs:', err.message);
     }
   } finally {
     isTicking = false;
