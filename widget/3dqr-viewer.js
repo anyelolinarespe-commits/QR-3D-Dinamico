@@ -4973,7 +4973,7 @@ class Qr3dViewer extends HTMLElement {
         'AR 6DoF · XR Engine by <strong>Niantic Spatial</strong> · <a href="https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1/LICENSE" target="_blank" rel="noopener noreferrer" style="color:#93c5fd;text-decoration:underline;">Licencia</a>'
     });
     const { statusPill, btnPlaceSurface, btnFallbackPlace, btnRelocate } = ui;
-    statusPill.textContent = 'Iniciando motor AR espacial 6DoF...';
+    statusPill.textContent = 'Fijando modelo frente a ti en 6DoF...';
     document.body.appendChild(overlayWrap);
     this._slamOverlayEl = overlayWrap;
 
@@ -5016,6 +5016,7 @@ class Qr3dViewer extends HTMLElement {
     const startedAt = performance.now();
     let placed = false;
     let hasReticleHit = false;
+    let autoPlacedOnStart = false;
     const lastHitPos = new THREE.Vector3();
     let sunLightSlam = null;
 
@@ -5221,9 +5222,36 @@ class Qr3dViewer extends HTMLElement {
 
             this._slamGroundShadow = this.createGroundedShadowDisc();
             xrScene.add(this._slamGroundShadow);
+
+            // Auto-anclar directamente en frente del usuario desde el primer frame
+            // sin que necesite tocar ningún botón
+            const autoPlaceInFront = () => {
+              if (!this._slamSessionActive || placed || autoPlacedOnStart) return;
+              autoPlacedOnStart = true;
+              const { camera: cam } = XR8.Threejs.xrScene();
+              const camPos = cam ? cam.position.clone() : new THREE.Vector3(0, 1.15, 0);
+              const forward = new THREE.Vector3(0, 0, -1);
+              if (cam) forward.applyQuaternion(cam.quaternion);
+              forward.y = 0;
+              if (forward.lengthSq() < 1e-4) forward.set(0, 0, -1);
+              forward.normalize();
+              const targetPos = camPos.clone().addScaledVector(forward, 1.1);
+              targetPos.y = camPos.y - 0.55;
+              lockSlamModel(targetPos);
+              statusPill.textContent =
+                'Modelo fijado frente a ti · Camina alrededor, acércate o toca Reubicar para moverlo';
+            };
+            // Intentar auto-colocar después de que SLAM inicializa la pose (350ms)
+            setTimeout(() => { try { autoPlaceInFront(); } catch {} }, 350);
           },
           onUpdate: () => {
             if (!this._slamSessionActive || placed || !this._slamReticle) return;
+
+            // Mostrar el botón "Fijar aquí" inmediatamente desde el primer update
+            if (btnFallbackPlace.style.display === 'none') {
+              btnFallbackPlace.style.display = 'inline-flex';
+            }
+
             let hits = null;
             try {
               hits = XR8.XrController.hitTest(0.5, 0.56, [
@@ -5256,11 +5284,9 @@ class Qr3dViewer extends HTMLElement {
             hasReticleHit = false;
             this._slamReticle.visible = false;
             btnPlaceSurface.style.display = 'none';
-            if (performance.now() - startedAt > 1600) {
-              btnFallbackPlace.style.display = 'inline-flex';
-              statusPill.textContent =
-                'Mueve lento el teléfono o toca "Fijar frente a mí" para anclar en 6DoF';
-            }
+            btnFallbackPlace.style.display = 'inline-flex';
+            statusPill.textContent =
+              'Mueve lento el teléfono o toca "Fijar aquí" para anclar frente a ti';
           },
           onCameraStatusChange: ({ status, reason }) => {
             if (!this._slamSessionActive) return;
