@@ -366,6 +366,15 @@ class Qr3dViewer extends HTMLElement {
     this._camArScaleFactor = 1;
     this._camArTouchState = null;
     this._camArCleanupFn = null;
+    this._slamSessionActive = false;
+    this._slamOverlayEl = null;
+    this._slamReticle = null;
+    this._slamGroundShadow = null;
+    this._slamSavedState = null;
+    this._slamScaleFactor = 1;
+    this._slamRotYOffset = 0;
+    this._slamAnchorPos = null;
+    this._xr8LoadPromise = null;
     this._arModalOpen = false;
     this._onVisibilityChange = () => {
       this._isPageVisible = !document.hidden;
@@ -694,6 +703,9 @@ class Qr3dViewer extends HTMLElement {
       this._hasInitializedScene = true;
       this.loadModel();
       this.initRealtimeSSE();
+      if (this.showAr) {
+        this.loadXr8SlamEngine().catch(() => {});
+      }
       if (pendingSceneViewerFallback && this.showAr) {
         this.openArModal({ modeHint: 'sceneviewer-fallback' });
       }
@@ -701,6 +713,7 @@ class Qr3dViewer extends HTMLElement {
   }
 
   disconnectedCallback() {
+    this.stopSlamCameraAR({ silent: true });
     this.stopCameraAR({ silent: true });
     this.stopWebXrAR();
     if (typeof document !== 'undefined') {
@@ -752,6 +765,68 @@ class Qr3dViewer extends HTMLElement {
       };
       s.onerror = reject;
       document.head.appendChild(s);
+    });
+  }
+
+  /** Precarga bajo demanda el motor 6DoF Visual-Inertial SLAM (@8thwall/engine-binary) tras asegurar THREE. */
+  loadXr8SlamEngine() {
+    if (window.XR8 && window.XR8.XrController && window.XR8.Threejs) {
+      return Promise.resolve(window.XR8);
+    }
+    if (this._xr8LoadPromise) return this._xr8LoadPromise;
+
+    this._xr8LoadPromise = (async () => {
+      await this.loadDependencies();
+      const src = 'https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1/dist/xr.js';
+      await new Promise((resolve, reject) => {
+        const existing = document.querySelector(`script[src="${src}"]`);
+        if (existing) {
+          if (window.XR8) return resolve();
+          existing.addEventListener('load', () => resolve(), { once: true });
+          existing.addEventListener('error', () => reject(new Error('Error cargando xr.js')), { once: true });
+          return;
+        }
+        const s = document.createElement('script');
+        s.src = src;
+        s.crossOrigin = 'anonymous';
+        s.setAttribute('data-preload-chunks', 'slam');
+        s.onload = () => resolve();
+        s.onerror = () => reject(new Error('No se pudo descargar el motor AR SLAM (XR8)'));
+        document.head.appendChild(s);
+      });
+
+      const waitStart = Date.now();
+      while (!window.XR8 && Date.now() - waitStart < 8000) {
+        await new Promise((r) => setTimeout(r, 40));
+      }
+      if (!window.XR8) {
+        throw new Error('XR8 no inicializó en window.XR8');
+      }
+      if (typeof window.XR8.loadChunk === 'function') {
+        await window.XR8.loadChunk('slam');
+      }
+      return window.XR8;
+    })().catch((err) => {
+      this._xr8LoadPromise = null;
+      throw err;
+    });
+
+    return this._xr8LoadPromise;
+  }
+
+  /** Marca materiales y texturas para subir programas/texturas al cambiar entre contextos WebGLRenderer. */
+  refreshPivotForRenderer(pivot) {
+    if (!pivot || typeof pivot.traverse !== 'function') return;
+    pivot.traverse((node) => {
+      if (!node.isMesh || !node.material) return;
+      const mats = Array.isArray(node.material) ? node.material : [node.material];
+      mats.forEach((mat) => {
+        if (!mat) return;
+        mat.needsUpdate = true;
+        ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'emissiveMap', 'aoMap'].forEach((key) => {
+          if (mat[key]) mat[key].needsUpdate = true;
+        });
+      });
     });
   }
 
@@ -1751,7 +1826,7 @@ class Qr3dViewer extends HTMLElement {
 
     this._animateLoop = (now) => {
       this.animationFrameId = null;
-      if (this._xrSession) return;
+      if (this._xrSession || this._slamSessionActive) return;
       if (!this.renderer || !this.scene || !this.camera) return;
       if (!this._isPageVisible || !this._isInViewport) return;
 
@@ -1830,7 +1905,7 @@ class Qr3dViewer extends HTMLElement {
   }
 
   requestRender({ durationMs = 600 } = {}) {
-    if (this._xrSession) return;
+    if (this._xrSession || this._slamSessionActive) return;
     if (durationMs > 0) {
       this._activeUntil = Math.max(this._activeUntil, performance.now() + durationMs);
     }
@@ -4187,12 +4262,27 @@ class Qr3dViewer extends HTMLElement {
     });
   }
 
-  buildWebXrOverlayDom() {
+  buildWebXrOverlayDom(options = {}) {
+    const {
+      onSmaller = () => this.applyXrScaleFactor(this._xrScaleFactor * 0.78),
+      onBigger = () => this.applyXrScaleFactor(this._xrScaleFactor * 1.28),
+      onRotate = () => {
+        this._xrRotYOffset += Math.PI / 4;
+        if (this.modelPivot) {
+          this.modelPivot.rotation.y = this._xrRotYOffset;
+          this.syncSunTransform({ updateShadow: true });
+        }
+      },
+      onExit = () => this.stopWebXrAR(),
+      container = null,
+      footerHtml = ''
+    } = options;
+
     const overlay = document.createElement('div');
     overlay.style.cssText = [
-      'position:fixed',
+      container ? 'position:absolute' : 'position:fixed',
       'inset:0',
-      'z-index:2147483647',
+      container ? 'z-index:2' : 'z-index:2147483647',
       'pointer-events:none',
       'touch-action:none',
       'display:flex',
@@ -4299,29 +4389,44 @@ class Qr3dViewer extends HTMLElement {
 
     btnSmaller.addEventListener('click', (e) => {
       e.stopPropagation();
-      this.applyXrScaleFactor(this._xrScaleFactor * 0.78);
+      onSmaller();
     });
     btnBigger.addEventListener('click', (e) => {
       e.stopPropagation();
-      this.applyXrScaleFactor(this._xrScaleFactor * 1.28);
+      onBigger();
     });
     btnRotate.addEventListener('click', (e) => {
       e.stopPropagation();
-      this._xrRotYOffset += Math.PI / 4;
-      if (this.modelPivot) {
-        this.modelPivot.rotation.y = this._xrRotYOffset;
-        this.syncSunTransform({ updateShadow: true });
-      }
+      onRotate();
     });
     btnExit.addEventListener('click', (e) => {
       e.stopPropagation();
-      this.stopWebXrAR();
+      onExit();
     });
 
     ctaWrap.append(btnPlaceSurface, btnFallbackPlace);
+
+    const bottomStack = document.createElement('div');
+    bottomStack.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none;';
+    bottomStack.appendChild(bar);
+    if (footerHtml) {
+      const credit = document.createElement('div');
+      credit.style.cssText = [
+        'font-size:10.5px',
+        'color:rgba(226,232,240,0.85)',
+        'background:rgba(15,23,42,0.72)',
+        'padding:3px 9px',
+        'border-radius:9999px',
+        'pointer-events:auto'
+      ].join(';');
+      credit.innerHTML = footerHtml;
+      blockBubble(credit);
+      bottomStack.appendChild(credit);
+    }
+
     bar.append(btnRelocate, btnSmaller, btnBigger, btnRotate, btnExit);
-    overlay.append(statusPill, ctaWrap, bar);
-    document.body.appendChild(overlay);
+    overlay.append(statusPill, ctaWrap, bottomStack);
+    (container || document.body).appendChild(overlay);
     return {
       overlay,
       statusPill,
@@ -4332,20 +4437,37 @@ class Qr3dViewer extends HTMLElement {
     };
   }
 
+  /** Posiciona y escala modelPivot y su sombra anclada a una posición mundial AR 6DoF. */
+  applySpatialPlacement(savedState, anchorPos, scaleFactor, shadowDisc) {
+    if (!this.modelPivot || !savedState || !anchorPos) return;
+    const clamped = Math.max(0.18, Math.min(4.5, scaleFactor));
+    const totalScale = savedState.arBaseScale * clamped;
+    this.modelPivot.scale.setScalar(totalScale);
+    const lift = -(savedState.unscaledMinY || 0) * totalScale;
+    this.modelPivot.position.set(anchorPos.x, anchorPos.y + lift, anchorPos.z);
+    if (shadowDisc) {
+      const span = Math.max(0.45, (this.framingRadius || 1) * 2.1 * totalScale);
+      shadowDisc.position.set(anchorPos.x, anchorPos.y + 0.002, anchorPos.z);
+      shadowDisc.scale.set(span, span, 1);
+    }
+    this.syncSunTransform({ updateShadow: true });
+    return clamped;
+  }
+
   applyXrScaleFactor(nextFactor) {
     this._xrScaleFactor = Math.max(0.18, Math.min(4.5, nextFactor));
     if (!this.modelPivot || !this._xrSavedState) return;
+    if (this._xrAnchorPos) {
+      this._xrScaleFactor = this.applySpatialPlacement(
+        this._xrSavedState,
+        this._xrAnchorPos,
+        this._xrScaleFactor,
+        this._xrGroundShadow
+      );
+      return;
+    }
     const totalScale = this._xrSavedState.arBaseScale * this._xrScaleFactor;
     this.modelPivot.scale.setScalar(totalScale);
-    if (this._xrAnchorPos) {
-      const lift = -(this._xrSavedState.unscaledMinY || 0) * totalScale;
-      this.modelPivot.position.set(this._xrAnchorPos.x, this._xrAnchorPos.y + lift, this._xrAnchorPos.z);
-      if (this._xrGroundShadow) {
-        const span = Math.max(0.45, (this.framingRadius || 1) * 2.1 * totalScale);
-        this._xrGroundShadow.position.set(this._xrAnchorPos.x, this._xrAnchorPos.y + 0.002, this._xrAnchorPos.z);
-        this._xrGroundShadow.scale.set(span, span, 1);
-      }
-    }
     this.syncSunTransform({ updateShadow: true });
   }
 
@@ -4357,6 +4479,7 @@ class Qr3dViewer extends HTMLElement {
     if (this._xrSession) return;
 
     this.closeArModal();
+    this.stopSlamCameraAR({ silent: true });
     this.stopCameraAR({ silent: true });
     if (this.isAerialMode) {
       this.exitAerialScanMode();
@@ -4375,6 +4498,11 @@ class Qr3dViewer extends HTMLElement {
       const errDetail = err
         ? [err.name, err.message].filter(Boolean).join(': ')
         : '';
+      const env = this.getArEnvironmentInfo();
+      if (err && err.name === 'NotSupportedError' && env.hasCameraApi && (env.isHttpsOrigin || env.isLocalHost)) {
+        this.startSlamCameraAR();
+        return;
+      }
       this.openArModal({ modeHint: 'webxr-denied', webXrError: errDetail });
     };
 
@@ -4740,6 +4868,7 @@ class Qr3dViewer extends HTMLElement {
       }
       this.autoRotate = st.autoRotate;
       this.updateRotateButtonLabel();
+      this.syncSunTransform({ updateShadow: true });
       if (this.controls) {
         this.controls.enabled = st.controlsEnabled;
         this.controls.target.copy(st.cameraTarget);
@@ -4756,6 +4885,493 @@ class Qr3dViewer extends HTMLElement {
       this.applyLightingConfig();
     }
     this.requestRender({ durationMs: 1000 });
+  }
+
+  applySlamScaleFactor(nextFactor) {
+    this._slamScaleFactor = Math.max(0.18, Math.min(4.5, nextFactor));
+    if (!this.modelPivot || !this._slamSavedState) return;
+    if (this._slamAnchorPos) {
+      this._slamScaleFactor = this.applySpatialPlacement(
+        this._slamSavedState,
+        this._slamAnchorPos,
+        this._slamScaleFactor,
+        this._slamGroundShadow
+      );
+      return;
+    }
+    const totalScale = this._slamSavedState.arBaseScale * this._slamScaleFactor;
+    this.modelPivot.scale.setScalar(totalScale);
+  }
+
+  /** Inicia sesión AR 6DoF markerless SLAM en el navegador (Android sin ARCore, iOS y WebGL2) usando @8thwall/engine-binary. */
+  async startSlamCameraAR() {
+    if (!this.modelPivot) return;
+    if (this._slamSessionActive) return;
+
+    const hasMedia =
+      typeof navigator !== 'undefined' &&
+      navigator.mediaDevices &&
+      typeof navigator.mediaDevices.getUserMedia === 'function';
+    if (!hasMedia) {
+      this.openArModal({
+        modeHint: 'camera-denied',
+        camError: 'La cámara Web en vivo requiere HTTPS.'
+      });
+      return;
+    }
+
+    // Pedir permisos iOS síncronamente dentro del clic del usuario antes de cualquier await
+    if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+      DeviceMotionEvent.requestPermission().catch(() => {});
+    }
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+      DeviceOrientationEvent.requestPermission().catch(() => {});
+    }
+
+    this.closeArModal();
+    this.stopCameraAR({ silent: true });
+    this.stopWebXrAR();
+    if (this.isAerialMode) {
+      this.exitAerialScanMode();
+    }
+    this.restoreModelRevealState();
+
+    this._slamSessionActive = true;
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+
+    const overlayWrap = document.createElement('div');
+    overlayWrap.id = 'qr3d-xr8-overlay';
+    overlayWrap.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:#020617;touch-action:none;overflow:hidden;';
+
+    const canvas = document.createElement('canvas');
+    canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;';
+    const syncCanvasSize = () => {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const vw = Math.max(2, window.innerWidth || document.documentElement.clientWidth || 360);
+      const vh = Math.max(2, window.innerHeight || document.documentElement.clientHeight || 640);
+      canvas.width = Math.floor(vw * dpr);
+      canvas.height = Math.floor(vh * dpr);
+    };
+    syncCanvasSize();
+    overlayWrap.appendChild(canvas);
+
+    const ui = this.buildWebXrOverlayDom({
+      container: overlayWrap,
+      onSmaller: () => this.applySlamScaleFactor(this._slamScaleFactor * 0.78),
+      onBigger: () => this.applySlamScaleFactor(this._slamScaleFactor * 1.28),
+      onRotate: () => {
+        this._slamRotYOffset += Math.PI / 4;
+        if (this.modelPivot) {
+          this.modelPivot.rotation.y = this._slamRotYOffset;
+        }
+      },
+      onExit: () => this.stopSlamCameraAR(),
+      footerHtml:
+        'AR 6DoF · XR Engine by <strong>Niantic Spatial</strong> · <a href="https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1/LICENSE" target="_blank" rel="noopener noreferrer" style="color:#93c5fd;text-decoration:underline;">Licencia</a>'
+    });
+    const { statusPill, btnPlaceSurface, btnFallbackPlace, btnRelocate } = ui;
+    statusPill.textContent = 'Iniciando motor AR espacial 6DoF...';
+    document.body.appendChild(overlayWrap);
+    this._slamOverlayEl = overlayWrap;
+
+    let XR8;
+    try {
+      XR8 = await this.loadXr8SlamEngine();
+    } catch (err) {
+      this.stopSlamCameraAR({ silent: true });
+      this.openArModal({
+        modeHint: 'camera-denied',
+        camError: (err && err.message) || 'No se pudo cargar el motor AR SLAM'
+      });
+      return;
+    }
+
+    if (!this._slamSessionActive || !this.isConnected) {
+      this.stopSlamCameraAR({ silent: true });
+      return;
+    }
+
+    const THREE = window.THREE;
+    const arBaseScale = this.computeArUnitScale();
+    const unscaledMinY = this.computeVisiblePivotBottomMinY();
+    this._slamScaleFactor = 1;
+    this._slamRotYOffset = 0;
+    this._slamAnchorPos = null;
+    this._slamSavedState = {
+      pivotParent: this.modelPivot.parent || this.scene,
+      pivotPos: this.modelPivot.position.clone(),
+      pivotScale: this.modelPivot.scale.clone(),
+      pivotRotY: this.modelPivot.rotation.y,
+      pivotVisible: this.modelPivot.visible,
+      autoRotate: this.autoRotate,
+      arBaseScale,
+      unscaledMinY,
+      cleanupListeners: null
+    };
+    this.autoRotate = false;
+
+    const startedAt = performance.now();
+    let placed = false;
+    let hasReticleHit = false;
+    const lastHitPos = new THREE.Vector3();
+    let sunLightSlam = null;
+
+    const syncSlamLights = (targetVec) => {
+      if (!sunLightSlam || !targetVec) return;
+      sunLightSlam.position.set(targetVec.x + 3.2, targetVec.y + 6.0, targetVec.z + 3.2);
+      sunLightSlam.target.position.copy(targetVec);
+      sunLightSlam.target.updateMatrixWorld();
+    };
+
+    const lockSlamModel = (worldPos) => {
+      if (!this.modelPivot || !this._slamSavedState || !worldPos) return;
+      placed = true;
+      this._slamAnchorPos = worldPos.clone();
+      try {
+        const xrCam = XR8.Threejs.xrScene().camera;
+        if (xrCam) {
+          this._slamRotYOffset = Math.atan2(xrCam.position.x - worldPos.x, xrCam.position.z - worldPos.z);
+        }
+      } catch {
+        // Mantener orientación actual si la cámara aún no reporta pose
+      }
+      this.modelPivot.visible = true;
+      this.modelPivot.rotation.set(0, this._slamRotYOffset, 0);
+      this.applySlamScaleFactor(this._slamScaleFactor);
+      syncSlamLights(this._slamAnchorPos);
+      if (this._slamReticle) this._slamReticle.visible = false;
+      if (this._slamGroundShadow) this._slamGroundShadow.visible = true;
+      btnPlaceSurface.style.display = 'none';
+      btnFallbackPlace.style.display = 'none';
+      btnRelocate.style.display = 'inline-flex';
+      statusPill.textContent =
+        '¡Fijado en 6DoF! Camina alrededor 360°, arriba, abajo o acércate · Arrastra para rotar · Pellizca para escalar';
+    };
+
+    const unlockSlamModel = () => {
+      placed = false;
+      this._slamAnchorPos = null;
+      if (this.modelPivot) this.modelPivot.visible = false;
+      if (this._slamGroundShadow) this._slamGroundShadow.visible = false;
+      btnRelocate.style.display = 'none';
+      btnFallbackPlace.style.display = 'inline-flex';
+      statusPill.textContent = 'Apunta lento a tu mesa, banco o piso y toca Fijar';
+    };
+
+    btnPlaceSurface.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (hasReticleHit) lockSlamModel(lastHitPos);
+    });
+
+    btnFallbackPlace.addEventListener('click', (e) => {
+      e.stopPropagation();
+      let xrCam = null;
+      try {
+        xrCam = XR8.Threejs.xrScene().camera;
+      } catch {
+        xrCam = null;
+      }
+      const camPos = new THREE.Vector3(0, 1.15, 0);
+      const forward = new THREE.Vector3(0, 0, -1);
+      if (xrCam) {
+        camPos.copy(xrCam.position);
+        forward.applyQuaternion(xrCam.quaternion);
+      }
+      forward.y = 0;
+      if (forward.lengthSq() < 1e-4) forward.set(0, 0, -1);
+      forward.normalize();
+      const targetPos = camPos.clone().addScaledVector(forward, 1.05);
+      targetPos.y = camPos.y - 0.55;
+      lockSlamModel(targetPos);
+    });
+
+    btnRelocate.addEventListener('click', (e) => {
+      e.stopPropagation();
+      unlockSlamModel();
+    });
+
+    // Gestos táctiles: 1 dedo rota sobre su eje Y, 2 dedos escala, tap coloca si apunta al retículo
+    let activeMode = null;
+    let prevTouchX = 0;
+    let prevPinchDist = 0;
+    let touchMoved = false;
+
+    const onTouchStart = (e) => {
+      if (e.touches.length === 1) {
+        activeMode = 'drag';
+        prevTouchX = e.touches[0].clientX;
+        touchMoved = false;
+      } else if (e.touches.length === 2) {
+        activeMode = 'pinch';
+        touchMoved = true;
+        prevPinchDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+      }
+    };
+    const onTouchMove = (e) => {
+      if (e.touches.length === 1 && activeMode === 'drag') {
+        const dx = e.touches[0].clientX - prevTouchX;
+        if (Math.abs(dx) > 3) touchMoved = true;
+        prevTouchX = e.touches[0].clientX;
+        if (placed && this.modelPivot) {
+          this._slamRotYOffset += dx * 0.0085;
+          this.modelPivot.rotation.y = this._slamRotYOffset;
+        }
+      } else if (e.touches.length === 2 && activeMode === 'pinch') {
+        const dist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        if (prevPinchDist > 8 && dist > 8) {
+          this.applySlamScaleFactor(this._slamScaleFactor * (dist / prevPinchDist));
+          prevPinchDist = dist;
+        }
+      }
+    };
+    const onTouchEnd = (e) => {
+      if (e.touches.length === 0) {
+        if (!placed && !touchMoved && hasReticleHit) {
+          lockSlamModel(lastHitPos);
+        }
+        activeMode = null;
+      } else if (e.touches.length === 1) {
+        activeMode = 'drag';
+        prevTouchX = e.touches[0].clientX;
+      }
+    };
+    const onCanvasClick = () => {
+      if (!placed && !touchMoved && hasReticleHit) {
+        lockSlamModel(lastHitPos);
+      }
+    };
+    const onWindowResize = () => {
+      syncCanvasSize();
+      try {
+        const { camera: xrCam, renderer: xrRenderer } = XR8.Threejs.xrScene();
+        if (xrRenderer) xrRenderer.setSize(canvas.width, canvas.height, false);
+        if (xrCam) {
+          xrCam.aspect = canvas.width / Math.max(1, canvas.height);
+          xrCam.updateProjectionMatrix();
+        }
+      } catch {
+        // Ignorar si XR8 aún está inicializando
+      }
+    };
+
+    canvas.addEventListener('touchstart', onTouchStart, { passive: true });
+    canvas.addEventListener('touchmove', onTouchMove, { passive: true });
+    canvas.addEventListener('touchend', onTouchEnd, { passive: true });
+    canvas.addEventListener('click', onCanvasClick);
+    window.addEventListener('resize', onWindowResize);
+
+    this._slamSavedState.cleanupListeners = () => {
+      canvas.removeEventListener('touchstart', onTouchStart);
+      canvas.removeEventListener('touchmove', onTouchMove);
+      canvas.removeEventListener('touchend', onTouchEnd);
+      canvas.removeEventListener('click', onCanvasClick);
+      window.removeEventListener('resize', onWindowResize);
+    };
+
+    try {
+      XR8.clearCameraPipelineModules();
+      XR8.addCameraPipelineModules([
+        XR8.XrController.pipelineModule(),
+        XR8.Threejs.pipelineModule(),
+        {
+          name: 'qr3d-slam-ar',
+          onStart: () => {
+            if (!this._slamSessionActive || !this.modelPivot) return;
+            const { scene: xrScene, camera: xrCam, renderer: xrRenderer } = XR8.Threejs.xrScene();
+            xrRenderer.toneMapping = THREE.ACESFilmicToneMapping;
+            xrRenderer.toneMappingExposure = 1.08;
+            xrRenderer.outputEncoding = THREE.sRGBEncoding;
+
+            xrCam.position.set(0, 1.15, 0);
+            xrCam.near = 0.02;
+            xrCam.far = 100;
+            xrCam.updateProjectionMatrix();
+            XR8.XrController.updateCameraProjectionMatrix({
+              origin: xrCam.position,
+              facing: xrCam.quaternion,
+              updateRecenterPoint: false
+            });
+
+            const hemi = new THREE.HemisphereLight(0xfffaf0, 0x64748b, 0.95);
+            const amb = new THREE.AmbientLight(0xffffff, 0.55);
+            sunLightSlam = new THREE.DirectionalLight(0xfff4d6, 1.35);
+            sunLightSlam.position.set(3.2, 6.0, 3.2);
+            const fill = new THREE.DirectionalLight(0xcbe4ff, 0.45);
+            fill.position.set(-4, 3, -4);
+            xrScene.add(hemi, amb, sunLightSlam, sunLightSlam.target, fill);
+
+            this.modelPivot.visible = false;
+            this.modelPivot.scale.setScalar(arBaseScale);
+            this.modelPivot.rotation.set(0, 0, 0);
+            xrScene.add(this.modelPivot);
+            this.refreshPivotForRenderer(this.modelPivot);
+
+            this._slamReticle = this.createArReticleMesh();
+            this._slamReticle.matrixAutoUpdate = true;
+            xrScene.add(this._slamReticle);
+
+            this._slamGroundShadow = this.createGroundedShadowDisc();
+            xrScene.add(this._slamGroundShadow);
+          },
+          onUpdate: () => {
+            if (!this._slamSessionActive || placed || !this._slamReticle) return;
+            let hits = null;
+            try {
+              hits = XR8.XrController.hitTest(0.5, 0.56, [
+                'DETECTED_SURFACE',
+                'ESTIMATED_SURFACE',
+                'FEATURE_POINT'
+              ]);
+            } catch {
+              hits = null;
+            }
+            if (hits && hits.length > 0) {
+              const bestHit =
+                hits.find((h) => h.type === 'DETECTED_SURFACE') ||
+                hits.find((h) => h.type === 'ESTIMATED_SURFACE') ||
+                hits[0];
+              if (bestHit && bestHit.position) {
+                hasReticleHit = true;
+                lastHitPos.set(bestHit.position.x, bestHit.position.y, bestHit.position.z);
+                this._slamReticle.position.copy(lastHitPos);
+                this._slamReticle.visible = true;
+                btnPlaceSurface.style.display = 'inline-flex';
+                btnFallbackPlace.style.display = 'inline-flex';
+                statusPill.textContent =
+                  bestHit.type === 'DETECTED_SURFACE'
+                    ? 'Superficie detectada: toca "Fijar en esta mesa" para anclar en 6DoF'
+                    : 'Apunta a tu mesa o banco y toca "Fijar en esta mesa"';
+                return;
+              }
+            }
+            hasReticleHit = false;
+            this._slamReticle.visible = false;
+            btnPlaceSurface.style.display = 'none';
+            if (performance.now() - startedAt > 1600) {
+              btnFallbackPlace.style.display = 'inline-flex';
+              statusPill.textContent =
+                'Mueve lento el teléfono o toca "Fijar frente a mí" para anclar en 6DoF';
+            }
+          },
+          onCameraStatusChange: ({ status, reason }) => {
+            if (!this._slamSessionActive) return;
+            if (status === 'requesting') {
+              statusPill.textContent = 'Permite el acceso a la cámara trasera para AR 6DoF...';
+            } else if (status === 'hasStream') {
+              statusPill.textContent = 'Apunta lento a tu mesa, banco o piso para detectar superficie...';
+            } else if (status === 'failed') {
+              const reasonText =
+                typeof reason === 'string'
+                  ? reason
+                  : (reason && reason.message) || 'No se pudo iniciar la cámara trasera';
+              this.stopSlamCameraAR({ silent: true });
+              this.openArModal({ modeHint: 'camera-denied', camError: reasonText });
+            }
+          },
+          onException: (err) => {
+            console.warn('[3DQR XR8 SLAM]', err);
+            if (!this._slamSessionActive) return;
+            const errMsg = (err && err.message) || String(err || 'Error WebGL/SLAM');
+            this.stopSlamCameraAR({ silent: true });
+            this.openArModal({
+              modeHint: 'camera-denied',
+              camError: `El dispositivo no pudo ejecutar SLAM (${errMsg}). Puedes usar Cámara 3DoF o Scene Viewer.`
+            });
+          }
+        }
+      ]);
+
+      XR8.XrController.configure({
+        scale: 'absolute',
+        disableWorldTracking: false,
+        enableLighting: false
+      });
+
+      XR8.run({
+        canvas,
+        cameraConfig: { direction: XR8.XrConfig.camera().BACK },
+        allowedDevices: XR8.XrConfig.device().ANY
+      });
+    } catch (err) {
+      this.stopSlamCameraAR({ silent: true });
+      this.openArModal({
+        modeHint: 'camera-denied',
+        camError: (err && err.message) || 'No se pudo iniciar XR8 SLAM'
+      });
+    }
+  }
+
+  /** Detiene XR8 SLAM y restaura el modelo, luces y bucle principal de Three.js. */
+  stopSlamCameraAR({ silent = false } = {}) {
+    if (!this._slamSessionActive && !this._slamOverlayEl && !this._slamSavedState) {
+      return;
+    }
+    this._slamSessionActive = false;
+
+    if (window.XR8) {
+      try {
+        if (typeof window.XR8.stop === 'function') window.XR8.stop();
+      } catch {
+        // Ignorar si aún no arrancó
+      }
+      try {
+        if (typeof window.XR8.clearCameraPipelineModules === 'function') {
+          window.XR8.clearCameraPipelineModules();
+        }
+      } catch {
+        // Ignorar
+      }
+    }
+
+    if (this._slamReticle) {
+      this.disposeThreeHelperObject(this._slamReticle);
+      this._slamReticle = null;
+    }
+    if (this._slamGroundShadow) {
+      this.disposeThreeHelperObject(this._slamGroundShadow);
+      this._slamGroundShadow = null;
+    }
+
+    if (this._slamSavedState) {
+      const st = this._slamSavedState;
+      this._slamSavedState = null;
+      if (typeof st.cleanupListeners === 'function') {
+        st.cleanupListeners();
+      }
+      if (this.modelPivot) {
+        const targetParent = st.pivotParent || this.scene;
+        if (targetParent && this.modelPivot.parent !== targetParent) {
+          targetParent.add(this.modelPivot);
+          this.refreshPivotForRenderer(this.modelPivot);
+        }
+        this.modelPivot.position.copy(st.pivotPos);
+        this.modelPivot.scale.copy(st.pivotScale);
+        this.modelPivot.rotation.set(0, st.pivotRotY, 0);
+        this.modelPivot.visible = st.pivotVisible !== false;
+      }
+      this.autoRotate = st.autoRotate;
+      this.updateRotateButtonLabel();
+      this.syncSunTransform({ updateShadow: true });
+    }
+
+    if (this._slamOverlayEl) {
+      this._slamOverlayEl.remove();
+      this._slamOverlayEl = null;
+    }
+
+    this._slamAnchorPos = null;
+    if (!silent) {
+      this.requestRender({ durationMs: 1000 });
+    }
   }
 
   computeQuaternionFromDeviceOrientation(alphaDeg, betaDeg, gammaDeg, screenAngleDeg) {
@@ -4942,6 +5558,7 @@ class Qr3dViewer extends HTMLElement {
     }
 
     try {
+      this.stopSlamCameraAR({ silent: true });
       this.stopCameraAR({ silent: true, keepUiState: keepScale });
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
@@ -5188,6 +5805,7 @@ class Qr3dViewer extends HTMLElement {
       }
       this.autoRotate = st.autoRotate;
       this.updateRotateButtonLabel();
+      this.syncSunTransform({ updateShadow: true });
       if (this.controls) {
         this.controls.enabled = st.controlsEnabled;
         this.controls.target.copy(st.cameraTarget);
@@ -5211,7 +5829,7 @@ class Qr3dViewer extends HTMLElement {
     }
   }
 
-  openArModal({ modeHint = 'auto', webXrError = '' } = {}) {
+  openArModal({ modeHint = 'auto', webXrError = '', camError = '' } = {}) {
     const modal = this.shadowRoot && this.shadowRoot.getElementById('ar-modal');
     const descEl = this.shadowRoot && this.shadowRoot.getElementById('ar-modal-desc');
     const warnEl = this.shadowRoot && this.shadowRoot.getElementById('ar-modal-warn');
@@ -5235,25 +5853,25 @@ class Qr3dViewer extends HTMLElement {
 
     if (env.isIOS) {
       descEl.textContent = env.isNonSafariIos
-        ? 'Para fijar el modelo en tu mesa y caminar alrededor 360° en iPhone/iPad, abre este enlace en Safari o toca "Abrir en AR Quick Look".'
-        : 'Toca "Abrir en AR Quick Look" para fijar el objeto sobre tu mesa y explorarlo caminando alrededor con iOS ARKit.';
+        ? 'Usa "AR Espacial 6DoF en Cámara" aquí mismo, o abre en Safari / AR Quick Look para fijar el modelo sobre tu mesa y caminar 360°.'
+        : 'Toca "Abrir en AR Quick Look" o "AR Espacial 6DoF en Cámara" para fijar el objeto sobre tu mesa y explorarlo caminando alrededor 360°.';
     } else if (env.isAndroid) {
       descEl.textContent = env.isInAppWebView
-        ? 'Estás dentro de una app (WhatsApp/Instagram/escáner). Para fijar el objeto en tu mesa y recorrerlo en 360°, ábrelo en Google Chrome o Google Scene Viewer.'
-        : 'Para caminar alrededor en 360° sobre tu mesa usa WebXR (ARCore) o Google Scene Viewer. Si tu celular no tiene ARCore, la vista con cámara solo rota (3DoF).';
+        ? 'Estás dentro de un visor interno (WhatsApp/QR). Puedes probar "AR Espacial 6DoF en Cámara" aquí o abrir en Google Chrome para mayor fluidez.'
+        : 'Fija el objeto 3D sobre tu mesa, banco o piso con seguimiento espacial 6DoF para caminar 360°, verlo por arriba, por abajo o acercar la cámara.';
     } else {
-      descEl.textContent = 'Para fijar el modelo en una mesa real y recorrerlo moviendo y acercando la cámara (ARCore / ARKit 6DoF), escanea este QR con tu celular Android o iPhone.';
+      descEl.textContent = 'Para fijar el modelo en una mesa real y recorrerlo moviendo y acercando la cámara (6DoF), escanea este QR con tu celular Android o iPhone, o prueba AR SLAM en cámara.';
     }
 
     let warningText = '';
-    if (env.isLocalHost || !env.isHttpsOrigin) {
-      warningText = 'Estás en entorno local/HTTP. La Realidad Aumentada espacial en mesa (WebXR / Scene Viewer / cámara móvil) exige abrir una URL pública HTTPS.';
+    if (camError) {
+      warningText = camError;
+    } else if (env.isLocalHost || !env.isHttpsOrigin) {
+      warningText = 'Estás en entorno local/HTTP. La Realidad Aumentada móvil en cámara exige abrir una URL pública HTTPS.';
     } else if (modeHint === 'webxr-denied') {
-      warningText = `WebXR no pudo iniciar (${webXrError || 'ARCore no disponible en este navegador'}). Toca "Abrir en Google Scene Viewer" abajo o verifica Google Play Services for AR.`;
+      warningText = `WebXR no pudo iniciar (${webXrError || 'ARCore no disponible en este navegador'}). Usa "AR Espacial 6DoF en Cámara (XR8 SLAM)" abajo.`;
     } else if (modeHint === 'sceneviewer-fallback') {
-      warningText = 'Google Scene Viewer no se abrió en este teléfono. Verifica tener instalada la app "Google" o "Google Play Services for AR (ARCore)".';
-    } else if (env.isAndroid && !env.webXrSupported && !env.isInAppWebView) {
-      warningText = 'Este navegador no reporta soporte WebXR 6DoF. Prueba "Abrir en Google Scene Viewer" o instala/actualiza "Google Play Services for AR".';
+      warningText = 'Google Scene Viewer no se abrió en este teléfono. Usa "AR Espacial 6DoF en Cámara (XR8 SLAM)" para fijar y rodear el modelo directamente aquí.';
     }
     warnEl.textContent = warningText;
     warnEl.style.display = warningText ? 'block' : 'none';
@@ -5285,29 +5903,29 @@ class Qr3dViewer extends HTMLElement {
       actionsEl.appendChild(xrBtn);
     }
 
+    if (env.hasCameraApi && (env.isHttpsOrigin || env.isLocalHost)) {
+      const slamBtn = document.createElement('button');
+      slamBtn.type = 'button';
+      const makeSlamPrimary = !env.isMobile || (env.isAndroid && !env.webXrSupported && !env.isInAppWebView);
+      slamBtn.className = makeSlamPrimary ? 'ar-btn-primary' : 'ar-btn-secondary';
+      slamBtn.innerHTML = `${renderIcon('scan', { size: 15 })}<span>AR Espacial 6DoF en Cámara (SLAM)</span>`;
+      slamBtn.addEventListener('click', () => this.startSlamCameraAR());
+      actionsEl.appendChild(slamBtn);
+    }
+
     if (env.isAndroid && env.absArModelUrl && env.isHttpsOrigin && !env.isLocalHost) {
       const svBtn = document.createElement('a');
-      svBtn.className = (!env.webXrSupported && !env.isInAppWebView) || modeHint === 'webxr-denied' ? 'ar-btn-primary' : 'ar-btn-secondary';
+      svBtn.className = 'ar-btn-secondary';
       svBtn.href = this.buildAndroidSceneViewerIntent(env.absArModelUrl);
       svBtn.innerHTML = `${renderIcon('smartphone', { size: 15 })}<span>Abrir en Google Scene Viewer (6DoF)</span>`;
       actionsEl.appendChild(svBtn);
     }
 
-    if (env.isAndroid && (!env.webXrSupported || modeHint === 'webxr-denied' || modeHint === 'sceneviewer-fallback')) {
-      const arCoreBtn = document.createElement('a');
-      arCoreBtn.className = 'ar-btn-secondary';
-      arCoreBtn.target = '_blank';
-      arCoreBtn.rel = 'noopener noreferrer';
-      arCoreBtn.href = 'https://play.google.com/store/apps/details?id=com.google.ar.core';
-      arCoreBtn.innerHTML = `${renderIcon('download', { size: 15 })}<span>Instalar / Actualizar Play Services for AR</span>`;
-      actionsEl.appendChild(arCoreBtn);
-    }
-
     if (env.hasCameraApi) {
       const camBtn = document.createElement('button');
       camBtn.type = 'button';
-      camBtn.className = (!env.isMobile) ? 'ar-btn-primary' : 'ar-btn-secondary';
-      const camLabel = env.isMobile ? 'Cámara 3DoF (solo giro, sin caminar 6DoF)' : 'Vista previa con Cámara Web (PC)';
+      camBtn.className = 'ar-btn-secondary';
+      const camLabel = env.isMobile ? 'Cámara 3DoF (respaldo sin caminar)' : 'Vista previa con Cámara Web (3DoF)';
       camBtn.innerHTML = `${renderIcon('camera', { size: 15 })}<span>${camLabel}</span>`;
       camBtn.addEventListener('click', () => this.startCameraAR());
       actionsEl.appendChild(camBtn);
@@ -5356,6 +5974,10 @@ class Qr3dViewer extends HTMLElement {
       }
       if (env.isInAppWebView) {
         this.openArModal({ modeHint: 'android-webview' });
+        return;
+      }
+      if (env.hasCameraApi && (env.isHttpsOrigin || env.isLocalHost)) {
+        this.startSlamCameraAR();
         return;
       }
       if (env.isHttpsOrigin && !env.isLocalHost && env.absArModelUrl) {
